@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#009fdb"/>
+<title>Location Upgrade</title>
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root{--blue:#009fdb;--ink:#071725;--muted:#64727d;--panel:#fff;--line:#dce8ee}
+*{box-sizing:border-box} html,body{margin:0;background:#f4f9fc;color:var(--ink);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{min-height:100vh}.shell{max-width:720px;margin:auto;min-height:100vh;background:white;box-shadow:0 0 60px #bdd5e244;overflow:hidden}
+.hero{padding:28px 22px 18px;background:radial-gradient(circle at 80% 0,#8ee3ff 0,transparent 33%),linear-gradient(155deg,#001c2e,#004f78 56%,#009fdb);color:#fff}
+.brand{font-weight:900;letter-spacing:.12em;font-size:13px}.hero h1{font-size:38px;line-height:.98;margin:14px 0 10px;letter-spacing:-.04em}.hero p{margin:0;color:#dff6ff;line-height:1.45}
+.step{padding:18px 18px 24px}.search{display:flex;gap:8px;margin-bottom:12px}.search input{flex:1;border:1px solid #c9dbe4;border-radius:14px;padding:14px 13px;font-size:16px;outline:none}.search button,.primary,.upgrade{border:0;border-radius:14px;font-weight:800;cursor:pointer}.search button{background:#071725;color:white;padding:0 15px}
+#map{height:390px;border-radius:20px;overflow:hidden;border:1px solid var(--line);background:#dfeef5}.hint{font-size:13px;color:var(--muted);margin:10px 2px 0}.selected{margin-top:12px;padding:13px;border:1px solid var(--line);border-radius:14px;background:#f8fcfe;display:none}.selected b{display:block;margin-bottom:3px}
+.primary{width:100%;margin-top:12px;padding:16px;background:var(--blue);color:#fff;font-size:17px;display:none}
+#activation{position:fixed;inset:0;background:#020a10;color:#fff;z-index:9999;display:none;align-items:center;justify-content:center;overflow:hidden}
+.grid{position:absolute;inset:-20%;background-image:linear-gradient(#00b9ff18 1px,transparent 1px),linear-gradient(90deg,#00b9ff18 1px,transparent 1px);background-size:35px 35px;transform:perspective(500px) rotateX(62deg) translateY(35%);animation:drift 5s linear infinite}
+@keyframes drift{to{background-position:0 140px,140px 0}}
+.core{width:250px;height:250px;border-radius:50%;border:1px solid #24c8ff66;display:grid;place-items:center;position:relative;box-shadow:0 0 80px #00b8ff44}
+.core:before,.core:after{content:"";position:absolute;border-radius:50%;border:2px solid #00b8ff88;inset:18px;animation:pulse 1.25s infinite}.core:after{inset:45px;animation-delay:.35s}
+@keyframes pulse{0%{transform:scale(.75);opacity:.1}60%{opacity:1}100%{transform:scale(1.3);opacity:0}}
+.house{font-size:62px;filter:drop-shadow(0 0 20px #00c8ff)}.status{position:absolute;bottom:13%;left:20px;right:20px;text-align:center;font-weight:800;letter-spacing:.05em}.status small{display:block;color:#8bdfff;margin-top:8px;font-weight:500;letter-spacing:0}
+.flash{animation:flash .25s 2}@keyframes flash{50%{background:#dff8ff}}
+#offers{display:none;padding:0 18px 34px}.success{margin:0 -18px 18px;padding:28px 22px;background:linear-gradient(145deg,#001c2e,#0077a8);color:#fff}.success .check{font-size:44px}.success h2{font-size:31px;margin:6px 0 8px;letter-spacing:-.03em}.success p{margin:0;color:#d8f5ff}
+.cards{display:grid;gap:11px}.card{padding:17px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 8px 30px #0a42630c}.card .kicker{font-size:12px;font-weight:900;color:#0076a8;letter-spacing:.09em}.card h3{font-size:23px;margin:4px 0 5px}.card p{font-size:13px;color:#5d6d77;margin:0;line-height:1.4}
+.upgrade{position:sticky;bottom:12px;width:100%;margin-top:18px;padding:18px;background:#00a8e8;color:white;font-size:20px;box-shadow:0 12px 30px #0078aa55}.fine{font-size:11px;line-height:1.4;color:#71808a;margin-top:13px;text-align:center}
+.loader{width:16px;height:16px;border:2px solid #ffffff55;border-top-color:white;border-radius:50%;display:inline-block;vertical-align:-3px;margin-right:7px;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="shell">
+<section class="hero">
+<div class="brand">LOCATION UPGRADE</div>
+<h1>Tap your home.<br>See what unlocks.</h1>
+<p>Select your home on the map or type your address. We'll run the location upgrade experience, then show current switch incentives.</p>
+</section>
+
+<section class="step" id="chooser">
+<div class="search">
+<input id="address" autocomplete="street-address" placeholder="Type your home address">
+<button id="find">FIND</button>
+</div>
+<div id="map"></div>
+<p class="hint">Tap directly on your home, or search your address above. Your selected address is used only to prepare the text message unless you choose to send it.</p>
+<div class="selected" id="selected"><b>Selected location</b><span id="selectedText"></span></div>
+<button class="primary" id="activate">UPGRADE THIS LOCATION</button>
+</section>
+
+<section id="offers">
+<div class="success">
+<div class="check">✓</div>
+<h2>Location upgrade complete.</h2>
+<p id="successAddress">Your location is ready for a switch comparison.</p>
+</div>
+<div class="cards">
+<div class="card"><div class="kicker">CONTRACT BREAK</div><h3>Up to $800 / line</h3><p>Eligible switchers may receive an AT&T reward card based on the remaining eligible device balance. Redemption and restrictions apply.</p></div>
+<div class="card"><div class="kicker">KEEP YOUR NUMBER</div><h3>New network. Same number.</h3><p>Bring your existing number when you switch an eligible line.</p></div>
+<div class="card"><div class="kicker">BRING YOUR PHONE</div><h3>Up to $250 in bill credits</h3><p>Current online BYOD offer requires an eligible port-in and service. Eligibility and channel restrictions apply.</p></div>
+<div class="card"><div class="kicker">PRICE COMPARISON</div><h3>See if switching makes sense.</h3><p>Text your rep to compare your current carrier, lines and monthly price before deciding.</p></div>
+</div>
+<button class="upgrade" id="upgrade">UPGRADE — TEXT MY REP</button>
+<div class="fine">Offers can change and have eligibility requirements. Final pricing, device promotions and qualification are confirmed during the official AT&T order process.</div>
+</section>
+</div>
+
+<div id="activation">
+<div class="grid"></div>
+<div class="core"><div class="house">⌂</div></div>
+<div class="status"><span id="status">LOCKING LOCATION</span><small id="mini"></small></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const REP="2053108645";
+let selectedAddress="", marker=null;
+const map=L.map("map",{zoomControl:false}).setView([36.8508,-76.2859],12);
+L.control.zoom({position:"bottomright"}).addTo(map);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:20,attribution:"© OpenStreetMap"}).addTo(map);
+
+async function reverse(lat,lng){
+ try{
+  const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+  const d=await r.json(); return d.display_name||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+ }catch(e){return `${lat.toFixed(5)}, ${lng.toFixed(5)}`}
+}
+function choose(lat,lng,label){
+ if(marker) marker.remove();
+ marker=L.marker([lat,lng]).addTo(map);
+ selectedAddress=label;
+ document.getElementById("selectedText").textContent=label;
+ document.getElementById("selected").style.display="block";
+ document.getElementById("activate").style.display="block";
+}
+map.on("click",async e=>{
+ const label=await reverse(e.latlng.lat,e.latlng.lng);
+ choose(e.latlng.lat,e.latlng.lng,label);
+});
+document.getElementById("find").onclick=async()=>{
+ const q=document.getElementById("address").value.trim(); if(!q)return;
+ const b=document.getElementById("find"); b.innerHTML='<span class="loader"></span>';
+ try{
+  const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(q)}`);
+  const d=await r.json();
+  if(!d.length){alert("Address not found. Try including city and state.");return}
+  const lat=+d[0].lat,lng=+d[0].lon; map.setView([lat,lng],19); choose(lat,lng,d[0].display_name);
+ }finally{b.textContent="FIND"}
+};
+document.getElementById("address").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("find").click()});
+
+function buzz(pattern){try{if(navigator.vibrate) navigator.vibrate(pattern)}catch(e){}}
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function runActivation(){
+ const a=document.getElementById("activation"),s=document.getElementById("status"),m=document.getElementById("mini");
+ a.style.display="flex"; m.textContent=selectedAddress.split(",").slice(0,2).join(",");
+ s.textContent="LOCKING LOCATION"; buzz([80,70,80]); await wait(1200);
+ s.textContent="CONNECTING UPGRADE PATH"; buzz([120,70,120,70,120]); await wait(1500);
+ s.textContent="CHECKING SWITCH OPTIONS"; buzz([60,60,60,60,180]); await wait(1450);
+ s.textContent="POWERING LOCATION"; buzz([100,45,100,45,100,45,250]); a.classList.add("flash"); await wait(1200);
+ s.textContent="UPGRADE READY"; buzz([300]); await wait(950);
+ a.style.display="none"; a.classList.remove("flash");
+ document.getElementById("chooser").style.display="none";
+ document.getElementById("offers").style.display="block";
+ document.getElementById("successAddress").textContent=selectedAddress;
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+document.getElementById("activate").onclick=runActivation;
+document.getElementById("upgrade").onclick=()=>{
+ const msg=`Hi London, I checked my Location Upgrade and want to compare my current service.%0A%0AAddress: ${encodeURIComponent(selectedAddress)}%0A%0AI'd like to see if a hassle-free switch makes sense.`;
+ location.href=`sms:${REP}?&body=${msg}`;
+};
+</script>
+</body>
+</html>
