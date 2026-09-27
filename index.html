@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#009fdb"/>
+<title>Location Upgrade</title>
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root{--blue:#009fdb;--ink:#071725;--muted:#64727d;--panel:#fff;--line:#dce8ee}
+*{box-sizing:border-box} html,body{margin:0;background:#f4f9fc;color:var(--ink);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{min-height:100vh}.shell{max-width:720px;margin:auto;min-height:100vh;background:white;box-shadow:0 0 60px #bdd5e244;overflow:hidden}
+.hero{padding:28px 22px 18px;background:radial-gradient(circle at 80% 0,#8ee3ff 0,transparent 33%),linear-gradient(155deg,#001c2e,#004f78 56%,#009fdb);color:#fff}
+.brand{font-weight:900;letter-spacing:.12em;font-size:13px}.hero h1{font-size:38px;line-height:.98;margin:14px 0 10px;letter-spacing:-.04em}.hero p{margin:0;color:#dff6ff;line-height:1.45}
+.step{padding:18px 18px 24px}.search{display:flex;gap:8px;margin-bottom:12px}.search input{flex:1;border:1px solid #c9dbe4;border-radius:14px;padding:14px 13px;font-size:16px;outline:none}.search button,.primary,.upgrade{border:0;border-radius:14px;font-weight:800;cursor:pointer}.search button{background:#071725;color:white;padding:0 15px}
+#map{height:390px;border-radius:20px;overflow:hidden;border:1px solid var(--line);background:#dfeef5}.hint{font-size:13px;color:var(--muted);margin:10px 2px 0}.selected{margin-top:12px;padding:15px;border:1px solid #74dfff;border-radius:16px;background:linear-gradient(135deg,#f8fdff,#e8f9ff);display:none;box-shadow:0 10px 30px #00a8e81a}.selected b{display:block;margin-bottom:3px}
+.primary{width:100%;margin-top:14px;padding:18px;background:linear-gradient(100deg,#00a8e8,#18d6ff 52%,#00a8e8);background-size:200% 100%;color:#fff;font-size:18px;display:none;box-shadow:0 12px 30px #00a8e855;animation:buttonGlow 2.2s ease-in-out infinite}
+@keyframes buttonGlow{0%,100%{background-position:0 0;box-shadow:0 10px 24px #00a8e844}50%{background-position:100% 0;box-shadow:0 12px 38px #00d5ff88}}
+#activation{position:fixed;inset:0;background:#010b12;color:#fff;z-index:9999;display:none;align-items:center;justify-content:center;overflow:hidden}
+#cinMap{position:absolute;inset:0;background:
+ radial-gradient(circle at 50% 48%,#0a4c6730 0 7%,transparent 20%),
+ linear-gradient(#00a8e80d 1px,transparent 1px),linear-gradient(90deg,#00a8e80d 1px,transparent 1px),
+ radial-gradient(circle at 50% 50%,#05202e,#01080d 72%);background-size:auto,46px 46px,46px 46px,auto;transform:scale(1.04);transition:transform 1.4s cubic-bezier(.2,.8,.2,1),filter .7s}
+#activation.zoomed #cinMap{transform:scale(1.17);filter:brightness(1.18)}
+.scanline{position:absolute;left:-10%;right:-10%;height:2px;top:22%;background:linear-gradient(90deg,transparent,#36d9ff,#fff,#36d9ff,transparent);box-shadow:0 0 18px #00c8ff;opacity:.8;animation:scan 2.4s ease-in-out infinite}
+@keyframes scan{50%{top:76%;opacity:.35}}
+.node{position:absolute;width:48px;height:48px;transform:translate(-50%,-50%);border-radius:50%;border:1px solid #18d6ff77;background:#03141e;box-shadow:0 0 0 8px #00b8ff0a,0 0 28px #00c8ff33;display:grid;place-items:center;transition:.35s}
+.node:before{content:"";width:5px;height:26px;background:#a9edff;clip-path:polygon(45% 0,55% 0,65% 38%,100% 100%,78% 100%,54% 53%,46% 53%,22% 100%,0 100%,35% 38%);filter:drop-shadow(0 0 6px #00c8ff)}
+.node.done{background:#00a8e8;border-color:#c7f7ff;box-shadow:0 0 18px #fff,0 0 50px #00c8ff}.node.active{transform:translate(-50%,-50%) scale(1.24)}
+.n1{left:18%;top:28%}.n2{left:79%;top:24%}.n3{left:88%;top:67%}.n4{left:21%;top:76%}.n5{left:51%;top:14%}
+.homeCore{position:absolute;left:50%;top:52%;width:132px;height:132px;transform:translate(-50%,-50%);border-radius:50%;display:grid;place-items:center;border:1px solid #00c8ff99;background:#03141ecc;box-shadow:0 0 0 16px #00b8ff08,0 0 65px #00c8ff55;z-index:4}
+.homeCore:before,.homeCore:after{content:"";position:absolute;inset:-24px;border:1px solid #00c8ff55;border-radius:50%;animation:ring 2s ease-out infinite}.homeCore:after{animation-delay:1s}
+@keyframes ring{0%{transform:scale(.72);opacity:0}35%{opacity:1}100%{transform:scale(1.5);opacity:0}}
+.houseIcon{font-size:64px;line-height:1;filter:drop-shadow(0 0 15px #00d9ff)}
+.orb,.ghost{position:absolute;width:16px;height:16px;border-radius:50%;transform:translate(-50%,-50%);z-index:8;pointer-events:none}.orb{background:#fff;box-shadow:0 0 8px #fff,0 0 25px #00c8ff,0 0 55px #00a8e8}.ghost{width:11px;height:11px;background:#63e4ff;box-shadow:0 0 18px #00c8ff;animation:ghost .75s ease-out forwards}
+@keyframes ghost{to{opacity:0;transform:translate(-50%,-50%) scale(.1)}}
+.lightTrail{position:absolute;height:3px;transform-origin:0 50%;z-index:6;background:linear-gradient(90deg,#fff,#00c8ff 38%,transparent);box-shadow:0 0 13px #00c8ff;animation:trail .85s ease-out forwards}
+@keyframes trail{0%{opacity:0;clip-path:inset(0 100% 0 0)}25%{opacity:1}100%{opacity:0;clip-path:inset(0 0 0 0)}}
+#mapFlash{position:absolute;inset:0;background:#bdf5ff;opacity:0;z-index:20;pointer-events:none}#mapFlash.fire{animation:mapFlash .35s ease-out}@keyframes mapFlash{0%{opacity:.58}100%{opacity:0}}
+.hud{position:absolute;left:18px;right:18px;bottom:max(25px,env(safe-area-inset-bottom));z-index:30;background:#03141ee8;border:1px solid #0d7296;border-radius:18px;padding:15px 16px;box-shadow:0 16px 50px #0008,0 0 30px #00b8ff18;backdrop-filter:blur(10px)}
+.hudTop{display:flex;justify-content:space-between;gap:10px;align-items:end}.hudStep{font-weight:900;font-size:15px;letter-spacing:.055em}.hudPct{font-weight:900;color:#74e6ff}.hudAddr{font-size:12px;color:#9adff2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px}.hudBar{height:5px;border-radius:20px;background:#12303c;margin-top:11px;overflow:hidden}.hudFill{height:100%;width:0;background:linear-gradient(90deg,#00a8e8,#6eeeff,#fff);box-shadow:0 0 16px #00d9ff;transition:width .45s ease}
+.powerWord{position:absolute;top:8%;left:18px;right:18px;text-align:center;z-index:30;font-size:12px;font-weight:900;letter-spacing:.18em;color:#7ee9ff;text-shadow:0 0 18px #00b8ff;opacity:.9}
+#activation.finalSurge .homeCore{animation:surge .55s ease-in-out 4}@keyframes surge{50%{transform:translate(-50%,-50%) scale(1.18);box-shadow:0 0 20px #fff,0 0 100px #00d9ff}}
+#activation.powerDown #cinMap,#activation.powerDown .node{filter:brightness(.55)}#activation.powerDown .scanline{opacity:0}
+#offers{display:none;padding:0 18px 34px}.success{margin:0 -18px 18px;padding:30px 22px;background:radial-gradient(circle at 90% 0,#52e5ff88,transparent 34%),linear-gradient(135deg,#001523,#006b98 58%,#00a8e8);color:#fff;box-shadow:inset 0 -1px #ffffff33}.success .check{font-size:44px}.success h2{font-size:31px;margin:6px 0 8px;letter-spacing:-.03em}.success p{margin:0;color:#d8f5ff}
+.cards{display:grid;gap:11px}.card{padding:17px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 8px 30px #0a42630c}.card .kicker{font-size:12px;font-weight:900;color:#0076a8;letter-spacing:.09em}.card h3{font-size:23px;margin:4px 0 5px}.card p{font-size:13px;color:#5d6d77;margin:0;line-height:1.4}
+.upgrade{position:sticky;bottom:12px;width:100%;margin-top:18px;padding:19px;background:linear-gradient(90deg,#0078b8,#00c8ff,#0078b8);background-size:200% 100%;color:white;font-size:20px;box-shadow:0 14px 36px #00a8e877;animation:buttonGlow 1.8s ease-in-out infinite}.fine{font-size:11px;line-height:1.4;color:#71808a;margin-top:13px;text-align:center}
+.loader{width:16px;height:16px;border:2px solid #ffffff55;border-top-color:white;border-radius:50%;display:inline-block;vertical-align:-3px;margin-right:7px;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="shell">
+<section class="hero">
+<div class="brand">LOCATION UPGRADE</div>
+<h1>Tap your home.<br>See what unlocks.</h1>
+<p>Select your home on the map or type your address. We'll run the location upgrade experience, then show current switch incentives.</p>
+</section>
+
+<section class="step" id="chooser">
+<div class="search">
+<input id="address" autocomplete="street-address" placeholder="Type your home address">
+<button id="find">FIND</button>
+</div>
+<div id="map"></div>
+<p class="hint">Tap directly on your home, or search your address above. Your selected address is used only to prepare the text message unless you choose to send it.</p>
+<div class="selected" id="selected"><b>Selected location</b><span id="selectedText"></span></div>
+<button class="primary" id="activate">UPGRADE THIS LOCATION</button>
+</section>
+
+<section id="offers">
+<div class="success">
+<div class="check">✓</div>
+<h2>Location upgrade complete.</h2>
+<p id="successAddress">Your location is ready for a switch comparison.</p>
+</div>
+<div class="cards">
+<div class="card"><div class="kicker">CONTRACT BREAK</div><h3>Up to $800 / line</h3><p>Eligible switchers may receive an AT&T reward card based on the remaining eligible device balance. Redemption and restrictions apply.</p></div>
+<div class="card"><div class="kicker">KEEP YOUR NUMBER</div><h3>New network. Same number.</h3><p>Bring your existing number when you switch an eligible line.</p></div>
+<div class="card"><div class="kicker">BRING YOUR PHONE</div><h3>Up to $250 in bill credits</h3><p>Current online BYOD offer requires an eligible port-in and service. Eligibility and channel restrictions apply.</p></div>
+<div class="card"><div class="kicker">PRICE COMPARISON</div><h3>See if switching makes sense.</h3><p>Text your rep to compare your current carrier, lines and monthly price before deciding.</p></div>
+</div>
+<button class="upgrade" id="upgrade">UPGRADE — TEXT MY REP</button>
+<div class="fine">Offers can change and have eligibility requirements. Final pricing, device promotions and qualification are confirmed during the official AT&T order process.</div>
+</section>
+</div>
+
+<div id="activation">
+<div id="cinMap"></div>
+<div class="scanline"></div>
+<div class="powerWord">SELECTED LOCATION • SERVICE UPGRADE</div>
+<div class="node n1"></div><div class="node n2"></div><div class="node n3"></div><div class="node n4"></div><div class="node n5"></div>
+<div class="homeCore"><div class="houseIcon">⌂</div></div>
+<div id="mapFlash"></div>
+<div class="hud">
+  <div class="hudTop"><div><div class="hudStep" id="hudStep">READY</div><div class="hudAddr" id="mini"></div></div><div class="hudPct" id="hudPct">0%</div></div>
+  <div class="hudBar"><div class="hudFill" id="hudFill"></div></div>
+</div>
+</div>
+
+<script src=<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const REP="2053108645";
+let selectedAddress="", marker=null;
+const map=L.map("map",{zoomControl:false}).setView([36.8508,-76.2859],12);
+L.control.zoom({position:"bottomright"}).addTo(map);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:20,attribution:"© OpenStreetMap"}).addTo(map);
+
+async function reverse(lat,lng){
+ try{
+  const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+  const d=await r.json(); return d.display_name||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+ }catch(e){return `${lat.toFixed(5)}, ${lng.toFixed(5)}`}
+}
+function choose(lat,lng,label){
+ if(marker) marker.remove();
+ marker=L.marker([lat,lng]).addTo(map);
+ selectedAddress=label;
+ document.getElementById("selectedText").textContent=label;
+ document.getElementById("selected").style.display="block";
+ document.getElementById("activate").style.display="block";
+}
+map.on("click",async e=>{
+ const label=await reverse(e.latlng.lat,e.latlng.lng);
+ choose(e.latlng.lat,e.latlng.lng,label);
+});
+document.getElementById("find").onclick=async()=>{
+ const q=document.getElementById("address").value.trim(); if(!q)return;
+ const b=document.getElementById("find"); b.innerHTML='<span class="loader"></span>';
+ try{
+  const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(q)}`);
+  const d=await r.json();
+  if(!d.length){alert("Address not found. Try including city and state.");return}
+  const lat=+d[0].lat,lng=+d[0].lon; map.setView([lat,lng],19); choose(lat,lng,d[0].display_name);
+ }finally{b.textContent="FIND"}
+};
+document.getElementById("address").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("find").click()});
+
+function buzz(pattern){try{if(navigator.vibrate)navigator.vibrate(pattern)}catch(e){}}
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+let audioCtx=null;
+function audio(){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume();return audioCtx}catch(e){return null}}
+function tone(freq=440,d=.15,type="sine",gain=.035,delay=0){const c=audio();if(!c)return;const o=c.createOscillator(),g=c.createGain(),t=c.currentTime+delay;o.type=type;o.frequency.setValueAtTime(freq,t);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(gain,t+.025);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(c.destination);o.start(t);o.stop(t+d+.03)}
+function sweep(a=150,b=1000,d=.6,gain=.04){const c=audio();if(!c)return;const o=c.createOscillator(),g=c.createGain(),t=c.currentTime;o.type="sine";o.frequency.setValueAtTime(a,t);o.frequency.exponentialRampToValueAtTime(b,t+d);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(gain,t+.04);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(c.destination);o.start();o.stop(t+d+.04)}
+function flash(){const f=document.getElementById("mapFlash");f.classList.remove("fire");void f.offsetWidth;f.classList.add("fire")}
+function hud(txt,pct){document.getElementById("hudStep").textContent=txt;document.getElementById("hudPct").textContent=pct+"%";document.getElementById("hudFill").style.width=pct+"%"}
+function center(el){const a=el.getBoundingClientRect();return{x:a.left+a.width/2,y:a.top+a.height/2}}
+function ghost(x,y){const a=document.getElementById("activation"),g=document.createElement("i");g.className="ghost";g.style.left=x+"px";g.style.top=y+"px";a.appendChild(g);setTimeout(()=>g.remove(),760)}
+async function fireTo(node,i,total){
+ const a=document.getElementById("activation"),home=document.querySelector(".homeCore"),st=center(home),en=center(node),dx=en.x-st.x,dy=en.y-st.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)*180/Math.PI;
+ const tr=document.createElement("i");tr.className="lightTrail";tr.style.left=st.x+"px";tr.style.top=st.y+"px";tr.style.width=dist+"px";tr.style.transform=`rotate(${ang}deg)`;a.appendChild(tr);setTimeout(()=>tr.remove(),900);
+ const orb=document.createElement("i");orb.className="orb";orb.style.left=st.x+"px";orb.style.top=st.y+"px";a.appendChild(orb);node.classList.add("active");
+ sweep(260+i*40,1120+i*75,.55,.04);buzz([55,35,55]);
+ const dur=760,start=performance.now();let bucket=-1;
+ await new Promise(resolve=>{function frame(now){let t=Math.min(1,(now-start)/dur),e=1-Math.pow(1-t,3),arc=Math.sin(Math.PI*t)*-42,x=st.x+dx*e,y=st.y+dy*e+arc;orb.style.left=x+"px";orb.style.top=y+"px";let b=Math.floor(t*12);if(b!==bucket){bucket=b;ghost(x,y)}if(t<1)requestAnimationFrame(frame);else{orb.remove();node.classList.remove("active");node.classList.add("done");flash();tone(860+i*85,.18,"triangle",.055);buzz([85,35,150]);hud(`NODE ${i+1} OF ${total} LINKED`,Math.round(((i+1)/total)*76)+10);resolve()}}requestAnimationFrame(frame)});
+}
+async function runActivation(){
+ audio();
+ const a=document.getElementById("activation"),nodes=[...document.querySelectorAll(".node")];
+ nodes.forEach(n=>n.classList.remove("active","done"));a.classList.remove("zoomed","finalSurge","powerDown");
+ document.getElementById("mini").textContent=selectedAddress;hud("INITIALIZING SERVICE UPGRADE",4);a.style.display="flex";
+ sweep(105,560,1.15,.045);buzz([80,60,80]);await wait(900);
+ a.classList.add("zoomed");hud("LOCKING SELECTED HOME",9);flash();tone(390,.18,"sine",.045);buzz([120,50,120]);await wait(950);
+ hud("LOCATING UPGRADE NODES",14);sweep(180,820,.8,.04);await wait(700);
+ for(let i=0;i<nodes.length;i++){await fireTo(nodes[i],i,nodes.length);await wait(250)}
+ // deliberate pump-fake: almost complete, momentary drop, then hard final surge.
+ hud("SYNCHRONIZING SERVICE PATH",91);sweep(320,1550,1.25,.055);buzz([80,45,80,45,80,45,180]);await wait(1050);
+ hud("FINALIZING",97);tone(980,.12,"triangle",.05);await wait(520);
+ hud("VERIFYING…",84);nodes.forEach(n=>n.classList.remove("done"));tone(170,.3,"sine",.035);buzz([220]);await wait(700);
+ nodes.forEach(n=>n.classList.add("done"));a.classList.add("finalSurge");hud("POWERING LOCATION",99);sweep(145,2100,1.65,.07);buzz([70,35,70,35,70,35,70,35,250]);await wait(1800);
+ flash();tone(523,.34,"sine",.05);tone(659,.38,"sine",.045,.08);tone(784,.48,"sine",.045,.16);tone(1046,.52,"sine",.035,.24);buzz([350]);
+ hud("SERVICE UPGRADE COMPLETE",100);await wait(1050);
+ a.classList.add("powerDown");hud("SECURING UPGRADE",100);await wait(1500);
+ a.style.display="none";
+ document.getElementById("chooser").style.display="none";document.getElementById("offers").style.display="block";
+ document.getElementById("successAddress").textContent=selectedAddress;
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+document.getElementById("activate").onclick=runActivation;
+document.getElementById("upgrade").onclick=()=>{
+ const msg=`Hi London, I checked my Location Upgrade and want to compare my current service.%0A%0AAddress: ${encodeURIComponent(selectedAddress)}%0A%0AI'd like to see if a hassle-free switch makes sense.`;
+ location.href=`sms:${REP}?&body=${msg}`;
+};
+</script>
+</body>
+</html>
