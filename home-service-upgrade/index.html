@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#009fdb"/>
+<title>Location Upgrade</title>
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root{--blue:#009fdb;--ink:#071725;--muted:#64727d;--panel:#fff;--line:#dce8ee}
+*{box-sizing:border-box} html,body{margin:0;background:#f4f9fc;color:var(--ink);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{min-height:100vh}.shell{max-width:720px;margin:auto;min-height:100vh;background:white;box-shadow:0 0 60px #bdd5e244;overflow:hidden}
+.hero{padding:28px 22px 18px;background:radial-gradient(circle at 80% 0,#8ee3ff 0,transparent 33%),linear-gradient(155deg,#001c2e,#004f78 56%,#009fdb);color:#fff}
+.brand{font-weight:900;letter-spacing:.12em;font-size:13px}.hero h1{font-size:38px;line-height:.98;margin:14px 0 10px;letter-spacing:-.04em}.hero p{margin:0;color:#dff6ff;line-height:1.45}
+.step{padding:18px 18px 24px}.search{display:flex;gap:8px;margin-bottom:12px;position:relative}.search input{flex:1;border:1px solid #c9dbe4;border-radius:14px;padding:14px 13px;font-size:16px;outline:none}.search button,.primary,.upgrade,.locate{border:0;border-radius:14px;font-weight:800;cursor:pointer}.search button{background:#071725;color:white;padding:0 15px}.locate{width:100%;margin:-2px 0 12px;padding:14px;background:#e9f8ff;color:#005c83;border:1px solid #82dfff;font-size:15px;letter-spacing:.04em;box-shadow:0 8px 24px #00a8e814}.suggestions{position:absolute;left:0;right:72px;top:54px;z-index:1200;background:#fff;border:1px solid #c9dbe4;border-radius:14px;box-shadow:0 16px 42px #001c2e33;display:none;max-height:320px;overflow:auto}.suggestions.show{display:block}.suggestion{padding:12px 13px;border-bottom:1px solid #e4eef3;font-size:13px;line-height:1.35;cursor:pointer}.suggestion:last-child{border-bottom:0}.suggestion:hover{background:#eaf9ff}
+#map{height:390px;border-radius:20px;overflow:hidden;border:1px solid var(--line);background:#dfeef5}.hint{font-size:13px;color:var(--muted);margin:10px 2px 0}.selected{margin-top:12px;padding:15px;border:1px solid #74dfff;border-radius:16px;background:linear-gradient(135deg,#f8fdff,#e8f9ff);display:none;box-shadow:0 10px 30px #00a8e81a}.selected b{display:block;margin-bottom:3px}
+.primary{width:100%;margin-top:14px;padding:18px;background:linear-gradient(100deg,#00a8e8,#18d6ff 52%,#00a8e8);background-size:200% 100%;color:#fff;font-size:18px;display:none;box-shadow:0 12px 30px #00a8e855;animation:buttonGlow 2.2s ease-in-out infinite}
+@keyframes buttonGlow{0%,100%{background-position:0 0;box-shadow:0 10px 24px #00a8e844}50%{background-position:100% 0;box-shadow:0 12px 38px #00d5ff88}}
+#activation{position:fixed;inset:0;background:#010b12;color:#fff;z-index:9999;display:none;align-items:center;justify-content:center;overflow:hidden}
+#liveMap{position:absolute;inset:0;z-index:1;background:#07131b}
+#liveMap .leaflet-tile{filter:saturate(.95) contrast(1.12) brightness(.92)}
+#liveMap:after{content:"";position:absolute;inset:0;z-index:500;pointer-events:none;background:radial-gradient(circle at 50% 55%,transparent 0 38%,rgba(0,8,14,.05) 72%,rgba(0,5,9,.14) 100%)}
+#cinMap{position:absolute;inset:0;z-index:2;pointer-events:none;background:
+ radial-gradient(circle at 50% 48%,rgba(10,76,103,.10) 0 7%,transparent 20%),
+ linear-gradient(rgba(0,168,232,.035) 1px,transparent 1px),
+ linear-gradient(90deg,rgba(0,168,232,.035) 1px,transparent 1px);
+background-size:auto,46px 46px,46px 46px;transform:scale(1.04);transition:transform 1.4s cubic-bezier(.2,.8,.2,1),filter .7s}
+#activation.zoomed #cinMap{transform:scale(1.17);filter:brightness(1.18)}
+.scanline{position:absolute;left:-10%;right:-10%;height:2px;top:22%;background:linear-gradient(90deg,transparent,#36d9ff,#fff,#36d9ff,transparent);box-shadow:0 0 18px #00c8ff;opacity:.8;animation:scan 2.4s ease-in-out infinite}
+@keyframes scan{50%{top:76%;opacity:.35}}
+.node{position:absolute;width:48px;height:48px;transform:translate(-50%,-50%);border-radius:50%;border:1px solid #18d6ff77;background:#03141e;box-shadow:0 0 0 8px #00b8ff0a,0 0 28px #00c8ff33;display:grid;place-items:center;transition:.35s}
+.node:before{content:"";width:5px;height:26px;background:#a9edff;clip-path:polygon(45% 0,55% 0,65% 38%,100% 100%,78% 100%,54% 53%,46% 53%,22% 100%,0 100%,35% 38%);filter:drop-shadow(0 0 6px #00c8ff)}
+.node.done{background:#00a8e8;border-color:#c7f7ff;box-shadow:0 0 18px #fff,0 0 50px #00c8ff}.node.active{transform:translate(-50%,-50%) scale(1.24)}
+.n1{left:18%;top:28%}.n2{left:79%;top:24%}.n3{left:88%;top:67%}.n4{left:21%;top:76%}.n5{left:51%;top:14%}
+.homeCore{position:absolute;left:50%;top:52%;width:132px;height:132px;transform:translate(-50%,-50%);border-radius:50%;display:grid;place-items:center;border:1px solid #00c8ff99;background:#03141ecc;box-shadow:0 0 0 16px #00b8ff08,0 0 65px #00c8ff55;z-index:4}
+.homeCore:before,.homeCore:after{content:"";position:absolute;inset:-24px;border:1px solid #00c8ff55;border-radius:50%;animation:ring 2s ease-out infinite}.homeCore:after{animation-delay:1s}
+@keyframes ring{0%{transform:scale(.72);opacity:0}35%{opacity:1}100%{transform:scale(1.5);opacity:0}}
+.houseIcon{font-size:64px;line-height:1;filter:drop-shadow(0 0 15px #00d9ff)}
+.orb,.ghost{position:absolute;width:16px;height:16px;border-radius:50%;transform:translate(-50%,-50%);z-index:8;pointer-events:none}.orb{background:#fff;box-shadow:0 0 8px #fff,0 0 25px #00c8ff,0 0 55px #00a8e8}.ghost{width:11px;height:11px;background:#63e4ff;box-shadow:0 0 18px #00c8ff;animation:ghost .75s ease-out forwards}
+@keyframes ghost{to{opacity:0;transform:translate(-50%,-50%) scale(.1)}}
+.lightTrail{position:absolute;height:3px;transform-origin:0 50%;z-index:6;background:linear-gradient(90deg,#fff,#00c8ff 38%,transparent);box-shadow:0 0 13px #00c8ff;animation:trail .85s ease-out forwards}
+@keyframes trail{0%{opacity:0;clip-path:inset(0 100% 0 0)}25%{opacity:1}100%{opacity:0;clip-path:inset(0 0 0 0)}}
+#mapFlash{position:absolute;inset:0;background:#bdf5ff;opacity:0;z-index:20;pointer-events:none}#mapFlash.fire{animation:mapFlash .35s ease-out}@keyframes mapFlash{0%{opacity:.58}100%{opacity:0}}
+.hud{position:absolute;left:10px;right:10px;top:max(10px,env(safe-area-inset-top));bottom:auto;z-index:40;min-height:44px;background:#03141ef0;border:1px solid #0d86b0;border-radius:14px;padding:0 13px;box-shadow:0 8px 30px #0008,0 0 24px #00b8ff2a;backdrop-filter:blur(12px);display:flex;align-items:center}
+.hudTop{width:100%;display:flex;justify-content:space-between;gap:12px;align-items:center}.hudStep{font-weight:950;font-size:14px;letter-spacing:.045em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hudPct{font-weight:1000;color:#7eeeff;font-size:20px;font-variant-numeric:tabular-nums;min-width:50px;text-align:right;text-shadow:0 0 15px #00d9ff}.hudAddr,.hudBar{display:none!important}
+.powerWord{display:none}
+#activation.finalSurge .homeCore{animation:surge .55s ease-in-out 4}@keyframes surge{50%{transform:translate(-50%,-50%) scale(1.18);box-shadow:0 0 24px #00cfff,0 0 110px #006eff}}
+#activation.powerDown #cinMap,#activation.powerDown .node{filter:brightness(.55)}#activation.powerDown .scanline{opacity:0}
+#offers{display:none;min-height:100dvh;padding:calc(22px + env(safe-area-inset-top)) 18px calc(26px + env(safe-area-inset-bottom));background:radial-gradient(circle at 85% 8%,#19d7ff66,transparent 28%),radial-gradient(circle at 15% 92%,#006ef066,transparent 34%),linear-gradient(155deg,#00111d 0%,#003f62 48%,#007fab 100%);color:#fff;position:relative;overflow:hidden}
+#offers:before{content:"";position:absolute;inset:-20%;background:repeating-radial-gradient(circle at 50% 45%,transparent 0 38px,#33dcff12 40px 42px,transparent 44px 86px);animation:offerPulse 5s linear infinite;pointer-events:none}@keyframes offerPulse{to{transform:scale(1.08);opacity:.55}}
+.success{position:relative;z-index:2;margin:0 0 18px;padding:24px 18px 20px;border:1px solid #59e7ff88;border-radius:24px;background:linear-gradient(145deg,#031927e8,#006991cc);box-shadow:0 18px 55px #0007,0 0 48px #00ccff35;text-align:center}.success .check{font-size:48px;filter:drop-shadow(0 0 18px #65ecff)}.success h2{font-size:34px;line-height:1.02;margin:6px 0 10px;letter-spacing:-.04em}.success p{margin:0 auto;color:#dff8ff;max-width:520px;line-height:1.45;font-size:15px}
+.cards{position:relative;z-index:2;display:grid;grid-template-columns:1fr 1fr;gap:11px}.card{padding:16px 14px;border:1px solid #6ee9ff55;border-radius:18px;background:linear-gradient(155deg,#062236d9,#003d5cd9);box-shadow:0 10px 28px #00111d66,inset 0 1px #ffffff16}.card .kicker{font-size:11px;font-weight:950;color:#78ecff;letter-spacing:.09em}.card h3{font-size:20px;margin:5px 0 5px;color:#fff}.card p{font-size:12.5px;color:#c7eaf4;margin:0;line-height:1.4}
+.upgrade{position:relative;z-index:3;display:block;text-decoration:none;text-align:center;width:100%;margin-top:18px;padding:20px;background:linear-gradient(90deg,#0078b8,#17d8ff,#0078b8);background-size:200% 100%;color:white;font-size:20px;border-radius:16px;box-shadow:0 14px 40px #00c8ff77,0 0 55px #00b8ff33;animation:buttonGlow 1.55s ease-in-out infinite}.upgrade small{display:block;font-size:11px;letter-spacing:.09em;margin-top:4px;color:#e2fbff}.fine{display:none}@media(max-width:520px){.cards{grid-template-columns:1fr 1fr}.card{padding:14px 12px}.card h3{font-size:18px}.success h2{font-size:31px}}
+.loader{width:16px;height:16px;border:2px solid #ffffff55;border-top-color:white;border-radius:50%;display:inline-block;vertical-align:-3px;margin-right:7px;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+
+.construct{position:absolute;left:50%;top:52%;width:210px;height:330px;transform:translate(-50%,-58%);z-index:5;pointer-events:none;opacity:0;filter:drop-shadow(0 0 14px #00d9ff) drop-shadow(0 0 32px #00a8e8)}
+.construct.on{opacity:1}
+.construct svg{width:100%;height:100%;overflow:visible}
+.buildPiece{fill:none;stroke:#d9fbff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:700;stroke-dashoffset:700}
+.buildPiece.draw{animation:drawPiece 1.35s ease forwards}
+.buildAccent{fill:none;stroke:#ffe769;stroke-width:5;stroke-linecap:round;opacity:0}
+.buildAccent.on{animation:accentOn .55s ease forwards}
+@keyframes drawPiece{to{stroke-dashoffset:0}}
+@keyframes accentOn{0%{opacity:0;filter:drop-shadow(0 0 0 #fff)}100%{opacity:1;filter:drop-shadow(0 0 10px #fff38a)}}
+.siteRing{position:absolute;left:50%;top:52%;width:235px;height:100px;transform:translate(-50%,115px);z-index:4;border:2px solid #5ee9ff;border-radius:50%;opacity:0;box-shadow:0 0 30px #00c8ff66}
+.siteRing.on{animation:siteRing 1.2s ease-in-out infinite}
+@keyframes siteRing{50%{transform:translate(-50%,115px) scale(1.14);opacity:.9;box-shadow:0 0 60px #00d9ffaa}}
+.constructionLabel{display:none!important;position:absolute;left:50%;top:calc(52% + 210px);transform:translateX(-50%);z-index:7;font-size:11px;font-weight:950;letter-spacing:.16em;color:#bdf5ff;text-shadow:0 0 12px #00b8ff;opacity:0;white-space:nowrap}.constructionLabel.on{opacity:1}
+
+#beamCanvas{position:absolute;inset:0;z-index:8;pointer-events:none}
+#groundBeam{position:absolute;z-index:10;top:0;width:34px;height:0;transform:translateX(-50%);opacity:0;pointer-events:none;background:linear-gradient(90deg,transparent 0%,#006dff55 18%,#00cfffcc 46%,#56eaff 50%,#00cfffcc 54%,#006dff55 82%,transparent 100%);box-shadow:0 0 24px #008cff,0 0 54px #00cfff,0 0 110px #0076ff;filter:saturate(1.5)}
+#groundBeam.on{opacity:.92;animation:beamBreathe .72s ease-in-out infinite alternate}@keyframes beamBreathe{from{filter:saturate(1.5) brightness(.88);width:28px}to{filter:saturate(1.9) brightness(1.32);width:42px}}
+#groundBeam.blast{animation:beamBlast .22s ease-out}@keyframes beamBlast{0%{opacity:1;filter:brightness(2.6) saturate(2);width:72px}100%{opacity:.92;filter:brightness(1.05) saturate(1.7);width:34px}}
+.shockwave{position:absolute;z-index:11;width:34px;height:16px;border:3px solid #1ddcff;border-radius:50%;transform:translate(-50%,-50%) scale(.2);box-shadow:0 0 20px #00bfff,0 0 46px #006eff;pointer-events:none;animation:shockwave .9s cubic-bezier(.08,.65,.2,1) forwards}@keyframes shockwave{0%{opacity:1;transform:translate(-50%,-50%) scale(.2)}100%{opacity:0;transform:translate(-50%,-50%) scale(8.5)}}
+.energyBolt{position:absolute;top:-14vh;z-index:12;width:18px;height:18vh;border-radius:999px;transform:translateX(-50%);pointer-events:none;background:linear-gradient(180deg,transparent 0%,#006cff 18%,#00bfff 56%,#11e8ff 100%);box-shadow:0 0 22px #008cff,0 0 54px #00cfff,0 0 88px #0066ff;filter:saturate(2) brightness(1.25);animation:energyBolt .24s cubic-bezier(.12,.72,.2,1) forwards}@keyframes energyBolt{0%{opacity:0;top:-18vh;height:14vh;transform:translateX(-50%) scaleY(.5)}12%{opacity:1}75%{opacity:1}100%{opacity:0;top:var(--impact-y);height:5vh;transform:translateX(-50%) scaleY(1.45)}}
+.impactCore{position:absolute;z-index:13;width:22px;height:10px;border-radius:50%;transform:translate(-50%,-50%) scale(.25);background:#25dcff;box-shadow:0 0 18px #00d8ff,0 0 42px #007cff,0 0 90px #0064ff;pointer-events:none;animation:impactCore .46s ease-out forwards}@keyframes impactCore{0%{opacity:1;transform:translate(-50%,-50%) scale(.25)}100%{opacity:0;transform:translate(-50%,-50%) scale(7)}}
+.siteGlow{position:absolute;z-index:9;width:42px;height:42px;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);opacity:0;background:radial-gradient(circle,#53e9ff 0 7%,#00c9ff 12%,#007fff88 38%,transparent 72%);filter:drop-shadow(0 0 22px #008cff) drop-shadow(0 0 48px #00cfff)}
+.siteGlow.on{opacity:1;animation:siteThrob 1.05s ease-in-out infinite}@keyframes siteThrob{50%{transform:translate(-50%,-50%) scale(1.65);filter:drop-shadow(0 0 34px #00bfff) drop-shadow(0 0 76px #006eff)}}
+.spark{position:absolute;z-index:20;width:5px;height:5px;border-radius:50%;background:#fff6a0;pointer-events:none;box-shadow:0 0 8px #fff,0 0 18px #ffe66a;animation:sparkFly .8s ease-out forwards}@keyframes sparkFly{to{transform:translate(var(--dx),var(--dy)) scale(.1);opacity:0}}
+.printerHead{position:absolute;z-index:22;width:96px;height:7px;border-radius:50%;background:linear-gradient(90deg,transparent,#75efff,#fff7a0,#75efff,transparent);box-shadow:0 0 14px #fff,0 0 34px #00d9ff;opacity:0;transform:translate(-50%,-50%)}.printerHead.on{opacity:1}.printLayer{position:absolute;z-index:21;height:2px;border-radius:999px;background:linear-gradient(90deg,transparent,#65eaff,#fff5a0,#65eaff,transparent);box-shadow:0 0 10px #5deaff;transform:translate(-50%,-50%) scaleX(0);animation:printLayer .48s ease-out forwards}@keyframes printLayer{to{transform:translate(-50%,-50%) scaleX(1);opacity:.15}}.construct svg{filter:drop-shadow(14px 16px 18px rgba(0,0,0,.72)) drop-shadow(-8px 0 20px rgba(0,210,255,.55));transform:perspective(780px) rotateX(11deg) rotateY(-2deg) rotateZ(-1deg);transform-origin:50% 100%}
+
+#map,#liveMap{background:#dcecf4!important}
+#map .leaflet-map-pane,#liveMap .leaflet-map-pane{z-index:2!important}
+#map .leaflet-tile-pane,#liveMap .leaflet-tile-pane{opacity:1!important;visibility:visible!important}
+#liveMap{z-index:1!important}
+#cinMap{z-index:3!important;background:linear-gradient(rgba(0,16,25,.03),rgba(0,8,14,.10))!important}
+</style>
+</head>
+<body>
+<div class="shell">
+<section class="hero">
+<div class="brand">LOCATION UPGRADE</div>
+<h1>Tap your home.<br>See what unlocks.</h1>
+<p>Select your home on the map or type your address. We'll run the location upgrade experience, then show current switch incentives.</p>
+</section>
+
+<section class="step" id="chooser">
+<div class="search">
+<input id="address" autocomplete="street-address" placeholder="Type your home address">
+<button id="find">FIND</button><div class="suggestions" id="suggestions"></div>
+</div>
+<button class="locate" id="locate">LOCATE ME</button>
+<div id="map"></div>
+<p class="hint">Select one home at a time. Tap a new home and the previous selection is automatically replaced.</p>
+<div class="selected" id="selected"><b>Selected location</b><span id="selectedText"></span></div>
+<button class="primary" id="activate">UPGRADE THIS LOCATION</button>
+</section>
+
+<section id="offers">
+<div class="success">
+<div class="check">✓</div>
+<h2>Your location experience is complete.</h2>
+<p id="successAddress">Enjoy the new location experience. Now choose what you want to keep, swap, or upgrade.</p>
+</div>
+<div class="cards">
+<div class="card"><div class="kicker">KEEP</div><h3>Your number</h3><p>Take the number you already know with you into the next experience.</p></div>
+<div class="card"><div class="kicker">SWAP</div><h3>Your phone</h3><p>Keep your current device or explore a new-phone upgrade path.</p></div>
+<div class="card"><div class="kicker">MOVE</div><h3>Your lines</h3><p>Bring one line or compare a multi-line setup in the next step.</p></div>
+<div class="card"><div class="kicker">UPGRADE</div><h3>Your setup</h3><p>Explore plans, devices, trade-in paths and switch options together.</p></div>
+</div>
+<a class="upgrade" id="upgrade" href="https://londondubois5698-dotcom.github.io/location-upgrade/?utm_source=chatgpt.com" target="_self">ENTER MY AT&amp;T EXPERIENCE<small>See what I can keep, swap or upgrade</small></a>
+</section>
+</div>
+
+<div id="activation">
+<div id="liveMap"></div><div id="groundBeam"></div><canvas id="beamCanvas"></canvas><div class="siteGlow" id="siteGlow"></div><div class="printerHead" id="printerHead"></div>
+<div id="cinMap"></div>
+<div class="scanline"></div>
+<div class="node n1"></div><div class="node n2"></div><div class="node n3"></div><div class="node n4"></div><div class="node n5"></div>
+<div class="homeCore"><div class="houseIcon">⌂</div></div>
+<div class="siteRing" id="siteRing"></div>
+<div class="construct" id="construct">
+<svg viewBox="0 0 210 330">
+ <g id="towerPieces">
+  <path class="buildPiece" d="M105 22 L62 286"/>
+  <path class="buildPiece" d="M105 22 L148 286"/>
+  <path class="buildPiece" d="M62 286 L148 286"/>
+  <path class="buildPiece" d="M96 78 L114 78 M88 126 L122 126 M80 176 L130 176 M72 230 L138 230"/>
+  <path class="buildPiece" d="M96 78 L122 126 L80 176 L138 230 L62 286"/>
+  <path class="buildPiece" d="M114 78 L88 126 L130 176 L72 230 L148 286"/>
+  <path class="buildPiece" d="M105 22 L105 5 M99 15 L105 5 L111 15"/>
+ </g>
+ <g>
+  <path class="buildAccent" d="M91 83 L119 83"/>
+  <path class="buildAccent" d="M83 132 L127 132"/>
+  <path class="buildAccent" d="M75 182 L135 182"/>
+  <path class="buildAccent" d="M67 236 L143 236"/>
+ </g>
+</svg>
+</div>
+<div class="constructionLabel" id="constructionLabel">CONSTRUCTING SERVICE NODE</div>
+
+<div id="mapFlash"></div>
+<div class="hud">
+  <div class="hudTop"><div class="hudStep" id="hudStep">READY</div><div class="hudPct" id="hudPct">86s</div></div>
+</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const ATNT_EXPERIENCE="https://londondubois5698-dotcom.github.io/location-upgrade/?utm_source=chatgpt.com";
+const TOTAL_SECONDS=86;
+let selectedAddress="", marker=null, selectedLatLng=null, cinLeaflet=null, cinMarker=null, upgradeStartedAt=0, countdownTimer=null;
+const map=L.map("map",{zoomControl:false}).setView([36.8508,-76.2859],12);
+L.control.zoom({position:"bottomright"}).addTo(map);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:20,attribution:"© OpenStreetMap"}).addTo(map);
+
+async function reverse(lat,lng){
+ try{
+  const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+  const d=await r.json(); return d.display_name||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+ }catch(e){return `${lat.toFixed(5)}, ${lng.toFixed(5)}`}
+}
+function clearChoice(){
+ if(marker){try{marker.remove()}catch(e){} marker=null}
+ selectedAddress=""; selectedLatLng=null;
+ document.getElementById("selectedText").textContent="";
+ document.getElementById("selected").style.display="none";
+ document.getElementById("activate").style.display="none";
+}
+function choose(lat,lng,label){
+ if(marker) marker.remove();
+ marker=L.marker([lat,lng]).addTo(map);
+ marker.on("click",e=>{L.DomEvent.stopPropagation(e);clearChoice()});
+ selectedAddress=label; selectedLatLng=[lat,lng];
+ document.getElementById("selectedText").textContent=label;
+ document.getElementById("selected").style.display="block";
+ document.getElementById("activate").style.display="block";
+}
+map.on("click",async e=>{
+ const label=await reverse(e.latlng.lat,e.latlng.lng);
+ choose(e.latlng.lat,e.latlng.lng,label);
+});
+async function arcSuggest(q){try{const r=await fetch("https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer/suggest?f=json&countryCode=USA&maxSuggestions=8&text="+encodeURIComponent(q));const d=await r.json();return(d.suggestions||[]).map(x=>({label:x.text,magicKey:x.magicKey}))}catch(e){return[]}}
+async function arcFind(q,key=""){try{const r=await fetch("https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&countryCode=USA&maxLocations=8&outFields=Match_addr&SingleLine="+encodeURIComponent(q)+(key?"&magicKey="+encodeURIComponent(key):""));const d=await r.json();return(d.candidates||[]).map(x=>({lat:+x.location.y,lon:+x.location.x,label:x.address||q}))}catch(e){return[]}}
+async function geocodeAddress(q){let d=await arcFind(q);if(d.length)return d;for(const term of [q,q+", Norfolk VA",q+", Virginia Beach VA",q+", Chesapeake VA"]){try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=us&limit=6&q=${encodeURIComponent(term)}`);if(r.ok){const a=await r.json();if(a.length)return a.map(x=>({lat:+x.lat,lon:+x.lon,label:x.display_name}))}}catch(e){}}return[]}
+document.getElementById("locate").onclick=()=>{
+ const b=document.getElementById("locate");
+ if(!navigator.geolocation){alert("Location is not available on this device. Type your address instead.");return}
+ b.innerHTML='<span class="loader"></span> LOCATING';
+ navigator.geolocation.getCurrentPosition(async pos=>{
+  try{
+   const lat=pos.coords.latitude,lng=pos.coords.longitude,label=await reverse(lat,lng);
+   map.invalidateSize(true);map.setView([lat,lng],19);choose(lat,lng,label);document.getElementById("address").value=label;
+  }finally{b.textContent="LOCATE ME"}
+ },()=>{b.textContent="LOCATE ME";alert("Location access was not available. Type your address or tap your home on the map.")},{enableHighAccuracy:true,timeout:10000,maximumAge:30000});
+};
+document.getElementById("find").onclick=async()=>{
+ const input=document.getElementById("address"),q=input.value.trim();if(!q)return;
+ const b=document.getElementById("find");b.innerHTML='<span class="loader"></span>';
+ try{
+  const timeout=new Promise(resolve=>setTimeout(()=>resolve([]),5500));
+  const d=await Promise.race([geocodeAddress(q),timeout]);
+  if(!d.length){alert("Address lookup could not connect. Try the full address with city and state, or tap the home directly on the map.");return}
+  const x=d[0];input.value=x.label;map.invalidateSize(true);map.setView([x.lat,x.lon],19);choose(x.lat,x.lon,x.label);showAddressMatches([]);
+ }catch(e){alert("Address lookup could not connect. Try again, or tap your home directly on the map.")}
+ finally{b.textContent="FIND"}
+};
+let acTimer=null,acSeq=0;
+async function addressMatches(q){if(q.trim().length<3)return[];const a=await arcSuggest(q);if(a.length)return a.map(x=>({display_name:x.label,magicKey:x.magicKey}));const d=await geocodeAddress(q);return d.map(x=>({lat:x.lat,lon:x.lon,display_name:x.label}))}
+function showAddressMatches(list){const box=document.getElementById("suggestions");box.innerHTML="";list.slice(0,7).forEach(x=>{const d=document.createElement("div");d.className="suggestion";d.textContent=x.display_name;d.onclick=async()=>{box.classList.remove("show");let h=x;if(h.lat==null){const f=await arcFind(h.display_name,h.magicKey||"");if(!f.length)return;h={lat:f[0].lat,lon:f[0].lon,display_name:f[0].label}}document.getElementById("address").value=h.display_name;map.invalidateSize(true);map.setView([h.lat,h.lon],19);choose(h.lat,h.lon,h.display_name)};box.appendChild(d)});box.classList.toggle("show",list.length>0)}
+document.getElementById("address").addEventListener("input",e=>{
+ clearTimeout(acTimer);const q=e.target.value.trim(),seq=++acSeq;
+ if(q.length<3){showAddressMatches([]);return}
+ acTimer=setTimeout(async()=>{try{const list=await Promise.race([addressMatches(q),new Promise(r=>setTimeout(()=>r([]),4000))]);if(seq===acSeq)showAddressMatches(list)}catch(e){if(seq===acSeq)showAddressMatches([])}},260);
+});
+document.getElementById("address").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("find").click()});
+document.addEventListener("click",e=>{if(!e.target.closest(".search"))document.getElementById("suggestions").classList.remove("show")});
+
+
+function buzz(pattern){try{if(navigator.vibrate)navigator.vibrate(pattern)}catch(e){}}
+function megaBuzz(mult=1){
+ const hit=Math.round(150*Math.min(1.5,mult)), hold=Math.round(220*Math.min(1.5,mult));
+ buzz([hit,18,hit,18,hold,24,hit,18,Math.round(300*Math.min(1.4,mult))]);
+}
+const WAIT_SCALE=1.40;
+const wait=ms=>new Promise(r=>setTimeout(r,ms*WAIT_SCALE));
+let audioCtx=null,audioMaster=null,audioBass=null,audioComp=null,engineNodes=[];
+function audio(){
+ try{
+  if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==="suspended") audioCtx.resume();
+  if(!audioMaster){
+   audioMaster=audioCtx.createGain();audioBass=audioCtx.createBiquadFilter();audioComp=audioCtx.createDynamicsCompressor();
+   audioMaster.gain.value=.98;
+   audioBass.type="lowshelf";audioBass.frequency.value=210;audioBass.gain.value=18;
+   audioComp.threshold.value=-7;audioComp.knee.value=12;audioComp.ratio.value=12;audioComp.attack.value=.002;audioComp.release.value=.28;
+   audioMaster.connect(audioBass).connect(audioComp).connect(audioCtx.destination);
+  }
+  return audioCtx;
+ }catch(e){return null}
+}
+function tone(freq=440,duration=.14,type="sine",gain=.055,when=0){
+ const ctx=audio();if(!ctx)return;
+ const o=ctx.createOscillator(),g=ctx.createGain();
+ o.type=type;o.frequency.setValueAtTime(freq,ctx.currentTime+when);
+ g.gain.setValueAtTime(.0001,ctx.currentTime+when);
+ g.gain.exponentialRampToValueAtTime(gain,ctx.currentTime+when+.018);
+ g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+when+duration);
+ o.connect(g).connect(audioMaster);
+ o.start(ctx.currentTime+when);o.stop(ctx.currentTime+when+duration+.04);
+}
+function sweep(start=180,end=980,duration=.55,gain=.04){
+ const ctx=audio();if(!ctx)return;
+ const o=ctx.createOscillator(),g=ctx.createGain();
+ o.type="sine";
+ o.frequency.setValueAtTime(start,ctx.currentTime);
+ o.frequency.exponentialRampToValueAtTime(end,ctx.currentTime+duration);
+ g.gain.setValueAtTime(.0001,ctx.currentTime);
+ g.gain.exponentialRampToValueAtTime(gain,ctx.currentTime+.04);
+ g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+duration);
+ o.connect(g).connect(audioMaster);o.start();o.stop(ctx.currentTime+duration+.05);
+}
+function successChord(){
+ tone(523.25,.34,"sine",.05,0);
+ tone(659.25,.38,"sine",.045,.08);
+ tone(783.99,.48,"sine",.045,.16);
+ tone(1046.5,.52,"sine",.035,.24);
+}
+function subDrop(power=1){
+ const ctx=audio();if(!ctx)return;
+ const o=ctx.createOscillator(),o2=ctx.createOscillator(),g=ctx.createGain(),g2=ctx.createGain();
+ o.type="sine";o2.type="sine";
+ o.frequency.setValueAtTime(54,ctx.currentTime);o.frequency.exponentialRampToValueAtTime(30,ctx.currentTime+.48);
+ o2.frequency.setValueAtTime(82,ctx.currentTime);o2.frequency.exponentialRampToValueAtTime(46,ctx.currentTime+.42);
+ g.gain.setValueAtTime(.0001,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.19*Math.min(1.5,power),ctx.currentTime+.016);g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.56);
+ g2.gain.setValueAtTime(.0001,ctx.currentTime);g2.gain.exponentialRampToValueAtTime(.075*Math.min(1.4,power),ctx.currentTime+.012);g2.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.46);
+ o.connect(g).connect(audioMaster);o2.connect(g2).connect(audioMaster);o.start();o2.start();o.stop(ctx.currentTime+.62);o2.stop(ctx.currentTime+.54);
+}
+function impact(power=1){
+ sweep(105,610,.72,.055*Math.min(1.35,power));
+ tone(185,.24,"triangle",.05*Math.min(1.25,power),.04);
+ tone(280,.22,"triangle",.04*Math.min(1.25,power),.16);
+ subDrop(power);
+}
+function startDrone(){
+ const ctx=audio();if(!ctx||engineNodes.length)return;
+ const bus=ctx.createGain(),filter=ctx.createBiquadFilter();
+ bus.gain.setValueAtTime(.0001,ctx.currentTime);
+ bus.gain.exponentialRampToValueAtTime(.30,ctx.currentTime+.35);
+ filter.type="lowpass";filter.frequency.value=430;filter.Q.value=1.8;
+ bus.connect(filter).connect(audioMaster);
+ const o1=ctx.createOscillator(),o2=ctx.createOscillator(),o3=ctx.createOscillator();
+ o1.type="sawtooth";o1.frequency.value=42;
+ o2.type="triangle";o2.frequency.value=63;
+ o3.type="sine";o3.frequency.value=84;
+ const g1=ctx.createGain(),g2=ctx.createGain(),g3=ctx.createGain();
+ g1.gain.value=.28;g2.gain.value=.19;g3.gain.value=.12;
+ o1.connect(g1).connect(bus);o2.connect(g2).connect(bus);o3.connect(g3).connect(bus);
+ const lfo=ctx.createOscillator(),lg=ctx.createGain();
+ lfo.frequency.value=1.8;lg.gain.value=.035;lfo.connect(lg).connect(bus.gain);
+ o1.start();o2.start();o3.start();lfo.start();
+ engineNodes=[bus,filter,o1,o2,o3,g1,g2,g3,lfo,lg];
+}
+function stopDrone(){
+ if(!engineNodes.length)return;
+ const ctx=audioCtx,bus=engineNodes[0];
+ try{bus.gain.cancelScheduledValues(ctx.currentTime);bus.gain.setValueAtTime(Math.max(.0001,bus.gain.value),ctx.currentTime);bus.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.55)}catch(e){}
+ const nodes=engineNodes.slice();engineNodes=[];
+ setTimeout(()=>nodes.forEach(n=>{try{if(n.stop)n.stop();if(n.disconnect)n.disconnect()}catch(e){}}),650);
+}
+function flash(){const f=document.getElementById("mapFlash");f.classList.remove("fire");void f.offsetWidth;f.classList.add("fire")}
+function hud(txt){document.getElementById("hudStep").textContent=txt}
+function updateCountdown(){
+ const elapsed=(performance.now()-upgradeStartedAt)/1000;
+ const left=Math.max(0,Math.ceil(TOTAL_SECONDS-elapsed));
+ document.getElementById("hudPct").textContent=left+"s";
+}
+function startCountdown(){upgradeStartedAt=performance.now();updateCountdown();clearInterval(countdownTimer);countdownTimer=setInterval(updateCountdown,125)}
+function stopCountdown(){clearInterval(countdownTimer);countdownTimer=null;document.getElementById("hudPct").textContent="0s"}
+async function holdTo86(){const remain=TOTAL_SECONDS*1000-(performance.now()-upgradeStartedAt);if(remain>0)await new Promise(r=>setTimeout(r,remain))}
+function center(el){const a=el.getBoundingClientRect();return{x:a.left+a.width/2,y:a.top+a.height/2}}
+function ghost(x,y){const a=document.getElementById("activation"),g=document.createElement("i");g.className="ghost";g.style.left=x+"px";g.style.top=y+"px";a.appendChild(g);setTimeout(()=>g.remove(),760)}
+async function fireTo(node,i,total){
+ const a=document.getElementById("activation"),home=document.querySelector(".homeCore"),st=center(home),en=center(node),dx=en.x-st.x,dy=en.y-st.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)*180/Math.PI;
+ const tr=document.createElement("i");tr.className="lightTrail";tr.style.left=st.x+"px";tr.style.top=st.y+"px";tr.style.width=dist+"px";tr.style.transform=`rotate(${ang}deg)`;a.appendChild(tr);setTimeout(()=>tr.remove(),900);
+ const orb=document.createElement("i");orb.className="orb";orb.style.left=st.x+"px";orb.style.top=st.y+"px";a.appendChild(orb);node.classList.add("active");
+ sweep(260+i*40,1120+i*75,.55,.04);buzz([55,35,55]);
+ const dur=760,start=performance.now();let bucket=-1;
+ await new Promise(resolve=>{function frame(now){let t=Math.min(1,(now-start)/dur),e=1-Math.pow(1-t,3),arc=Math.sin(Math.PI*t)*-42,x=st.x+dx*e,y=st.y+dy*e+arc;orb.style.left=x+"px";orb.style.top=y+"px";let b=Math.floor(t*12);if(b!==bucket){bucket=b;ghost(x,y)}if(t<1)requestAnimationFrame(frame);else{orb.remove();node.classList.remove("active");node.classList.add("done");flash();tone(860+i*85,.18,"triangle",.055);buzz([85,35,150]);hud(`NODE ${i+1} OF ${total} LINKED`,Math.round(((i+1)/total)*76)+10);resolve()}}requestAnimationFrame(frame)});
+}
+
+
+function resizeBeamCanvas(){const c=document.getElementById("beamCanvas"),d=devicePixelRatio||1;c.width=innerWidth*d;c.height=innerHeight*d;c.style.width=innerWidth+"px";c.style.height=innerHeight+"px"}
+function mapPoint(){if(!cinLeaflet||!selectedLatLng)return{x:innerWidth/2,y:innerHeight*.55};const p=cinLeaflet.latLngToContainerPoint(selectedLatLng);return{x:p.x,y:p.y}}
+function anchorSite(){const p=mapPoint();for(const [id,dy] of [["siteGlow",0],["construct",-115],["siteRing",-115],["constructionLabel",112]]){const e=document.getElementById(id);e.style.left=p.x+"px";e.style.top=(p.y+dy)+"px"}const gb=document.getElementById("groundBeam");if(gb){gb.style.left=p.x+"px";gb.style.height=Math.max(0,p.y+12)+"px"}}
+function shockwave(){const p=mapPoint(),root=document.getElementById("activation"),w=document.createElement("i");w.className="shockwave";w.style.left=p.x+"px";w.style.top=p.y+"px";root.appendChild(w);setTimeout(()=>w.remove(),950)}
+function groundBeam(on=true){const g=document.getElementById("groundBeam");anchorSite();g.classList.toggle("on",on);if(!on)g.classList.remove("blast")}
+function energyDrop(power=1){
+ const g=document.getElementById("groundBeam"),p=mapPoint(),root=document.getElementById("activation");
+ groundBeam(true);
+ const bolt=document.createElement("i");bolt.className="energyBolt";bolt.style.left=p.x+"px";bolt.style.setProperty("--impact-y",Math.max(0,p.y-12)+"px");root.appendChild(bolt);setTimeout(()=>bolt.remove(),360);
+ setTimeout(()=>{
+  g.classList.remove("blast");void g.offsetWidth;g.classList.add("blast");
+  const core=document.createElement("i");core.className="impactCore";core.style.left=p.x+"px";core.style.top=p.y+"px";root.appendChild(core);setTimeout(()=>core.remove(),520);
+  flash();shockwave();sparks(Math.round(18*power));subDrop(1.28*power);tone(88,.24,"sine",.085);tone(176,.18,"triangle",.055,.018);megaBuzz(power);
+ },150);
+}
+let beamState=[];
+function drawBeams(){const c=document.getElementById("beamCanvas");if(!c)return;resizeBeamCanvas();const d=devicePixelRatio||1,ctx=c.getContext("2d"),t=mapPoint();ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,innerWidth,innerHeight);ctx.lineCap="round";beamState.forEach((b,i)=>{const g=ctx.createLinearGradient(b.x,b.y,t.x,t.y);g.addColorStop(0,"rgba(0,88,255,.18)");g.addColorStop(.26,"rgba(0,177,255,.74)");g.addColorStop(.72,"rgba(0,222,255,.92)");g.addColorStop(1,"rgba(39,205,255,.98)");ctx.strokeStyle=g;ctx.lineWidth=i%2?3.1:4.2;ctx.shadowBlur=28;ctx.shadowColor="#009cff";ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(t.x,t.y);ctx.stroke()})}
+function addBeam(x,y){beamState.push({x,y});drawBeams();impact(.45);buzz([55,25,75])}
+function sparks(n=16){const p=mapPoint(),root=document.getElementById("activation");for(let i=0;i<n;i++){const e=document.createElement("i");e.className="spark";e.style.left=p.x+"px";e.style.top=p.y+"px";e.style.setProperty("--dx",(Math.random()*190-95)+"px");e.style.setProperty("--dy",(Math.random()*170-115)+"px");root.appendChild(e);setTimeout(()=>e.remove(),900)}}
+async function startLiveBackground(){
+ beamState=[];
+ const lm=document.getElementById("liveMap");
+ lm.style.display="block";
+ const ll=selectedLatLng||[36.85105,-76.31704];
+ try{
+  if(cinLeaflet){try{cinLeaflet.remove()}catch(e){}}
+  cinLeaflet=L.map("liveMap",{zoomControl:false,attributionControl:false,zoomAnimation:true,fadeAnimation:true,preferCanvas:true}).setView(ll,18);
+  addReliableTiles(cinLeaflet);
+  cinLeaflet.invalidateSize(true);
+  cinLeaflet.on("move zoom resize",()=>{anchorSite();drawBeams()});
+  setTimeout(()=>{try{cinLeaflet.invalidateSize(true);cinLeaflet.setView(ll,18,{animate:false});anchorSite();drawBeams()}catch(e){}},120);
+ }catch(e){
+  console.warn("cinematic map fallback",e);
+ }
+ // IMPORTANT: do not await tile loads, geocoding, Overpass, or any remote request here.
+ // Animation must continue even when a map provider is blocked.
+ return true;
+}
+async function printerPass(){const p=mapPoint(),h=document.getElementById("printerHead"),root=document.getElementById("activation");h.classList.add("on");h.style.left=p.x+"px";for(let i=0;i<24;i++){const y=p.y-20-i*12;h.style.top=y+"px";const l=document.createElement("i");l.className="printLayer";l.style.left=p.x+"px";l.style.top=y+"px";l.style.width=(62+i*4.2)+"px";root.appendChild(l);setTimeout(()=>l.remove(),850);if(i%4===0){sparks(5);impact(.18)}await wait(105)}h.classList.remove("on")}
+async function constructTower(){
+ const c=document.getElementById("construct"),ring=document.getElementById("siteRing"),label=document.getElementById("constructionLabel"),glow=document.getElementById("siteGlow");
+ anchorSite();glow.classList.add("on");ring.classList.add("on");label.classList.add("on");sparks(30);impact(1.2);buzz([170,60,220]);await wait(850);c.classList.add("on");printerPass();
+ const pieces=[...c.querySelectorAll(".buildPiece")];pieces.forEach(x=>x.classList.remove("draw"));
+ for(let i=0;i<pieces.length;i++){void pieces[i].offsetWidth;pieces[i].classList.add("draw");impact(.32+i*.04);sparks(8);buzz([45,25,65]);await wait(820)}
+ const accents=[...c.querySelectorAll(".buildAccent")];for(let i=0;i<accents.length;i++){accents[i].classList.add("on");impact(.55);sparks(12);buzz([70,30,100]);await wait(520)}await wait(700)
+}
+async function runActivation(){
+ audio();startDrone();beamState=[];
+ const a=document.getElementById("activation"),nodes=[...document.querySelectorAll(".node")];
+ nodes.forEach(n=>n.classList.remove("active","done"));a.classList.remove("zoomed","finalSurge","powerDown");
+ document.getElementById("construct").classList.remove("on");
+ document.getElementById("siteRing").classList.remove("on");
+ document.getElementById("constructionLabel").classList.remove("on");
+ document.querySelectorAll(".buildPiece,.buildAccent").forEach(x=>x.classList.remove("draw","on"));
+ hud("INITIALIZING SERVICE UPGRADE");a.style.display="flex";groundBeam(false);startCountdown();
+ await wait(180);try{await startLiveBackground()}catch(e){};if(cinLeaflet){try{cinLeaflet.invalidateSize(true);cinLeaflet.setView(selectedLatLng||[36.85105,-76.31704],18,{animate:false})}catch(e){}}document.getElementById("siteGlow").classList.add("on");anchorSite();
+ sweep(105,560,1.15,.045);buzz([80,60,80]);await wait(1600);
+
+ a.classList.add("zoomed");hud("LOCKING SELECTED HOME",8);flash();tone(390,.18,"sine",.045);buzz([120,50,120]);
+ if(cinLeaflet&&selectedLatLng)cinLeaflet.flyTo(selectedLatLng,20,{duration:2.5});
+ await wait(3000);
+
+ hud("SCANNING STREET ENVIRONMENT",14);sweep(180,820,1.3,.04);await wait(2600);
+ hud("LOCATING UPGRADE NODES",20);tone(520,.12,"sine",.04);await wait(1200);const origins=[[60,innerHeight*.28],[innerWidth-70,innerHeight*.24],[70,innerHeight*.72],[innerWidth-80,innerHeight*.76],[innerWidth*.20,innerHeight*.90],[innerWidth*.82,innerHeight*.88]];for(let i=0;i<origins.length;i++){addBeam(origins[i][0],origins[i][1]);sparks(5);await wait(520)}
+
+ for(let i=0;i<nodes.length;i++){await fireTo(nodes[i],i,nodes.length);await wait(650)}
+
+ hud("PREPARING CONSTRUCTION SITE",48);sweep(180,980,1.2,.05);if(cinLeaflet&&selectedLatLng)cinLeaflet.flyTo(selectedLatLng,20,{duration:1.8});sweep(140,920,1.7,.05);buzz([90,45,90,45,150]);await wait(2200);
+ hud("BUILDING SERVICE TOWER",55);await constructTower();await wait(1800);
+
+ hud("ENERGIZING TOWER SECTORS",67);
+ for(let i=0;i<4;i++){flash();tone(540+i*120,.24,"triangle",.05);buzz([70,35,100]);await wait(650)}
+ await wait(1100);
+
+ hud("LINKING STREET TO SERVICE NODE",76);
+ nodes.forEach(n=>n.classList.remove("done"));
+ for(let i=nodes.length-1;i>=0;i--){await fireTo(nodes[i],nodes.length-1-i,nodes.length);await wait(380)}
+ await wait(900);
+
+ hud("SYNCHRONIZING SERVICE PATH",91);sweep(320,1550,1.65,.055);buzz([80,45,80,45,80,45,180]);await wait(2100);
+ hud("FINALIZING",97);tone(980,.12,"triangle",.05);await wait(1000);
+
+ /* original pump fake */
+ hud("VERIFYING…",84);nodes.forEach(n=>n.classList.remove("done"));tone(170,.3,"sine",.035);buzz([220]);document.getElementById("siteGlow").style.opacity=".22";await wait(2100);document.getElementById("siteGlow").style.opacity="";
+
+ nodes.forEach(n=>n.classList.add("done"));a.classList.add("finalSurge");hud("POWERING YOUR LOCATION");groundBeam(true);sweep(120,1900,1.7,.075);buzz([120,35,120,35,160,45,260]);sparks(46);
+ sweep(105,2200,2.25,.075);
+ for(let i=0;i<9;i++){energyDrop(1.05+i*.045);await wait(500)}
+ hud("FINAL PROPERTY PULSE");
+ for(let i=0;i<6;i++){energyDrop(1.24);tone(620+i*95,.14,"triangle",.048);await wait(390)}
+ await wait(650);
+
+ flash();successChord();subDrop(1.48);megaBuzz(1.35);
+ hud("SERVICE UPGRADE COMPLETE");await wait(1700);
+ a.classList.add("powerDown");hud("LOCKING IN YOUR EXPERIENCE");await wait(1400);
+ await holdTo86();stopCountdown();groundBeam(false);
+
+ stopDrone();beamState=[];drawBeams();if(cinLeaflet){try{cinLeaflet.remove()}catch(e){}cinLeaflet=null}
+ a.style.display="none";
+ document.getElementById("chooser").style.display="none";document.getElementById("offers").style.display="block";
+ document.getElementById("successAddress").textContent="Enjoy the new location experience at "+selectedAddress+". Now choose what you want to keep, swap, or upgrade.";
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+document.getElementById("activate").onclick=()=>{const c=audio();if(c){tone(220,.035,"sine",.0002)}runActivation()};
+const upgradeLink=document.getElementById("upgrade");
+upgradeLink.setAttribute("href",ATNT_EXPERIENCE);
+upgradeLink.addEventListener("click",e=>{
+ e.preventDefault();
+ window.location.assign(ATNT_EXPERIENCE);
+});
+</script>
+</body>
+</html>
