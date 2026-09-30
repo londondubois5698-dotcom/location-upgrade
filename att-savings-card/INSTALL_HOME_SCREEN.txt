@@ -1,0 +1,10 @@
+AT&T Savings Review Digital Card
+
+iPhone / iPad:
+1. Open the live HTTPS link in Safari.
+2. Tap Share.
+3. Tap Add to Home Screen.
+4. Tap Add.
+
+It will then launch from its own Home Screen icon in standalone mode.
+The app also caches itself for offline use after the first successful load.
