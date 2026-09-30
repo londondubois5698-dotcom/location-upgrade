@@ -13,6 +13,7 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <title>AT&T Savings Review</title>
+<meta name="app-build" content="v4-stop-fix-2026-09-30">
 <style>
 :root{
  --att:#00a8e8;--att2:#0077c8;--navy:#062b49;--ink:#08253e;--line:#d9e9f4;
@@ -30,6 +31,11 @@ button{cursor:pointer}
 .brandImg{width:min(58%,440px);height:auto;display:block;object-fit:contain;object-position:left center;flex:1;min-width:0}
 .titlePill{background:linear-gradient(135deg,#0aa6e4,#0879c8);color:#fff;border:0;border-radius:999px;padding:10px 14px;font-weight:950;letter-spacing:.5px;font-size:clamp(12px,2.7vw,20px);white-space:nowrap;box-shadow:0 5px 16px rgba(0,119,200,.20)}
 .resetTop{border:0;background:#edf7ff;color:#0878c5;border-radius:14px;width:48px;height:48px;display:grid;place-items:center;box-shadow:inset 0 0 0 1px #d7ebfa;font-weight:950}.resetTop svg{width:23px;height:23px}
+.emergencyStop{position:fixed;left:max(9px,env(safe-area-inset-left));top:calc(9px + env(safe-area-inset-top));z-index:150;border:0;border-radius:14px;background:linear-gradient(145deg,#e0212f,#b80e1b);color:#fff;min-width:58px;height:46px;padding:0 11px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:11px;font-weight:1000;letter-spacing:.45px;box-shadow:0 8px 22px rgba(190,16,30,.28),inset 0 0 0 1px rgba(255,255,255,.18)}
+.emergencyStop:active{transform:scale(.96)}
+.emergencyStop .stopSquare{width:13px;height:13px;border-radius:3px;background:#fff;box-shadow:0 0 12px rgba(255,255,255,.55)}
+.emergencyStop.stopped{background:#263b4b;box-shadow:0 8px 22px rgba(0,0,0,.18)}
+@media(max-width:520px){.emergencyStop{min-width:52px;height:42px;padding:0 9px;font-size:10px;top:calc(7px + env(safe-area-inset-top))}}
 .card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 4px 15px rgba(4,47,78,.055);padding:10px 11px;position:relative}
 h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{font-size:clamp(18px,4.1vw,29px)}h3{font-size:clamp(14px,3.3vw,21px)}
 .subhead{font-size:12px;color:#607d94;font-weight:950;letter-spacing:.5px;margin:8px 0 6px}
@@ -68,6 +74,7 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
 </style>
 </head>
 <body>
+<button id="emergencyStop" class="emergencyStop interactive" type="button" aria-label="Stop all sounds and active effects"><span class="stopSquare"></span><span id="stopText">STOP</span></button>
 <div id="app">
  <div id="screenDim"></div>
  <canvas id="inkCanvas"></canvas>
@@ -225,6 +232,19 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
   },
   startAmbient(){if(!this.ctx||this.running||!this.soundOn)return;this.running=true;this.next=this.ctx.currentTime+.08;this.step=0;this.schedule();this.timer=setInterval(()=>this.schedule(),120)},
   stopAmbient(){this.running=false;if(this.timer){clearInterval(this.timer);this.timer=null}},
+  hardStop({manual=false}={}){
+   this.running=false;
+   if(this.timer){clearInterval(this.timer);this.timer=null}
+   try{if(this.tension){const n=this.tension;this.tension=null;try{n.os.forEach(o=>o.stop())}catch{}try{n.l.stop()}catch{}}}catch{}
+   const old=this.ctx;
+   this.ctx=null;this.master=null;this.ambient=null;this.ui=null;this.reverb=null;this.limiter=null;this.tension=null;
+   if(old){try{old.close()}catch{}}
+   if(manual){
+    this.soundOn=false;
+    const sb=document.getElementById('soundBtn');if(sb)sb.classList.remove('active');
+    const sl=document.getElementById('soundLabel');if(sl)sl.textContent='sound off';
+   }
+  },
   schedule(){if(!this.running||!this.soundOn||!this.ctx)return;const beat=60/64/2;while(this.next<this.ctx.currentTime+.75){const arp=[0,4,7,12,16,12,7,4];const roots=[261.63,220,174.61,196];const root=roots[Math.floor(this.step/8)%roots.length];this.harp(root*Math.pow(2,arp[this.step%8]/12),this.next,.052);if(this.step%8===0){const ci=Math.floor(this.step/8)%roots.length;const chords=[[261.63,329.63,392],[220,261.63,329.63],[174.61,220,261.63],[196,246.94,293.66]];this.hornChord(chords[ci],this.next+.03,3.4,.036)}if(this.step%4===2)this.airBell(root*2,this.next+.02,.030);this.next+=beat;this.step++}},
   harp(freq,t,vol=.04){if(!this.ctx||!this.soundOn)return;const o1=this.ctx.createOscillator(),o2=this.ctx.createOscillator(),g=this.ctx.createGain(),f=this.ctx.createBiquadFilter();o1.type='triangle';o2.type='sine';o1.frequency.value=freq;o2.frequency.value=freq*2.01;f.type='lowpass';f.frequency.value=5200;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+1.45);o1.connect(f);o2.connect(f);f.connect(g);g.connect(this.ambient);g.connect(this.reverb);o1.start(t);o2.start(t);o1.stop(t+1.5);o2.stop(t+1.5)},
   hornChord(freqs,t,dur=3,vol=.022){if(!this.ctx||!this.soundOn)return;freqs.forEach((fr,idx)=>{const g=this.ctx.createGain(),f=this.ctx.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(900,t);f.frequency.linearRampToValueAtTime(1500,t+1.0);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol/(1+idx*.15),t+.42);g.gain.setValueAtTime(vol/(1+idx*.15),t+dur-1);g.gain.exponentialRampToValueAtTime(.0001,t+dur);[1,2,3].forEach((mul,j)=>{const o=this.ctx.createOscillator();o.type=j===0?'sine':'triangle';o.frequency.value=fr*mul;o.detune.value=(j-1)*2;o.connect(f);o.start(t);o.stop(t+dur+.05)});f.connect(g);g.connect(this.ambient);g.connect(this.reverb)})},
@@ -253,10 +273,14 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
  document.getElementById('clearAmount').addEventListener('click',()=>{AudioEngine.click(3);total.value='';reveal.classList.remove('show');updateConfirm();persist();total.focus()});
  document.getElementById('dismissReveal').addEventListener('click',()=>{AudioEngine.click(1);reveal.classList.remove('show');setFocus(false);setTimeout(()=>total.focus(),70)});
 
+ let revealRunId=0;
  confirmBtn.addEventListener('click',async()=>{
   if(building)return;AudioEngine.ensure();const amount=Number(total.value);if(!lines||!amount){toast('Pick the number of lines and enter the monthly total');return}
+  const myRun=++revealRunId;
   building=true;total.blur();app.classList.add('focusMode','buildingMode');confirmBtn.disabled=true;confirmBtn.textContent='BUILDING REVEAL…';AudioEngine.startTension();
-  await new Promise(r=>setTimeout(r,3000));AudioEngine.stopTension();AudioEngine.revealSting();
+  await new Promise(r=>setTimeout(r,3000));
+  if(myRun!==revealRunId||document.hidden){building=false;AudioEngine.stopTension();app.classList.remove('buildingMode','focusMode');confirmBtn.textContent='CONFIRM & REVEAL SAVINGS';updateConfirm();return}
+  AudioEngine.stopTension();AudioEngine.revealSting();
   const benchmark=lines*50;const monthlyDiff=Math.max(0,amount-benchmark);const annualDiff=Math.round(monthlyDiff*12);const annualSpend=Math.round(amount*12);
   saveAmt.textContent='$'+annualDiff.toLocaleString();
   if(annualDiff>0){saveText.textContent='POTENTIAL ANNUAL SAVINGS';saveDetail.textContent=`About $${Math.round(monthlyDiff).toLocaleString()}/mo below the current bill using a $50/line benchmark. Current annual spend: $${annualSpend.toLocaleString()}. Actual pricing, eligibility, taxes and fees vary.`}
@@ -277,7 +301,23 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
  document.querySelectorAll('.colorDot').forEach((b,i)=>b.addEventListener('click',()=>{AudioEngine.click(i+1);inkColor=b.dataset.color;document.querySelectorAll('.colorDot').forEach(x=>x.classList.toggle('active',x===b));penMode=true;app.classList.add('marking');document.getElementById('penBtn').classList.add('active');toast(i===0?'Red ink':i===1?'Blue ink':'Neon yellow ink')}));
  document.getElementById('undoBtn').addEventListener('click',()=>{AudioEngine.click(2);strokes.pop();redraw();persist()});
  document.getElementById('clearInk').addEventListener('click',()=>{AudioEngine.click(4);strokes=[];redraw();persist();toast('Handwritten marks cleared')});
- document.getElementById('soundBtn').addEventListener('click',()=>AudioEngine.toggle());
+ document.getElementById('soundBtn').addEventListener('click',()=>{AudioEngine.toggle();const b=document.getElementById('emergencyStop');const t=document.getElementById('stopText');if(AudioEngine.soundOn){b?.classList.remove('stopped');if(t)t.textContent='STOP'}});
+
+ function stopEverything({manual=false}={}){
+  revealRunId++;
+  building=false;
+  AudioEngine.hardStop({manual});
+  app.classList.remove('buildingMode','focusMode');
+  if(document.activeElement===total)total.blur();
+  confirmBtn.textContent='CONFIRM & REVEAL SAVINGS';
+  updateConfirm();
+  if(manual){
+   const b=document.getElementById('emergencyStop'),t=document.getElementById('stopText');
+   b?.classList.add('stopped');if(t)t.textContent='STOPPED';
+   persist();toast('Everything stopped • tap Sound when you want audio again');
+  }
+ }
+ document.getElementById('emergencyStop').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();stopEverything({manual:true})});
 
  // ---- Share + install as a standalone Home Screen app ----
  const installNudge=document.getElementById('installNudge'), installModal=document.getElementById('installModal');
@@ -293,7 +333,7 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
  function openReset(){AudioEngine.ensure();AudioEngine.click(1);resetModal.classList.add('show')}
  function closeReset(){resetModal.classList.remove('show')}
  function resetAll(){
-  building=false;AudioEngine.stopTension();
+  revealRunId++;building=false;AudioEngine.hardStop({manual:false});
   document.querySelectorAll('.selected').forEach(x=>x.classList.remove('selected'));
   Object.assign(state,{internet:null,bundled:null,provider:null,gamer:false,work:false});lines=0;total.value='';strokes=[];currentStroke=null;reveal.style.transition='none';reveal.classList.remove('show');void reveal.offsetHeight;setTimeout(()=>reveal.style.transition='',30);app.classList.remove('focusMode','buildingMode','marking');penMode=false;inkColor='#1599ff';
   document.getElementById('penBtn').classList.remove('active');document.querySelectorAll('.colorDot').forEach(x=>x.classList.toggle('active',x.dataset.color==='#1599ff'));
@@ -312,7 +352,11 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
 
  // Keep screen awake in supported installed/secure contexts; silently falls back elsewhere.
  let wake=null;async function keepAwake(){try{if('wakeLock' in navigator&&!wake)wake=await navigator.wakeLock.request('screen')}catch{}}
- document.addEventListener('pointerdown',keepAwake,{once:true});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){wake=null;keepAwake()}});
+ document.addEventListener('pointerdown',keepAwake,{once:true});
+ const stopForExit=()=>{stopEverything({manual:false});wake=null};
+ window.addEventListener('pagehide',stopForExit,{capture:true});
+ window.addEventListener('beforeunload',stopForExit,{capture:true});
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){stopForExit()}else{wake=null;keepAwake()}});
  if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
 </script>
