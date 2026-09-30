@@ -207,6 +207,13 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
  const CLEAN_SHARE_HTML='<!doctype html>\n'+document.documentElement.outerHTML;
  let deferredInstallPrompt=null;
  const state={internet:null,bundled:null,provider:null,gamer:false,work:false};
+ const INSTANCE_ID=(crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+Math.random();
+ let audioChannel=null;
+ try{if('BroadcastChannel' in window)audioChannel=new BroadcastChannel('att-savings-audio-control-v4')}catch{}
+ function broadcastStopOthers(){
+  try{audioChannel?.postMessage({type:'stop-other-audio',source:INSTANCE_ID,at:Date.now()})}catch{}
+  try{localStorage.setItem('attSavingsStopPingV4',JSON.stringify({source:INSTANCE_ID,at:Date.now()}))}catch{}
+ }
 
  function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),1700)}
  function cleanMoney(v){v=String(v).replace(/[^0-9.]/g,'');const p=v.split('.');if(p.length>2)v=p.shift()+'.'+p.join('');return v.slice(0,9)}
@@ -317,7 +324,10 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
    persist();toast('Everything stopped • tap Sound when you want audio again');
   }
  }
- document.getElementById('emergencyStop').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();stopEverything({manual:true})});
+ document.getElementById('emergencyStop').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();broadcastStopOthers();stopEverything({manual:true})});
+ const remoteStop=msg=>{if(!msg||msg.source===INSTANCE_ID)return;stopEverything({manual:false})};
+ if(audioChannel)audioChannel.onmessage=e=>{if(e.data?.type==='stop-other-audio')remoteStop(e.data)};
+ window.addEventListener('storage',e=>{if(e.key!=='attSavingsStopPingV4'||!e.newValue)return;try{remoteStop(JSON.parse(e.newValue))}catch{}});
 
  // ---- Share + install as a standalone Home Screen app ----
  const installNudge=document.getElementById('installNudge'), installModal=document.getElementById('installModal');
@@ -348,7 +358,7 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
  function restore(){try{const d=JSON.parse(localStorage.getItem('savingsCardStateV3')||'null');if(!d)return;Object.assign(state,d.state||{});lines=Number(d.lines)||0;total.value=d.total||'';strokes=Array.isArray(d.strokes)?d.strokes:[];AudioEngine.soundOn=d.soundOn!==false;for(const [g,v] of Object.entries({internet:state.internet,bundled:state.bundled,provider:state.provider})){if(v)document.querySelector(`[data-group="${g}"][data-value="${v}"]`)?.classList.add('selected')}['gamer','work'].forEach(k=>{if(state[k])document.querySelector(`[data-toggle="${k}"]`)?.classList.add('selected')});if(lines)document.querySelector(`[data-lines="${lines}"]`)?.classList.add('selected');if(!AudioEngine.soundOn){document.getElementById('soundBtn').classList.remove('active');document.getElementById('soundLabel').textContent='sound off'}updateConfirm()}catch{}}
  restore();
  window.addEventListener('resize',()=>requestAnimationFrame(sizeCanvas));setTimeout(sizeCanvas,60);setTimeout(sizeCanvas,450);setTimeout(sizeCanvas,1000);
- document.addEventListener('pointerdown',()=>AudioEngine.ensure(),{once:true,capture:true});
+ document.addEventListener('pointerdown',()=>{broadcastStopOthers();AudioEngine.ensure()},{once:true,capture:true});
 
  // Keep screen awake in supported installed/secure contexts; silently falls back elsewhere.
  let wake=null;async function keepAwake(){try{if('wakeLock' in navigator&&!wake)wake=await navigator.wakeLock.request('screen')}catch{}}
@@ -356,7 +366,7 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
  const stopForExit=()=>{stopEverything({manual:false});wake=null};
  window.addEventListener('pagehide',stopForExit,{capture:true});
  window.addEventListener('beforeunload',stopForExit,{capture:true});
- document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){stopForExit()}else{wake=null;keepAwake()}});
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){stopForExit()}else{broadcastStopOthers();wake=null;keepAwake()}});
  if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
 </script>
