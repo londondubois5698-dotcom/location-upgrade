@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <title>AT&T Savings Review</title>
-<meta name="app-build" content="v4-stop-fix-2026-09-30">
+<meta name="app-build" content="v5-global-audio-kill-2026-10-01">
 <style>
 :root{
  --att:#00a8e8;--att2:#0077c8;--navy:#062b49;--ink:#08253e;--line:#d9e9f4;
@@ -31,11 +31,11 @@ button{cursor:pointer}
 .brandImg{width:min(58%,440px);height:auto;display:block;object-fit:contain;object-position:left center;flex:1;min-width:0}
 .titlePill{background:linear-gradient(135deg,#0aa6e4,#0879c8);color:#fff;border:0;border-radius:999px;padding:10px 14px;font-weight:950;letter-spacing:.5px;font-size:clamp(12px,2.7vw,20px);white-space:nowrap;box-shadow:0 5px 16px rgba(0,119,200,.20)}
 .resetTop{border:0;background:#edf7ff;color:#0878c5;border-radius:14px;width:48px;height:48px;display:grid;place-items:center;box-shadow:inset 0 0 0 1px #d7ebfa;font-weight:950}.resetTop svg{width:23px;height:23px}
-.emergencyStop{position:fixed;left:max(9px,env(safe-area-inset-left));top:calc(9px + env(safe-area-inset-top));z-index:150;border:0;border-radius:14px;background:linear-gradient(145deg,#e0212f,#b80e1b);color:#fff;min-width:58px;height:46px;padding:0 11px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:11px;font-weight:1000;letter-spacing:.45px;box-shadow:0 8px 22px rgba(190,16,30,.28),inset 0 0 0 1px rgba(255,255,255,.18)}
+.emergencyStop{position:fixed;left:max(9px,env(safe-area-inset-left));top:calc(9px + env(safe-area-inset-top));z-index:150;border:0;border-radius:14px;background:linear-gradient(145deg,#e0212f,#b80e1b);color:#fff;min-width:112px;height:46px;padding:0 12px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:11px;font-weight:1000;letter-spacing:.45px;box-shadow:0 8px 22px rgba(190,16,30,.28),inset 0 0 0 1px rgba(255,255,255,.18)}
 .emergencyStop:active{transform:scale(.96)}
 .emergencyStop .stopSquare{width:13px;height:13px;border-radius:3px;background:#fff;box-shadow:0 0 12px rgba(255,255,255,.55)}
 .emergencyStop.stopped{background:#263b4b;box-shadow:0 8px 22px rgba(0,0,0,.18)}
-@media(max-width:520px){.emergencyStop{min-width:52px;height:42px;padding:0 9px;font-size:10px;top:calc(7px + env(safe-area-inset-top))}}
+@media(max-width:520px){.emergencyStop{min-width:102px;height:42px;padding:0 9px;font-size:9.5px;top:calc(7px + env(safe-area-inset-top))}}
 .card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 4px 15px rgba(4,47,78,.055);padding:10px 11px;position:relative}
 h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{font-size:clamp(18px,4.1vw,29px)}h3{font-size:clamp(14px,3.3vw,21px)}
 .subhead{font-size:12px;color:#607d94;font-weight:950;letter-spacing:.5px;margin:8px 0 6px}
@@ -74,7 +74,7 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
 </style>
 </head>
 <body>
-<button id="emergencyStop" class="emergencyStop interactive" type="button" aria-label="Stop all sounds and active effects"><span class="stopSquare"></span><span id="stopText">STOP</span></button>
+<button id="emergencyStop" class="emergencyStop interactive" type="button" aria-label="Stop audio in all London standalone experiences"><span class="stopSquare"></span><span id="stopText">STOP ALL AUDIO</span></button>
 <div id="app">
  <div id="screenDim"></div>
  <canvas id="inkCanvas"></canvas>
@@ -207,13 +207,18 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
  const CLEAN_SHARE_HTML='<!doctype html>\n'+document.documentElement.outerHTML;
  let deferredInstallPrompt=null;
  const state={internet:null,bundled:null,provider:null,gamer:false,work:false};
- const INSTANCE_ID=(crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+Math.random();
+ const INSTANCE_ID=(globalThis.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+Math.random();
+ const GLOBAL_AUDIO_CHANNEL='london-standalone-audio-v5';
+ const GLOBAL_AUDIO_STORAGE='londonStandaloneAudioV5';
  let audioChannel=null;
- try{if('BroadcastChannel' in window)audioChannel=new BroadcastChannel('att-savings-audio-control-v4')}catch{}
- function broadcastStopOthers(){
-  try{audioChannel?.postMessage({type:'stop-other-audio',source:INSTANCE_ID,at:Date.now()})}catch{}
-  try{localStorage.setItem('attSavingsStopPingV4',JSON.stringify({source:INSTANCE_ID,at:Date.now()}))}catch{}
+ try{if('BroadcastChannel' in window)audioChannel=new BroadcastChannel(GLOBAL_AUDIO_CHANNEL)}catch{}
+ function sendGlobalAudioMessage(type){
+  const msg={type,source:INSTANCE_ID,at:Date.now()};
+  try{audioChannel?.postMessage(msg)}catch{}
+  try{localStorage.setItem(GLOBAL_AUDIO_STORAGE,JSON.stringify(msg))}catch{}
  }
+ function claimAudioOwnership(){sendGlobalAudioMessage('claim-audio')}
+ function broadcastStopOthers(){sendGlobalAudioMessage('stop-all-audio')}
 
  function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),1700)}
  function cleanMoney(v){v=String(v).replace(/[^0-9.]/g,'');const p=v.split('.');if(p.length>2)v=p.shift()+'.'+p.join('');return v.slice(0,9)}
@@ -224,6 +229,7 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
   ensure(){
    if(!this.soundOn)return;
    if(!this.ctx){
+    claimAudioOwnership();
     const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
     this.ctx=new AC();
     this.master=this.ctx.createGain();this.master.gain.value=1.45;
@@ -246,6 +252,9 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
    const old=this.ctx;
    this.ctx=null;this.master=null;this.ambient=null;this.ui=null;this.reverb=null;this.limiter=null;this.tension=null;
    if(old){try{old.close()}catch{}}
+   try{if('speechSynthesis' in window)window.speechSynthesis.cancel()}catch{}
+   try{document.querySelectorAll('audio,video').forEach(m=>{try{m.pause();m.currentTime=0}catch{}})}catch{}
+   try{if('mediaSession' in navigator)navigator.mediaSession.playbackState='none'}catch{}
    if(manual){
     this.soundOn=false;
     const sb=document.getElementById('soundBtn');if(sb)sb.classList.remove('active');
@@ -308,7 +317,7 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
  document.querySelectorAll('.colorDot').forEach((b,i)=>b.addEventListener('click',()=>{AudioEngine.click(i+1);inkColor=b.dataset.color;document.querySelectorAll('.colorDot').forEach(x=>x.classList.toggle('active',x===b));penMode=true;app.classList.add('marking');document.getElementById('penBtn').classList.add('active');toast(i===0?'Red ink':i===1?'Blue ink':'Neon yellow ink')}));
  document.getElementById('undoBtn').addEventListener('click',()=>{AudioEngine.click(2);strokes.pop();redraw();persist()});
  document.getElementById('clearInk').addEventListener('click',()=>{AudioEngine.click(4);strokes=[];redraw();persist();toast('Handwritten marks cleared')});
- document.getElementById('soundBtn').addEventListener('click',()=>{AudioEngine.toggle();const b=document.getElementById('emergencyStop');const t=document.getElementById('stopText');if(AudioEngine.soundOn){b?.classList.remove('stopped');if(t)t.textContent='STOP'}});
+ document.getElementById('soundBtn').addEventListener('click',()=>{AudioEngine.toggle();const b=document.getElementById('emergencyStop');const t=document.getElementById('stopText');if(AudioEngine.soundOn){b?.classList.remove('stopped');if(t)t.textContent='STOP ALL AUDIO'}});
 
  function stopEverything({manual=false}={}){
   revealRunId++;
@@ -320,14 +329,23 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
   updateConfirm();
   if(manual){
    const b=document.getElementById('emergencyStop'),t=document.getElementById('stopText');
-   b?.classList.add('stopped');if(t)t.textContent='STOPPED';
+   b?.classList.add('stopped');if(t)t.textContent='AUDIO STOPPED';
    persist();toast('Everything stopped • tap Sound when you want audio again');
   }
  }
  document.getElementById('emergencyStop').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();broadcastStopOthers();stopEverything({manual:true})});
- const remoteStop=msg=>{if(!msg||msg.source===INSTANCE_ID)return;stopEverything({manual:false})};
- if(audioChannel)audioChannel.onmessage=e=>{if(e.data?.type==='stop-other-audio')remoteStop(e.data)};
- window.addEventListener('storage',e=>{if(e.key!=='attSavingsStopPingV4'||!e.newValue)return;try{remoteStop(JSON.parse(e.newValue))}catch{}});
+ const remoteStop=msg=>{
+  if(!msg||msg.source===INSTANCE_ID)return;
+  if(msg.type==='stop-all-audio'||msg.type==='claim-audio')stopEverything({manual:false});
+ };
+ if(audioChannel)audioChannel.onmessage=e=>remoteStop(e.data);
+ window.addEventListener('storage',e=>{if(e.key!==GLOBAL_AUDIO_STORAGE||!e.newValue)return;try{remoteStop(JSON.parse(e.newValue))}catch{}});
+ try{
+  if('mediaSession' in navigator){
+   navigator.mediaSession.setActionHandler('stop',()=>{broadcastStopOthers();stopEverything({manual:true})});
+   navigator.mediaSession.setActionHandler('pause',()=>{broadcastStopOthers();stopEverything({manual:true})});
+  }
+ }catch{}
 
  // ---- Share + install as a standalone Home Screen app ----
  const installNudge=document.getElementById('installNudge'), installModal=document.getElementById('installModal');
@@ -358,7 +376,7 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
  function restore(){try{const d=JSON.parse(localStorage.getItem('savingsCardStateV3')||'null');if(!d)return;Object.assign(state,d.state||{});lines=Number(d.lines)||0;total.value=d.total||'';strokes=Array.isArray(d.strokes)?d.strokes:[];AudioEngine.soundOn=d.soundOn!==false;for(const [g,v] of Object.entries({internet:state.internet,bundled:state.bundled,provider:state.provider})){if(v)document.querySelector(`[data-group="${g}"][data-value="${v}"]`)?.classList.add('selected')}['gamer','work'].forEach(k=>{if(state[k])document.querySelector(`[data-toggle="${k}"]`)?.classList.add('selected')});if(lines)document.querySelector(`[data-lines="${lines}"]`)?.classList.add('selected');if(!AudioEngine.soundOn){document.getElementById('soundBtn').classList.remove('active');document.getElementById('soundLabel').textContent='sound off'}updateConfirm()}catch{}}
  restore();
  window.addEventListener('resize',()=>requestAnimationFrame(sizeCanvas));setTimeout(sizeCanvas,60);setTimeout(sizeCanvas,450);setTimeout(sizeCanvas,1000);
- document.addEventListener('pointerdown',()=>{broadcastStopOthers();AudioEngine.ensure()},{once:true,capture:true});
+ document.addEventListener('pointerdown',()=>{claimAudioOwnership();AudioEngine.ensure()},{once:true,capture:true});
 
  // Keep screen awake in supported installed/secure contexts; silently falls back elsewhere.
  let wake=null;async function keepAwake(){try{if('wakeLock' in navigator&&!wake)wake=await navigator.wakeLock.request('screen')}catch{}}
@@ -366,7 +384,7 @@ h2,h3{margin:0 0 8px;font-weight:1000;letter-spacing:.15px;line-height:1.05}h2{f
  const stopForExit=()=>{stopEverything({manual:false});wake=null};
  window.addEventListener('pagehide',stopForExit,{capture:true});
  window.addEventListener('beforeunload',stopForExit,{capture:true});
- document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){stopForExit()}else{broadcastStopOthers();wake=null;keepAwake()}});
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){stopForExit()}else{wake=null;keepAwake()}});
  if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
 </script>
