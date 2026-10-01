@@ -815,10 +815,40 @@ button{font:inherit}
   let finished=false;
   let animationFrame=0;
   let audioContext=null;
+  let audioAllowed=true;
+
+  // Shared audio ownership across London's standalone pages.
+  const GLOBAL_AUDIO_CHANNEL='london-standalone-audio-v5';
+  const GLOBAL_AUDIO_STORAGE='londonStandaloneAudioV5';
+  const GLOBAL_AUDIO_INSTANCE=(globalThis.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+Math.random();
+  let globalAudioChannel=null;
+  try{if('BroadcastChannel' in window)globalAudioChannel=new BroadcastChannel(GLOBAL_AUDIO_CHANNEL)}catch{}
+  function globalAudioSend(type){
+    const msg={type,source:GLOBAL_AUDIO_INSTANCE,at:Date.now()};
+    try{globalAudioChannel?.postMessage(msg)}catch{}
+    try{localStorage.setItem(GLOBAL_AUDIO_STORAGE,JSON.stringify(msg))}catch{}
+  }
+  function stopExperienceAudioFromOutside(){
+    audioAllowed=false;
+    try{if(audioContext){audioContext.close();audioContext=null}}catch{audioContext=null}
+    try{if('speechSynthesis' in window)window.speechSynthesis.cancel()}catch{}
+  }
+  function handleGlobalAudio(msg){
+    if(!msg||msg.source===GLOBAL_AUDIO_INSTANCE)return;
+    if(msg.type==='stop-all-audio'||msg.type==='claim-audio')stopExperienceAudioFromOutside();
+  }
+  if(globalAudioChannel)globalAudioChannel.onmessage=e=>handleGlobalAudio(e.data);
+  window.addEventListener('storage',e=>{if(e.key!==GLOBAL_AUDIO_STORAGE||!e.newValue)return;try{handleGlobalAudio(JSON.parse(e.newValue))}catch{}});
+  document.addEventListener('pointerdown',()=>{audioAllowed=true;globalAudioSend('claim-audio')},{capture:true});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){try{if(audioContext){audioContext.close();audioContext=null}}catch{audioContext=null}}});
 
   function playTone(frequency=170,volume=.025,durationSeconds=.22){
     try{
-      audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();
+      if(!audioAllowed||document.hidden)return;
+      if(!audioContext){
+        globalAudioSend('claim-audio');
+        audioContext=new(window.AudioContext||window.webkitAudioContext)();
+      }
       if(audioContext.state==="suspended")audioContext.resume();
 
       const oscillator=audioContext.createOscillator();
