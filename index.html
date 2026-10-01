@@ -764,6 +764,32 @@ body.map-fullscreen-fallback{overflow:hidden}
   let soundEnabled=true;
   let audioCtx=null;
   let audioOut=null;
+
+  // Shared audio ownership across London's standalone pages.
+  const GLOBAL_AUDIO_CHANNEL='london-standalone-audio-v5';
+  const GLOBAL_AUDIO_STORAGE='londonStandaloneAudioV5';
+  const GLOBAL_AUDIO_INSTANCE=(globalThis.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+Math.random();
+  let globalAudioChannel=null;
+  try{if('BroadcastChannel' in window)globalAudioChannel=new BroadcastChannel(GLOBAL_AUDIO_CHANNEL)}catch{}
+  function globalAudioSend(type){
+    const msg={type,source:GLOBAL_AUDIO_INSTANCE,at:Date.now()};
+    try{globalAudioChannel?.postMessage(msg)}catch{}
+    try{localStorage.setItem(GLOBAL_AUDIO_STORAGE,JSON.stringify(msg))}catch{}
+  }
+  function stopRootAudioFromOutside(){
+    soundEnabled=false;
+    try{if(audioCtx){audioCtx.close();audioCtx=null;audioOut=null}}catch{audioCtx=null;audioOut=null}
+    try{if('speechSynthesis' in window)window.speechSynthesis.cancel()}catch{}
+    const b=document.getElementById('soundBtn');
+    if(b){b.textContent='SOUND OFF';b.classList.add('muted');b.setAttribute('aria-pressed','false')}
+  }
+  function handleGlobalAudio(msg){
+    if(!msg||msg.source===GLOBAL_AUDIO_INSTANCE)return;
+    if(msg.type==='stop-all-audio'||msg.type==='claim-audio')stopRootAudioFromOutside();
+  }
+  if(globalAudioChannel)globalAudioChannel.onmessage=e=>handleGlobalAudio(e.data);
+  window.addEventListener('storage',e=>{if(e.key!==GLOBAL_AUDIO_STORAGE||!e.newValue)return;try{handleGlobalAudio(JSON.parse(e.newValue))}catch{}});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){try{if(audioCtx){audioCtx.close();audioCtx=null;audioOut=null}}catch{audioCtx=null;audioOut=null}}});
   let speechUtterance=null;
   let gpsPosition=null;
   const gpsMap=document.getElementById('gpsMap');
@@ -872,6 +898,8 @@ body.map-fullscreen-fallback{overflow:hidden}
     if(!soundEnabled) return null;
     try{
       if(!audioCtx){
+        if(document.hidden)return null;
+        globalAudioSend('claim-audio');
         audioCtx=new (window.AudioContext||window.webkitAudioContext)();
         const compressor=audioCtx.createDynamicsCompressor();
         compressor.threshold.value=-18;compressor.knee.value=12;compressor.ratio.value=10;compressor.attack.value=.006;compressor.release.value=.18;
