@@ -1,15 +1,11 @@
 {
-  "id": "./index.html",
-  "name": "AT&T Savings Review Digital Card",
+  "id": "./?app=ipad-clean-v6",
+  "name": "AT&T Savings Review",
   "short_name": "Savings Review",
-  "description": "Reusable interactive savings review card with markup, line selections, and savings reveal.",
-  "start_url": "./index.html?source=homescreen",
+  "description": "Interactive AT&T Savings Review digital card.",
+  "start_url": "./?app=ipad-clean-v6",
   "scope": "./",
   "display": "standalone",
-  "display_override": [
-    "standalone",
-    "minimal-ui"
-  ],
   "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#0077c8",
