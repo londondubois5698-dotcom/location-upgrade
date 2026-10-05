@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#041019">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<title>Network Verifier V3</title>
+<style>
+:root{--bg:#03090e;--panel:#091923;--panel2:#0c2431;--text:#f5fbff;--muted:#91a7b5;--line:rgba(255,255,255,.13);--att:#00a8e0;--tm:#e20074;--vz:#ee1b2e;--good:#45e3a2;--warn:#ffd06b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg);scroll-behavior:smooth}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -5%,#173d50 0,#07141d 34%,#03090e 75%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+button,input,select,a{font:inherit}
+.app{max-width:940px;margin:auto;padding:14px 12px 44px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:3px 2px 13px}
+.brand{display:flex;align-items:center;gap:10px}.mark{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(135deg,#43ceff,#3269ff);font-weight:1000;box-shadow:0 10px 30px #216fff42}
+h1{font-size:21px;line-height:1;margin:0}.sub{font-size:10px;color:var(--muted);margin-top:5px}
+.ready{font-size:9px;font-weight:950;color:#8ff1c5;padding:8px 10px;border-radius:999px;border:1px solid #45e3a244;background:#45e3a20c}
+.card{margin:10px 0;padding:16px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(180deg,rgba(15,38,51,.98),rgba(6,19,27,.98));box-shadow:0 18px 44px #0005}
+.eyebrow{font-size:9px;font-weight:950;letter-spacing:.14em;text-transform:uppercase;color:#88a5b6}.title{font-size:20px;font-weight:1000;margin:5px 0}.desc{font-size:11px;color:var(--muted);line-height:1.5}
+.bigBtn{width:100%;min-height:54px;border:0;border-radius:16px;color:#fff;font-weight:950;cursor:pointer;touch-action:manipulation}
+.primary{background:linear-gradient(135deg,#32c5ff,#3162ff);box-shadow:0 11px 28px #3162ff3d}
+.secondary{background:#102b39;border:1px solid #52cfff42}
+.location{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:11px;padding:12px;border:1px solid var(--line);border-radius:16px;background:#071820}
+.location b{font-size:12px}.location small{display:block;color:var(--muted);font-size:9px;margin-top:3px}.dot{width:11px;height:11px;border-radius:50%;background:#708793;box-shadow:0 0 0 5px #70879315}.dot.on{background:var(--good);box-shadow:0 0 18px #45e3a288}
+.locBtn{width:auto;min-height:42px;padding:0 13px;font-size:10px}
+.carriers{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:13px}
+.carrier{min-height:126px;border:2px solid var(--line);border-radius:20px;background:#081820;color:#fff;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 3px;cursor:pointer;touch-action:manipulation}
+.carrier:active{transform:scale(.97)}.carrier.selected{border-color:#fff;transform:translateY(-2px)}
+.carrier[data-carrier="T-Mobile"].selected{background:linear-gradient(180deg,#e2007455,#081820 74%);box-shadow:0 0 28px #e2007437}
+.carrier[data-carrier="AT&T"].selected{background:linear-gradient(180deg,#00a8e055,#081820 74%);box-shadow:0 0 28px #00a8e037}
+.carrier[data-carrier="Verizon"].selected{background:linear-gradient(180deg,#ee1b2e50,#081820 74%);box-shadow:0 0 28px #ee1b2e32}
+.logo{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:17px;font-weight:1000;margin-bottom:9px}
+.tm{background:var(--tm)}.att{background:var(--att);border-radius:50%}.vz{background:#111}.carrierName{font-size:13px;font-weight:1000}.hint{font-size:8px;color:var(--muted);margin-top:4px}
+.check{position:absolute;top:7px;right:7px;width:25px;height:25px;border-radius:50%;display:none;place-items:center;background:#fff;color:#07141d;font-weight:1000}.carrier.selected .check{display:grid}
+.selectedBar{display:none;margin-top:12px;padding:12px;border-radius:15px;border:1px solid #45e3a244;background:#45e3a20b;align-items:center;justify-content:space-between}.selectedBar.show{display:flex}.selectedBar strong{font-size:15px}.selectedBar span{font-size:9px;color:#a8bcc8}
+.fullBtn{margin-top:10px;background:linear-gradient(135deg,#142734,#18445d);border:1px solid #52cfff42}
+.setup{display:none}.setup.show{display:block}.field{margin-top:12px}.field label{display:block;font-size:10px;font-weight:900;color:#bed0da;margin-bottom:5px}.field select{width:100%;height:48px;border-radius:14px;border:1px solid var(--line);background:#071820;color:#fff;padding:0 10px}
+.info{margin-top:10px;padding:11px;border-radius:14px;border:1px solid var(--line);background:#071820;font-size:10px;color:#aac0cc;line-height:1.5}
+.confirm{display:flex;gap:9px;align-items:flex-start;margin-top:11px;padding:11px;border-radius:14px;border:1px solid var(--line);background:#ffffff08;font-size:10px;color:#b8cad4;line-height:1.45}.confirm input{width:22px;height:22px;flex:0 0 auto}.run{margin-top:11px}.run:disabled{opacity:.38}
+.status{display:none}.status.show{display:block}.statusHead{display:flex;justify-content:space-between;gap:10px}.phase{font-size:18px;font-weight:1000}.phaseSub{font-size:9px;color:var(--muted);margin-top:4px}.pct{font-size:25px;font-weight:1000}
+.visual{height:210px;margin-top:12px;position:relative;overflow:hidden;border-radius:20px;border:1px solid #34bfff40;background:radial-gradient(circle at 50% 45%,#2fbfff25,#020a0f 67%)}
+.radar{position:absolute;left:50%;top:46%;width:150px;height:150px;margin:-75px;border-radius:50%;border:1px solid #50d3ff36}.radar:before,.radar:after{content:"";position:absolute;inset:22%;border-radius:50%;border:1px solid #50d3ff30}.radar:after{inset:41%}
+.sweep{position:absolute;left:50%;top:46%;width:2px;height:77px;transform-origin:50% 0;background:linear-gradient(#8ce9ff,transparent);filter:drop-shadow(0 0 8px #52dbff);animation:sweep 1.05s linear infinite}
+.ring{position:absolute;left:50%;top:46%;width:70px;height:70px;margin:-35px;border-radius:50%;border:2px solid #5bddffb0;animation:ring 1.6s ease-out infinite}.r2{animation-delay:.53s}.r3{animation-delay:1.06s}
+.core{position:absolute;left:50%;top:46%;width:54px;height:54px;margin:-27px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#3ad4ff,#3264ff);font-size:23px;font-weight:1000;box-shadow:0 0 38px #42c8ff80;animation:beat .85s ease-in-out infinite}
+.packet{position:absolute;width:8px;height:8px;border-radius:50%;background:#96ecff;box-shadow:0 0 14px #50d9ff}.p1{left:7%;top:24%;animation:p1 1.15s linear infinite}.p2{right:7%;bottom:25%;animation:p2 1.25s linear infinite .25s}.p3{right:13%;top:16%;animation:p2 1.05s linear infinite .48s}
+.visualText{position:absolute;left:10px;right:10px;bottom:11px;text-align:center;font-size:10px;font-weight:900;color:#d2f1ff}
+.progress{height:10px;margin-top:11px;border-radius:99px;background:#041018;overflow:hidden}.fill{height:100%;width:0;background:linear-gradient(90deg,#32bfff,#45e3a2);transition:width .18s}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:9px}.metric{padding:9px 3px;border-radius:13px;border:1px solid var(--line);background:#06141d;text-align:center}.metric b{display:block;font-size:18px}.metric span{font-size:8px;color:var(--muted)}
+.result{display:none}.result.show{display:block}.speed{font-size:48px;line-height:1;font-weight:1000;margin-top:8px}.speed small{font-size:12px;color:var(--muted)}
+.compare{display:none}.compare.show{display:block}.compareGrid{display:grid;grid-template-columns:repeat(3,minmax(245px,1fr));gap:9px;overflow-x:auto;scroll-snap-type:x mandatory;padding:5px 0 8px}.compareCard{min-width:245px;scroll-snap-align:start;padding:13px;border-radius:19px;border:1px solid var(--line);background:#071720}.compareTop{display:flex;align-items:center;justify-content:space-between}.compareLogo{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;font-size:15px;font-weight:1000}.liveTag{font-size:8px;font-weight:950;color:#91efc2;display:flex;align-items:center;gap:5px}.liveTag i{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 12px #45e3a2;animation:blink 1s infinite}.compareName{font-size:17px;font-weight:1000;margin:8px 0}.stat{margin-top:7px;padding:9px;border-radius:12px;border:1px solid #ffffff10;background:#0b222f}.k{font-size:8px;color:#87a2b2;text-transform:uppercase;letter-spacing:.08em;font-weight:950}.v{font-size:16px;font-weight:1000;margin-top:4px}.s{font-size:8px;color:#8ea6b4;line-height:1.4;margin-top:3px}
+.link{display:flex;align-items:center;justify-content:center;min-height:42px;margin-top:8px;border-radius:12px;border:1px solid var(--line);color:#e7f4fa;text-decoration:none;font-size:9px;font-weight:950}
+.notice{margin-top:9px;padding:10px;border-radius:13px;border:1px solid #ffd06b3d;background:#ffd06b0c;color:#ffe4a6;font-size:9px;line-height:1.5}
+.error{display:none;margin-top:10px;padding:10px;border-radius:12px;border:1px solid #ff667b40;background:#ff667b12;color:#ffc5cc;font-size:9px}.error.show{display:block}
+.footer{padding:12px 5px;font-size:8px;color:#6f8997;line-height:1.5}
+@keyframes sweep{to{transform:rotate(360deg)}}@keyframes ring{0%{transform:scale(.35);opacity:1}100%{transform:scale(3.05);opacity:0}}@keyframes beat{50%{transform:scale(1.08)}}@keyframes p1{0%{transform:translate(0,0);opacity:0}15%{opacity:1}100%{transform:translate(135px,72px);opacity:0}}@keyframes p2{0%{transform:translate(0,0);opacity:0}15%{opacity:1}100%{transform:translate(-130px,-65px);opacity:0}}@keyframes blink{50%{opacity:.28}}
+@media(max-width:430px){.app{padding-left:10px;padding-right:10px}.card{padding:14px}.carrier{min-height:118px}.logo{width:47px;height:47px;font-size:14px}.carrierName{font-size:12px}.metrics{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top"><div class="brand"><div class="mark">NV</div><div><h1>Network Verifier V3</h1><div class="sub">Doorstep · GPS · live connection testing</div></div></div><div class="ready">IPHONE READY</div></header>
+
+<section class="card">
+<div class="eyebrow">Doorstep location</div><div class="title">Use my location</div><div class="desc">No address typing. Safari uses the iPhone's current location after you allow Location access.</div>
+<div class="location"><div style="display:flex;align-items:center;gap:9px"><div id="locDot" class="dot"></div><div><b id="locTitle">Location not requested</b><small id="locSub">Tap Use My Location, a carrier, or Full Comparison.</small></div></div><button type="button" class="bigBtn primary locBtn" id="locBtn">USE MY LOCATION</button></div>
+</section>
+
+<section class="card">
+<div class="eyebrow">1 · Customer's current provider</div><div class="title">Tap a carrier</div><div class="desc">Large direct-touch buttons. Your selection stays highlighted while you continue.</div>
+<div class="carriers">
+<button type="button" class="carrier" data-carrier="T-Mobile"><span class="check">✓</span><span class="logo tm">T</span><span class="carrierName">T‑Mobile</span><span class="hint">tap to select</span></button>
+<button type="button" class="carrier" data-carrier="AT&T"><span class="check">✓</span><span class="logo att">AT&T</span><span class="carrierName">AT&T</span><span class="hint">tap to select</span></button>
+<button type="button" class="carrier" data-carrier="Verizon"><span class="check">✓</span><span class="logo vz">V</span><span class="carrierName">Verizon</span><span class="hint">tap to select</span></button>
+</div>
+<div id="selectedBar" class="selectedBar"><div><span>SELECTED PROVIDER</span><br><strong id="selectedName">—</strong></div><strong>READY ✓</strong></div>
+<button type="button" class="bigBtn fullBtn" id="fullBtn">FULL COMPARISON · ALL 3 CARRIERS</button>
+</section>
+
+<section id="setup" class="card setup">
+<div class="eyebrow">2 · Live check</div><div class="title" id="setupTitle">Test this connection</div><div class="desc">The live test measures the internet path this iPhone is actually using. Connect to the customer's Wi‑Fi before testing.</div>
+<div class="field"><label for="serviceType">Service / plan type</label><select id="serviceType"></select></div>
+<div id="officialSummary" class="info"></div>
+<label class="confirm"><input type="checkbox" id="wifiConfirm"><span><b>I am connected to this customer's Wi‑Fi.</b><br>For the cleanest result, stay near the gateway and disable VPN during the test.</span></label>
+<button type="button" id="runBtn" class="bigBtn primary run" disabled>RUN LIVE VERIFIED TEST</button>
+<div id="testError" class="error"></div>
+</section>
+
+<section id="status" class="card status">
+<div class="statusHead"><div><div id="phase" class="phase">Connecting</div><div id="phaseSub" class="phaseSub">Preparing live test</div></div><div id="pct" class="pct">0%</div></div>
+<div class="visual"><div class="radar"></div><div class="sweep"></div><div class="ring"></div><div class="ring r2"></div><div class="ring r3"></div><div id="core" class="core">↕</div><div class="packet p1"></div><div class="packet p2"></div><div class="packet p3"></div><div id="visualText" class="visualText">CONNECTING TO LIVE TEST SERVER</div></div>
+<div class="progress"><div id="fill" class="fill"></div></div>
+<div class="metrics"><div class="metric"><b id="mDown">—</b><span>DOWNLOAD Mbps</span></div><div class="metric"><b id="mUp">—</b><span>UPLOAD Mbps</span></div><div class="metric"><b id="mRtt">—</b><span>MIN RTT ms</span></div><div class="metric"><b id="mJitter">—</b><span>RTT VAR ms</span></div></div>
+</section>
+
+<section id="result" class="card result"><div class="eyebrow">Verified result</div><div class="title" id="resultCarrier">—</div><div class="speed"><span id="resultDown">—</span> <small>Mbps download</small></div><div id="resultDetail" class="desc" style="margin-top:10px"></div><button type="button" class="bigBtn fullBtn" id="resultCompare">COMPARE WITH ALL 3 CARRIERS</button></section>
+
+<section id="compare" class="card compare">
+<div class="eyebrow">Full comparison</div><div class="title">AT&T · T‑Mobile · Verizon</div><div class="desc">Side-by-side carrier view for this doorstep. Published carrier information is shown immediately; secure FCC location data will populate here when the server-side FCC connector is added.</div>
+<div id="compareLocation" class="info">Tap Full Comparison to lock the doorstep GPS location.</div>
+<div class="compareGrid">
+<article class="compareCard"><div class="compareTop"><div class="compareLogo att">AT&T</div><div class="liveTag"><i></i> OFFICIAL</div></div><div class="compareName">AT&T</div><div class="stat"><div class="k">Published home wireless</div><div class="v">90–300 Mbps</div><div class="s">Internet Air typical download; 8–30 Mbps upload.</div></div><div class="stat"><div class="k">Local FCC layer</div><div class="v">Secure feed pending</div><div class="s">The FCC API key is never exposed inside this page.</div></div><div class="stat"><div class="k">Live on this iPhone</div><div class="v" id="liveAtt">Not tested</div><div class="s">Valid only when this iPhone is actually using AT&T internet.</div></div><a class="link" href="https://www.att.com/internet/availability/" target="_blank" rel="noopener">OPEN AT&T OFFICIAL CHECKER</a></article>
+<article class="compareCard"><div class="compareTop"><div class="compareLogo tm">T</div><div class="liveTag"><i></i> OFFICIAL</div></div><div class="compareName">T‑Mobile</div><div class="stat"><div class="k">Published 5G Home</div><div class="v">170–498 Mbps</div><div class="s">Current published typical performance varies by plan.</div></div><div class="stat"><div class="k">Local FCC layer</div><div class="v">Secure feed pending</div><div class="s">The FCC API key is never exposed inside this page.</div></div><div class="stat"><div class="k">Live on this iPhone</div><div class="v" id="liveTm">Not tested</div><div class="s">Valid only when this iPhone is actually using T‑Mobile internet.</div></div><a class="link" href="https://www.t-mobile.com/home-internet/eligibility" target="_blank" rel="noopener">OPEN T‑MOBILE OFFICIAL CHECKER</a></article>
+<article class="compareCard"><div class="compareTop"><div class="compareLogo vz">V</div><div class="liveTag"><i></i> OFFICIAL</div></div><div class="compareName">Verizon</div><div class="stat"><div class="k">Published 5G Home</div><div class="v">Plan / radio dependent</div><div class="s">Performance varies by location, plan and 5G radio layer.</div></div><div class="stat"><div class="k">Local FCC layer</div><div class="v">Secure feed pending</div><div class="s">The FCC API key is never exposed inside this page.</div></div><div class="stat"><div class="k">Live on this iPhone</div><div class="v" id="liveVz">Not tested</div><div class="s">Valid only when this iPhone is actually using Verizon internet.</div></div><a class="link" href="https://www.verizon.com/home/internet/" target="_blank" rel="noopener">OPEN VERIZON OFFICIAL CHECKER</a></article>
+</div>
+<div class="notice"><b>Why this page does not pretend to live-test all three networks at once:</b> one iPhone has one active internet path. A real speed test measures the network the phone is currently connected to. The FCC/provider-reported layer is what lets us compare all three at one doorstep without inventing numbers.</div>
+<a class="link" href="https://broadbandmap.fcc.gov/home" target="_blank" rel="noopener">OPEN FCC NATIONAL BROADBAND MAP</a>
+</section>
+
+<div class="footer">Live testing uses Measurement Lab NDT7. Results reflect the current device → Wi‑Fi → ISP → test-server path and can vary with Wi‑Fi conditions, congestion and device limitations.</div>
+</div>
+<script>
+(function(){
+"use strict";
+var selected="", running=false, coords=null;
+var DATA={
+"T-Mobile":[["5G Home · Amplified / All-In","170–498 Mbps","12–55 Mbps","16–28 ms"],["5G Home · Rely","Varies by plan","12–55 Mbps","16–28 ms"],["T-Mobile Fiber","Address / plan dependent","Often symmetrical","Varies"]],
+"AT&T":[["Internet Air","90–300 Mbps","8–30 Mbps","30–65 ms"],["AT&T Fiber","300 Mbps–5 Gig tiers","Symmetrical on fiber tiers","Low / tier dependent"]],
+"Verizon":[["5G Home","Address / plan dependent","Plan dependent","Varies"],["5G Home Plus","Address / plan dependent","Plan dependent","Varies"],["5G Home Ultimate","Address / radio dependent","Plan dependent","Varies"],["Fios","Address / plan dependent","Fiber tier dependent","Varies"]]
+};
+var $=function(id){return document.getElementById(id)};
+var carriers=[].slice.call(document.querySelectorAll(".carrier"));
+function fmt(n){return isFinite(n)?(n>=100?Math.round(n):Number(n).toFixed(1)):"—"}
+function median(a){a=a.filter(function(n){return isFinite(n)}).sort(function(x,y){return x-y});if(!a.length)return NaN;var m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2}
+function updateRun(){ $("runBtn").disabled=!(selected&&$("wifiConfirm").checked&&!running); $("runBtn").textContent=selected?"RUN "+selected.toUpperCase()+" LIVE VERIFIED TEST":"RUN LIVE VERIFIED TEST" }
+function choose(name){
+selected=name;
+carriers.forEach(function(b){b.classList.toggle("selected",b.getAttribute("data-carrier")===name)});
+$("selectedName").textContent=name;$("selectedBar").classList.add("show");$("setup").classList.add("show");$("setupTitle").textContent="Run a live "+name+" connection check";
+var sel=$("serviceType");sel.innerHTML="";DATA[name].forEach(function(x,i){var o=document.createElement("option");o.value=String(i);o.textContent=x[0];sel.appendChild(o)});serviceChanged();updateRun();useLocation(false);
+setTimeout(function(){$("setup").scrollIntoView({behavior:"smooth",block:"start"})},80)
+}
+carriers.forEach(function(b){b.addEventListener("click",function(e){e.preventDefault();choose(this.getAttribute("data-carrier"))},{passive:false});b.addEventListener("touchend",function(){var n=this.getAttribute("data-carrier");if(selected!==n)choose(n)},{passive:true})});
+function serviceChanged(){if(!selected)return;var x=DATA[selected][+$("serviceType").value||0];$("officialSummary").innerHTML="<b>"+x[0]+"</b><br>Published download: "+x[1]+" · upload: "+x[2]+" · latency: "+x[3]+".<br><span style='color:#7895a5'>Exact eligibility depends on the doorstep location.</span>"}
+$("serviceType").addEventListener("change",serviceChanged);$("wifiConfirm").addEventListener("change",updateRun);
+
+function useLocation(scroll){
+if(!navigator.geolocation){$("locTitle").textContent="Location unavailable";$("locSub").textContent="This browser does not expose geolocation.";return Promise.reject(new Error("No geolocation"))}
+$("locTitle").textContent="Getting doorstep location…";$("locSub").textContent="Allow Location access in Safari.";
+return new Promise(function(resolve,reject){
+navigator.geolocation.getCurrentPosition(function(p){coords={lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy};$("locDot").classList.add("on");$("locTitle").textContent="Doorstep location locked";$("locSub").textContent="GPS accuracy approximately ±"+Math.round(coords.accuracy)+" m";if(scroll)$("compareLocation").textContent="Doorstep GPS locked · ±"+Math.round(coords.accuracy)+" m · secure FCC comparison feed is the next backend connection.";resolve(coords)},function(err){$("locTitle").textContent="Location permission needed";$("locSub").textContent="Safari Settings → Location → Allow, then tap again.";reject(err)},{enableHighAccuracy:true,timeout:12000,maximumAge:15000})
+})
+}
+$("locBtn").addEventListener("click",function(){useLocation(false).catch(function(){})});
+
+function openCompare(){
+$("compare").classList.add("show");$("compare").scrollIntoView({behavior:"smooth",block:"start"});
+useLocation(true).catch(function(){$("compareLocation").textContent="Location is not available yet. Allow Safari Location and tap Full Comparison again."})
+}
+$("fullBtn").addEventListener("click",openCompare);$("resultCompare").addEventListener("click",openCompare);
+
+function phase(title,sub,p,mode){
+$("status").classList.add("show");$("phase").textContent=title;$("phaseSub").textContent=sub;$("pct").textContent=Math.round(p)+"%";$("fill").style.width=Math.max(0,Math.min(100,p))+"%";
+$("core").textContent=mode==="down"?"↓":mode==="up"?"↑":mode==="verify"?"✓":"↕";
+$("visualText").textContent=mode==="down"?"LIVE DOWNLOAD · DATA FLOWING TO THIS IPHONE":mode==="up"?"LIVE UPLOAD · DATA FLOWING FROM THIS IPHONE":mode==="verify"?"VERIFYING RESULT":"CONNECTING TO LIVE TEST SERVER";
+}
+function discover(){return fetch("https://locate.measurementlab.net/v2/nearest/ndt/ndt7",{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("M-Lab server lookup failed");return r.json()}).then(function(j){if(!j.results||!j.results.length)throw new Error("No nearby M-Lab server");return j.results})}
+function tcp(text,s){try{var j=JSON.parse(text),t=j.TCPInfo||j.tcp_info||j;if(t.MinRTT!=null)s.rtt=Number(t.MinRTT)/1000;if(t.RTTVar!=null)s.jitter=Number(t.RTTVar)/1000}catch(e){}}
+function down(url,cb){return new Promise(function(resolve,reject){var ws,bytes=0,start=0,s={rtt:NaN,jitter:NaN},done=false;function finish(){if(done)return;done=true;var ms=Math.max(1,performance.now()-start);try{ws.close()}catch(e){}resolve({speed:bytes*8/ms/1000,rtt:s.rtt,jitter:s.jitter})}try{ws=new WebSocket(url,"net.measurementlab.ndt.v7");ws.binaryType="arraybuffer";ws.onopen=function(){start=performance.now()};ws.onmessage=function(e){if(typeof e.data==="string")tcp(e.data,s);else bytes+=e.data.byteLength||0;var ms=performance.now()-start;cb(bytes*8/Math.max(1,ms)/1000,Math.min(1,ms/7000),s);if(ms>7200)finish()};ws.onclose=function(){if(bytes)finish();else reject(new Error("Download server closed early"))};ws.onerror=function(){};setTimeout(function(){if(!done){if(bytes)finish();else reject(new Error("Download timeout"))}},11000)}catch(e){reject(e)}})}
+function up(url,cb){return new Promise(function(resolve,reject){var ws,sent=0,start=0,s={rtt:NaN,jitter:NaN},done=false,timer,chunk=new Uint8Array(256*1024);function finish(){if(done)return;done=true;clearInterval(timer);var ms=Math.max(1,performance.now()-start),drained=Math.max(0,sent-(ws?ws.bufferedAmount:0));try{ws.close()}catch(e){}resolve({speed:drained*8/ms/1000,rtt:s.rtt,jitter:s.jitter})}try{ws=new WebSocket(url,"net.measurementlab.ndt.v7");ws.binaryType="arraybuffer";ws.onopen=function(){start=performance.now();timer=setInterval(function(){if(done||ws.readyState!==1)return;var ms=performance.now()-start;if(ms>7000){finish();return}var loops=0;while(ws.bufferedAmount<3*1024*1024&&loops<20){try{ws.send(chunk);sent+=chunk.byteLength;loops++}catch(e){break}}var d=Math.max(0,sent-ws.bufferedAmount);cb(d*8/Math.max(1,ms)/1000,Math.min(1,ms/7000),s)},35)};ws.onmessage=function(e){if(typeof e.data==="string")tcp(e.data,s)};ws.onclose=function(){if(sent)finish();else reject(new Error("Upload server closed early"))};ws.onerror=function(){};setTimeout(function(){if(!done){if(sent)finish();else reject(new Error("Upload timeout"))}},11000)}catch(e){reject(e)}})}
+function oneRun(i,total){
+return discover().then(function(r){var idx=0;function tryNext(){if(idx>=r.length)throw new Error("No M-Lab server completed the test");var t=r[idx++],u=t.urls||{},d=u["wss:///ndt/v7/download"],upurl=u["wss:///ndt/v7/upload"];if(!d||!upurl)return tryNext();var base=i/total*100,span=100/total;phase("Run "+(i+1)+" of "+total+" · download","Measuring sustained throughput",base+2,"down");return down(d,function(v,p,s){$("mDown").textContent=fmt(v);if(isFinite(s.rtt))$("mRtt").textContent=fmt(s.rtt);if(isFinite(s.jitter))$("mJitter").textContent=fmt(s.jitter);phase("Run "+(i+1)+" of "+total+" · download","Live packets flowing",base+span*(.05+.42*p),"down")}).then(function(a){phase("Run "+(i+1)+" of "+total+" · upload","Measuring upstream",base+span*.52,"up");return up(upurl,function(v,p,s){$("mUp").textContent=fmt(v);if(isFinite(s.rtt))$("mRtt").textContent=fmt(s.rtt);if(isFinite(s.jitter))$("mJitter").textContent=fmt(s.jitter);phase("Run "+(i+1)+" of "+total+" · upload","Sending through customer connection",base+span*(.55+.4*p),"up")}).then(function(b){return{down:a.speed,up:b.speed,rtt:median([a.rtt,b.rtt]),jitter:median([a.jitter,b.jitter])}})}).catch(function(){return tryNext()})}return tryNext()})
+}
+$("runBtn").addEventListener("click",function(){
+if(running||!selected||!$("wifiConfirm").checked)return;running=true;updateRun();$("testError").className="error";$("status").scrollIntoView({behavior:"smooth",block:"center"});$("mDown").textContent=$("mUp").textContent=$("mRtt").textContent=$("mJitter").textContent="—";phase("Connecting",selected+" selected · locating M-Lab server",1,"connect");
+var out=[],chain=Promise.resolve();[0,1,2].forEach(function(i){chain=chain.then(function(){return oneRun(i,3)}).then(function(x){out.push(x);$("mDown").textContent=fmt(median(out.map(function(v){return v.down})));$("mUp").textContent=fmt(median(out.map(function(v){return v.up})));$("mRtt").textContent=fmt(median(out.map(function(v){return v.rtt})));$("mJitter").textContent=fmt(median(out.map(function(v){return v.jitter})))})});
+chain.then(function(){var r={down:median(out.map(function(v){return v.down})),up:median(out.map(function(v){return v.up})),rtt:median(out.map(function(v){return v.rtt})),jitter:median(out.map(function(v){return v.jitter}))};phase("Verified","3-run median complete",100,"verify");$("resultCarrier").textContent=selected+" · verified 3-run median";$("resultDown").textContent=fmt(r.down);$("resultDetail").textContent="Upload "+fmt(r.up)+" Mbps · min RTT "+fmt(r.rtt)+" ms · RTT variation "+fmt(r.jitter)+" ms. This is the connection this iPhone actually used.";$("result").classList.add("show");if(selected==="AT&T")$("liveAtt").textContent=fmt(r.down)+" Mbps live";if(selected==="T-Mobile")$("liveTm").textContent=fmt(r.down)+" Mbps live";if(selected==="Verizon")$("liveVz").textContent=fmt(r.down)+" Mbps live";$("result").scrollIntoView({behavior:"smooth",block:"start"})}).catch(function(e){$("testError").textContent=e.message||"Live test could not complete.";$("testError").classList.add("show");phase("Test stopped","Check Wi-Fi and retry",0,"connect")}).finally(function(){running=false;updateRun()})
+});
+setTimeout(function(){useLocation(false).catch(function(){})},500);
+})();
+</script>
+</body>
+</html>
