@@ -86,6 +86,22 @@ h1{font-size:21px;line-height:1;margin:0}.sub{font-size:10px;color:var(--muted);
 @keyframes beam{0%{opacity:0;clip-path:inset(0 100% 0 0)}15%{opacity:1}70%{clip-path:inset(0 0 0 0)}100%{opacity:0}}
 
 @keyframes sweep{to{transform:rotate(360deg)}}@keyframes ring{0%{transform:scale(.35);opacity:1}100%{transform:scale(3.05);opacity:0}}@keyframes beat{50%{transform:scale(1.08)}}@keyframes p1{0%{transform:translate(0,0);opacity:0}15%{opacity:1}100%{transform:translate(135px,72px);opacity:0}}@keyframes p2{0%{transform:translate(0,0);opacity:0}15%{opacity:1}100%{transform:translate(-130px,-65px);opacity:0}}@keyframes blink{50%{opacity:.28}}
+
+.confidenceCard{border-color:#6ee7ff36}
+.confControls{display:grid;grid-template-columns:1fr;gap:9px;margin-top:11px}
+.confBtn{background:linear-gradient(135deg,#1d9cff,#164fd5)}
+.confResult{display:none;margin-top:12px;padding:13px;border-radius:16px;border:1px solid var(--line);background:#06141d}
+.confResult.show{display:block}
+.confWinner{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.confWinner strong{font-size:22px}.confPct{font-size:26px;font-weight:1000}
+.confBars{margin-top:12px;display:grid;gap:8px}
+.confRow{display:grid;grid-template-columns:78px 1fr 42px;gap:8px;align-items:center;font-size:9px}
+.confTrack{height:9px;border-radius:99px;background:#ffffff0d;overflow:hidden}.confFill{height:100%;width:0;border-radius:99px;transition:width .35s ease}
+.confAtt{background:#00a8e0}.confTm{background:#e20074}.confVz{background:#ee1b2e}.confOther{background:#9daab2}
+.evidence{margin-top:11px;padding-top:10px;border-top:1px solid #ffffff10;font-size:9px;color:#9db2bf;line-height:1.55}
+.evidence b{color:#e8f7ff}
+.pathBadge{display:inline-block;margin-top:6px;padding:5px 7px;border-radius:999px;border:1px solid #ffffff1c;background:#ffffff08;font-size:8px;font-weight:950}
+
 @media(max-width:430px){.app{padding-left:10px;padding-right:10px}.card{padding:14px}.carrier{min-height:118px}.logo{width:47px;height:47px;font-size:14px}.carrierName{font-size:12px}.metrics{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
@@ -96,6 +112,23 @@ h1{font-size:21px;line-height:1;margin:0}.sub{font-size:10px;color:var(--muted);
 <section class="card">
 <div class="eyebrow">Doorstep location</div><div class="title">Use my location</div><div class="desc">No address typing. Safari uses the iPhone's current location after you allow Location access.</div>
 <div class="location"><div style="display:flex;align-items:center;gap:9px"><div id="locDot" class="dot"></div><div><b id="locTitle">Location not requested</b><small id="locSub">Tap Use My Location, a carrier, or Full Comparison.</small></div></div><button type="button" class="bigBtn primary locBtn" id="locBtn">USE MY LOCATION</button></div>
+</section>
+
+<section class="card confidenceCard">
+<div class="eyebrow">Provider confidence</div>
+<div class="title">Who is this house most likely using?</div>
+<div class="desc">Tap once at the doorstep. V3 uses the location plus any direct network evidence available. If the evidence does not support AT&T, T‑Mobile, or Verizon, it can return <b>Other / Unknown</b>.</div>
+<div class="confControls"><button type="button" id="detectProviderBtn" class="bigBtn confBtn">DETECT LIKELY PROVIDER</button></div>
+<div id="confResult" class="confResult">
+  <div class="confWinner"><div><div class="eyebrow">Most likely</div><strong id="confWinner">Other / Unknown</strong><div id="confMode" class="pathBadge">LOW CONFIDENCE</div></div><div id="confPct" class="confPct">—</div></div>
+  <div class="confBars">
+    <div class="confRow"><span>AT&T</span><div class="confTrack"><div id="barAtt" class="confFill confAtt"></div></div><b id="pctAtt">0%</b></div>
+    <div class="confRow"><span>T‑Mobile</span><div class="confTrack"><div id="barTm" class="confFill confTm"></div></div><b id="pctTm">0%</b></div>
+    <div class="confRow"><span>Verizon</span><div class="confTrack"><div id="barVz" class="confFill confVz"></div></div><b id="pctVz">0%</b></div>
+    <div class="confRow"><span>Other</span><div class="confTrack"><div id="barOther" class="confFill confOther"></div></div><b id="pctOther">0%</b></div>
+  </div>
+  <div id="confEvidence" class="evidence"></div>
+</div>
 </section>
 
 <section class="card">
@@ -176,6 +209,60 @@ var $=function(id){return document.getElementById(id)};
 var carriers=[].slice.call(document.querySelectorAll(".carrier"));
 function fmt(n){return isFinite(n)?(n>=100?Math.round(n):Number(n).toFixed(1)):"—"}
 function median(a){a=a.filter(function(n){return isFinite(n)}).sort(function(x,y){return x-y});if(!a.length)return NaN;var m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2}
+function ispClassify(s){
+ s=(s||"").toLowerCase();
+ if(/at&t|att internet|att mobility|sbcglobal|bellsouth/.test(s))return "AT&T";
+ if(/t-mobile|tmobile|metro pcs|metropcs/.test(s))return "T-Mobile";
+ if(/verizon|cellco|mci communications/.test(s))return "Verizon";
+ return "Other";
+}
+function setConfidence(scores,winner,confidence,label,evidence){
+ ["Att","Tm","Vz","Other"].forEach(function(k){
+   var key=k==="Att"?"AT&T":k==="Tm"?"T-Mobile":k==="Vz"?"Verizon":"Other";
+   var v=Math.max(0,Math.min(100,Math.round(scores[key]||0)));
+   $("bar"+k).style.width=v+"%";$("pct"+k).textContent=v+"%";
+ });
+ $("confWinner").textContent=winner;$("confPct").textContent=Math.round(confidence)+"%";
+ $("confMode").textContent=label;$("confEvidence").innerHTML=evidence;
+ $("confResult").classList.add("show");
+}
+function getCurrentISP(){
+ return fetch("https://ipwho.is/",{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("ISP lookup unavailable");return r.json()}).then(function(j){
+   if(!j||j.success===false)throw new Error("ISP lookup unavailable");
+   var c=j.connection||{};
+   return {isp:c.isp||"",org:c.org||"",asn:c.asn||c.asn_number||"",type:c.connection_type||""};
+ });
+}
+function detectLikelyProvider(){
+ var btn=$("detectProviderBtn");btn.disabled=true;btn.textContent="CHECKING LOCATION + NETWORK…";
+ Promise.allSettled([useLocation(false),getCurrentISP()]).then(function(res){
+   var net=res[1].status==="fulfilled"?res[1].value:null;
+   var evidence=[], scores={"AT&T":18,"T-Mobile":18,"Verizon":18,"Other":46}, winner="Other / Unknown", conf=34, label="LOW CONFIDENCE";
+   if(coords)evidence.push("<b>GPS:</b> doorstep location locked to ±"+Math.round(coords.accuracy)+" m.");
+   else evidence.push("<b>GPS:</b> unavailable.");
+   if(net){
+     var raw=(net.isp+" "+net.org).trim(), cls=ispClassify(raw), isCell=/cellular/i.test(net.type||"");
+     evidence.push("<b>Current internet path:</b> "+(raw||"unknown ISP")+(net.type?" · "+net.type:"")+".");
+     if($("wifiConfirm").checked){
+       scores={"AT&T":3,"T-Mobile":3,"Verizon":3,"Other":3};scores[cls]=91;
+       winner=cls==="Other"?"Other":cls;conf=91;label="HIGH CONFIDENCE";
+       evidence.push("<b>Why high:</b> you marked that this iPhone is on the customer's Wi‑Fi, so the public ISP/ASN is direct evidence of the home's active internet path.");
+     }else if(isCell){
+       scores={"AT&T":20,"T-Mobile":20,"Verizon":20,"Other":40};winner="Other / Unknown";conf=28;label="PRE-KNOCK · LOW";
+       evidence.push("<b>Important:</b> this looks like a cellular path, so V3 is not using your own phone carrier as evidence about the house.");
+     }else{
+       scores={"AT&T":15,"T-Mobile":15,"Verizon":15,"Other":55};winner="Other / Unknown";conf=42;label="PRE-KNOCK · LIMITED";
+       evidence.push("<b>Important:</b> V3 can see an internet path, but without confirmation that it belongs to the customer's Wi‑Fi it is not strong evidence about this house.");
+     }
+   }else{
+     evidence.push("<b>Current internet path:</b> ISP lookup unavailable.");
+   }
+   evidence.push("<b>FCC layer:</b> location/provider availability will raise or lower these scores once the secure FCC backend is connected; FCC availability is not proof of subscription.");
+   setConfidence(scores,winner,conf,label,evidence.join("<br>"));
+ }).finally(function(){btn.disabled=false;btn.textContent="DETECT LIKELY PROVIDER"});
+}
+$("detectProviderBtn").addEventListener("click",detectLikelyProvider);
+
 function updateRun(){ $("runBtn").disabled=!(selected&&$("wifiConfirm").checked&&!running); $("runBtn").textContent=selected?"RUN "+selected.toUpperCase()+" LIVE VERIFIED TEST":"RUN LIVE VERIFIED TEST" }
 function choose(name){
 selected=name;setCarrierAccent();
