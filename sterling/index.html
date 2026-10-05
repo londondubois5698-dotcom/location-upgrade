@@ -25,6 +25,28 @@ button{border:0;cursor:pointer}.start{margin-top:31px;padding:18px 38px;border-r
 </main>
 <script>
 const btn=document.getElementById('start'),bubble=document.getElementById('bubble');
-const speak=t=>{if('speechSynthesis'in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.rate=.96;u.pitch=.94;speechSynthesis.speak(u)}};
-btn.onclick=()=>{const t="Hello, I'm Sterling. I'll be assisting you while London gets everything ready. Don't worry, I promise I'm easier to talk to than most automated systems. Let's start with your first name.";bubble.textContent=t;btn.textContent="Sterling is Live";btn.disabled=true;btn.style.opacity=.7;speak(t)};
+let sterlingVoice=null;
+function chooseSterlingVoice(){
+  const voices=speechSynthesis.getVoices();
+  const english=voices.filter(v=>/^en(-|_)/i.test(v.lang));
+  const preferred=['Evan','Nathan','Daniel','Aaron','Arthur','Oliver','Samantha','Alex'];
+  sterlingVoice=preferred.map(n=>english.find(v=>v.name.includes(n))).find(Boolean)
+    || english.find(v=>/premium|enhanced|natural/i.test(v.name))
+    || english[0] || voices[0] || null;
+  return sterlingVoice;
+}
+if('speechSynthesis'in window){chooseSterlingVoice();speechSynthesis.onvoiceschanged=chooseSterlingVoice;}
+function speak(t){
+  if(!('speechSynthesis'in window))return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(t);
+  u.voice=chooseSterlingVoice();
+  u.lang=(u.voice&&u.voice.lang)||'en-US';
+  u.rate=.93; u.pitch=.98; u.volume=1;
+  speechSynthesis.speak(u);
+}
+btn.onclick=()=>{
+  const t="Hello, I'm Sterling. I'll be assisting you while London gets everything ready. Don't worry—I promise I'm easier to talk to than most automated systems. Let's start with your first name.";
+  bubble.textContent=t;btn.textContent="Sterling is Live";btn.disabled=true;btn.style.opacity=.7;speak(t);
+};
 </script></body></html>
