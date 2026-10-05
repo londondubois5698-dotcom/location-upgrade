@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AT&T Promotions with AI — Sterling</title>
+<meta name="theme-color" content="#050b16">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 50% 15%,#12366b 0,#08172d 30%,#030812 72%);color:#fff;min-height:100vh}
+.wrap{max-width:1100px;margin:auto;padding:22px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px}.brand{font-weight:800;letter-spacing:.4px}.brand b{color:#42a5ff}.status{font-size:12px;padding:8px 12px;border:1px solid #28517e;border-radius:999px;background:#07192e;color:#9bcfff}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3df18a;margin-right:7px;box-shadow:0 0 10px #3df18a}
+.hero{text-align:center;padding:68px 10px 34px}.orb{width:138px;height:138px;margin:0 auto 26px;border-radius:50%;background:radial-gradient(circle at 38% 30%,#bceaff 0,#41a7ff 19%,#0564c9 45%,#06182e 72%);box-shadow:0 0 45px #168cff88,0 0 110px #1269ce55;position:relative;animation:breathe 3s ease-in-out infinite}.orb:after{content:"S";position:absolute;inset:0;display:grid;place-items:center;font-size:58px;font-weight:300;text-shadow:0 2px 18px #001}
+@keyframes breathe{50%{transform:scale(1.035);box-shadow:0 0 62px #168cffaa,0 0 135px #1269ce66}}
+h1{font-size:clamp(35px,7vw,66px);margin:0;line-height:1}.sub{font-size:clamp(17px,3vw,22px);color:#a9c8e9;margin:16px auto 7px;max-width:670px}.sterling{color:#54b6ff;font-weight:700}.micro{color:#708cab;font-size:13px;margin-top:12px}
+button{border:0;cursor:pointer}.start{margin-top:31px;padding:18px 38px;border-radius:999px;font-size:18px;font-weight:800;color:white;background:linear-gradient(135deg,#0879e8,#13a4ff);box-shadow:0 10px 35px #0785ed55}.start:active{transform:scale(.98)}
+.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin-top:25px}.card{border:1px solid #173858;background:#071424cc;border-radius:22px;padding:21px;backdrop-filter:blur(12px)}.card h2{font-size:15px;margin:0 0 13px;color:#d9edff}.conversation{min-height:190px;display:flex;flex-direction:column;justify-content:flex-end}.bubble{background:#0c2743;border:1px solid #174a76;border-radius:17px 17px 17px 5px;padding:14px 16px;color:#d9edff;line-height:1.45}.rep-row{display:flex;justify-content:space-between;border-bottom:1px solid #15304a;padding:11px 0;color:#91abc5}.rep-row:last-child{border:0}.ready{color:#4ee69a}.pillrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.pill{font-size:12px;padding:8px 10px;border-radius:999px;background:#0a2139;border:1px solid #173e64;color:#9dc6ea}.footer{text-align:center;color:#57728e;font-size:11px;padding:28px 10px 14px}
+@media(max-width:720px){.wrap{padding:16px}.hero{padding-top:50px}.grid{grid-template-columns:1fr}.orb{width:116px;height:116px}.orb:after{font-size:48px}}
+</style></head>
+<body><main class="wrap">
+<header class="top"><div class="brand"><b>AT&T</b> PROMOTIONS <span style="color:#6f8cab">WITH AI</span></div><div class="status"><span class="dot"></span>STERLING READY</div></header>
+<section class="hero"><div class="orb"></div><h1>Meet <span class="sterling">Sterling.</span></h1><div class="sub">Your AI promotion assistant. Smart enough to help. Human enough to make you laugh.</div><div class="micro">London is your AT&T representative • Sterling assists the conversation</div><button class="start" id="start">Start Sterling</button></section>
+<section class="grid">
+<div class="card conversation"><h2>LIVE CONVERSATION</h2><div class="bubble" id="bubble">Tap <b>Start Sterling</b> when you're ready. I'll take it from there.</div><div class="pillrow"><span class="pill">Devices</span><span class="pill">Storage</span><span class="pill">Streaming</span><span class="pill">Internet</span><span class="pill">Customer notes</span></div></div>
+<div class="card"><h2>LONDON'S REP VIEW</h2><div class="rep-row"><span>Customer</span><span>Waiting</span></div><div class="rep-row"><span>Contact packet</span><span>Not started</span></div><div class="rep-row"><span>Qualification handoff</span><span class="ready">Ready</span></div><div class="rep-row"><span>Sterling memory</span><span class="ready">Active</span></div></div>
+</section>
+<div class="footer">Protected qualification information stays in the approved secure process and is not stored in Sterling's conversation notes.</div>
+</main>
+<script>
+const btn=document.getElementById('start'),bubble=document.getElementById('bubble');
+const speak=t=>{if('speechSynthesis'in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.rate=.96;u.pitch=.94;speechSynthesis.speak(u)}};
+btn.onclick=()=>{const t="Hello, I'm Sterling. I'll be assisting you while London gets everything ready. Don't worry, I promise I'm easier to talk to than most automated systems. Let's start with your first name.";bubble.textContent=t;btn.textContent="Sterling is Live";btn.disabled=true;btn.style.opacity=.7;speak(t)};
+</script></body></html>
