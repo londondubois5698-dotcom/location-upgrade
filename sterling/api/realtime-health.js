@@ -20,7 +20,7 @@ export default async function handler(req,res){
       const fail=(err)=>{if(done)return;done=true;clearTimeout(timer);safeClose(ws);reject(err)};
       const timer=setTimeout(()=>fail(new Error('Realtime health check timed out')),12000);
 
-      ws=new WebSocket(setup.url,[
+      ws=new WebSocket(setup.url, setup.protocols || [
         'ai-gateway-realtime.v1',
         'ai-gateway-auth.'+setup.token
       ]);
@@ -58,7 +58,7 @@ export default async function handler(req,res){
 
     return res.status(200).json({
       ok:true,
-      version:'12.0',
+      version:'12.1',
       model:setup.model,
       tokenMint:true,
       websocket:true,
@@ -70,7 +70,7 @@ export default async function handler(req,res){
     console.error('[sterling:realtime-health] failed',{message:e?.message,stack:e?.stack});
     return res.status(500).json({
       ok:false,
-      version:'12.0',
+      version:'12.1',
       error:e?.message||String(e),
       latencyMs:Date.now()-started
     });
