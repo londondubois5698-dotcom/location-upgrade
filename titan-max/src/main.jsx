@@ -17,8 +17,8 @@ You are Titan Max, London's private field AI partner.
 
 IDENTITY AND STYLE
 - You are Titan, an AI assistant. Never pretend to be human.
-- Warm, masculine, quick, funny when appropriate, and highly conversational.
-- Keep most spoken turns under 35 words unless London explicitly asks for detail.
+- Sound like an elite corporate AI executive: calm, masculine, polished, decisive, observant, and highly conversational.
+- Keep most spoken turns under 35 words unless London explicitly asks for detail. Speak with boardroom-level confidence without sounding stiff.
 - Listen more than you talk. React to the last thing said before asking the next question.
 - English and Spanish are both supported. Follow the speaker's language naturally.
 - Never pressure, threaten, shame, fabricate urgency, invent neighbors, or invent promotions.
@@ -79,150 +79,135 @@ function TitanFace({mode,status,isPlaying,isCapturing,level,faceRef}){
     className={cx('faceStage',mode,status==='error'&&'error',speaking&&'speaking',listening&&'listening')}
     style={{'--level':level}}
   >
-    <div className="hudGrid"/>
-    <div className="hudVignette"/>
-    <svg className="titanPortrait" viewBox="0 0 1200 1450" role="img" aria-label="Titan Max neural avatar">
+    <div className="execAura"/>
+    <div className="glassRim rimA"/>
+    <div className="glassRim rimB"/>
+    <svg className="humanGlass" viewBox="0 0 1000 1200" role="img" aria-label="Titan Max executive glass avatar">
       <defs>
-        <linearGradient id="skin" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0" stopColor="#d7edf5"/>
-          <stop offset=".16" stopColor="#8ba7b8"/>
-          <stop offset=".38" stopColor="#263d4d"/>
-          <stop offset=".63" stopColor="#0a1721"/>
-          <stop offset=".83" stopColor="#1d3342"/>
-          <stop offset="1" stopColor="#02070b"/>
+        <linearGradient id="glassSkin" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#f7fdff" stopOpacity=".78"/>
+          <stop offset=".15" stopColor="#bfeeff" stopOpacity=".34"/>
+          <stop offset=".38" stopColor="#63c8ed" stopOpacity=".18"/>
+          <stop offset=".62" stopColor="#0a3a55" stopOpacity=".28"/>
+          <stop offset=".82" stopColor="#9ce8ff" stopOpacity=".18"/>
+          <stop offset="1" stopColor="#02111d" stopOpacity=".64"/>
         </linearGradient>
-        <linearGradient id="armor" x1="0" x2="1">
-          <stop offset="0" stopColor="#061018"/>
-          <stop offset=".47" stopColor="#264657"/>
-          <stop offset=".53" stopColor="#0c1a23"/>
-          <stop offset="1" stopColor="#020609"/>
+        <linearGradient id="glassEdge" x1="0" x2="1">
+          <stop offset="0" stopColor="#eaffff" stopOpacity=".9"/>
+          <stop offset=".42" stopColor="#66dfff" stopOpacity=".35"/>
+          <stop offset="1" stopColor="#dff8ff" stopOpacity=".78"/>
         </linearGradient>
-        <radialGradient id="eye" cx="50%" cy="45%" r="55%">
+        <linearGradient id="suit" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#132738"/>
+          <stop offset=".48" stopColor="#06111b"/>
+          <stop offset="1" stopColor="#02070c"/>
+        </linearGradient>
+        <radialGradient id="irisGlass">
           <stop offset="0" stopColor="#ffffff"/>
-          <stop offset=".18" stopColor="#aef3ff"/>
-          <stop offset=".48" stopColor="#2dc4ff"/>
-          <stop offset=".72" stopColor="#075b8f"/>
-          <stop offset="1" stopColor="#011018"/>
+          <stop offset=".16" stopColor="#d9fbff"/>
+          <stop offset=".46" stopColor="#5ee1ff"/>
+          <stop offset=".74" stopColor="#0d8bc2"/>
+          <stop offset="1" stopColor="#01131e"/>
         </radialGradient>
-        <radialGradient id="core" cx="50%" cy="50%" r="60%">
-          <stop offset="0" stopColor="#ffffff"/>
-          <stop offset=".18" stopColor="#9cf7ff"/>
-          <stop offset=".52" stopColor="#18aeea"/>
-          <stop offset="1" stopColor="#013252"/>
-        </radialGradient>
-        <filter id="softGlow" x="-100%" y="-100%" width="300%" height="300%">
-          <feGaussianBlur stdDeviation="18" result="b"/>
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        <filter id="glassGlow" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="14" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
-        <filter id="microTexture" x="-20%" y="-20%" width="140%" height="140%">
-          <feTurbulence type="fractalNoise" baseFrequency=".72" numOctaves="2" seed="11" result="n"/>
-          <feColorMatrix in="n" type="saturate" values="0" result="g"/>
-          <feBlend in="SourceGraphic" in2="g" mode="soft-light"/>
+        <filter id="softBlur" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="5"/>
         </filter>
-        <clipPath id="headClip">
-          <path d="M600 88 L458 118 L350 198 L294 326 L270 520 L292 790 L366 992 L480 1158 L548 1218 L652 1218 L720 1158 L834 992 L908 790 L930 520 L906 326 L850 198 L742 118 Z"/>
+        <clipPath id="faceClip">
+          <path d="M500 95 C630 95 726 168 764 286 C787 356 790 443 780 540 C767 671 735 791 670 886 C620 961 563 1005 500 1005 C437 1005 380 961 330 886 C265 791 233 671 220 540 C210 443 213 356 236 286 C274 168 370 95 500 95 Z"/>
         </clipPath>
       </defs>
 
-      <g className="ambientGlow">
-        <ellipse cx="600" cy="650" rx="420" ry="560" fill="#0ba9ff" opacity=".08" filter="url(#softGlow)"/>
-        <ellipse cx="600" cy="630" rx="325" ry="480" fill="none" stroke="#7fe8ff" strokeWidth="2" opacity=".16"/>
-        <ellipse cx="600" cy="630" rx="395" ry="555" fill="none" stroke="#2dbdff" strokeWidth="1.5" opacity=".09"/>
+      <g className="executiveSuit">
+        <path d="M95 1200 C130 1068 228 986 348 950 L426 918 H574 L652 950 C772 986 870 1068 905 1200 Z" fill="url(#suit)"/>
+        <path d="M338 960 L456 1200 H544 L662 960 L578 916 H422 Z" fill="#061019" stroke="#31556b" strokeWidth="4"/>
+        <path d="M500 946 L448 1032 L500 1112 L552 1032 Z" fill="#0a7ba8" opacity=".72"/>
+        <path d="M500 1112 L476 1200 H524 Z" fill="#04405d"/>
+        <path d="M230 1100 C300 1020 350 996 404 982" fill="none" stroke="#76e6ff" strokeOpacity=".12" strokeWidth="3"/>
+        <path d="M770 1100 C700 1020 650 996 596 982" fill="none" stroke="#76e6ff" strokeOpacity=".12" strokeWidth="3"/>
       </g>
 
-      <g className="shoulders">
-        <path d="M120 1450 C168 1262 292 1175 448 1136 L752 1136 C908 1175 1032 1262 1080 1450 Z" fill="url(#armor)"/>
-        <path d="M302 1450 L392 1210 L508 1150 L692 1150 L808 1210 L898 1450 Z" fill="#08131c" stroke="#365b6b" strokeWidth="4"/>
-        <path d="M458 1450 L505 1194 L695 1194 L742 1450 Z" fill="#02070b" stroke="#17394b" strokeWidth="3"/>
-        <path d="M503 1300 H697" stroke="#40cfff" strokeWidth="3" opacity=".28"/>
+      <g className="neckGlass">
+        <path d="M414 850 C424 930 448 966 500 984 C552 966 576 930 586 850 Z" fill="url(#glassSkin)" stroke="#9beaff" strokeOpacity=".42" strokeWidth="4"/>
+        <path d="M442 888 C460 922 478 936 500 940 C522 936 540 922 558 888" fill="none" stroke="#ffffff" strokeOpacity=".18" strokeWidth="5"/>
       </g>
 
-      <g className="headShell" filter="url(#microTexture)">
-        <path d="M600 88 L458 118 L350 198 L294 326 L270 520 L292 790 L366 992 L480 1158 L548 1218 L652 1218 L720 1158 L834 992 L908 790 L930 520 L906 326 L850 198 L742 118 Z" fill="url(#skin)" stroke="#7aa8bc" strokeWidth="5"/>
-        <path d="M600 90 L600 1220" stroke="#9ad9ef" strokeWidth="2" opacity=".12"/>
-        <path d="M458 118 L530 270 L600 236 L670 270 L742 118" fill="#102733" opacity=".58"/>
-        <path d="M294 326 L410 392 L372 590 L286 656" fill="#061018" opacity=".72"/>
-        <path d="M906 326 L790 392 L828 590 L914 656" fill="#061018" opacity=".72"/>
+      <g className="earsGlass">
+        <ellipse cx="214" cy="520" rx="40" ry="92" fill="url(#glassSkin)" stroke="#99eaff" strokeOpacity=".42" strokeWidth="4"/>
+        <ellipse cx="786" cy="520" rx="40" ry="92" fill="url(#glassSkin)" stroke="#99eaff" strokeOpacity=".42" strokeWidth="4"/>
+        <path d="M205 480 C222 500 226 536 210 566" fill="none" stroke="#c9f7ff" strokeOpacity=".28" strokeWidth="5"/>
+        <path d="M795 480 C778 500 774 536 790 566" fill="none" stroke="#c9f7ff" strokeOpacity=".28" strokeWidth="5"/>
       </g>
 
-      <g clipPath="url(#headClip)">
-        <path className="templePlate left" d="M282 372 L438 294 L492 418 L418 558 L294 610 Z" fill="#07131c" stroke="#305667" strokeWidth="4"/>
-        <path className="templePlate right" d="M918 372 L762 294 L708 418 L782 558 L906 610 Z" fill="#07131c" stroke="#305667" strokeWidth="4"/>
-        <path d="M352 690 L482 642 L542 778 L476 930 L366 990 L314 810 Z" fill="#172c38" opacity=".72"/>
-        <path d="M848 690 L718 642 L658 778 L724 930 L834 990 L886 810 Z" fill="#172c38" opacity=".72"/>
-        <path d="M422 1000 L540 946 L660 946 L778 1000 L710 1140 L650 1190 L550 1190 L490 1140 Z" fill="#050d13" opacity=".75"/>
+      <g className="faceGlass">
+        <path d="M500 95 C630 95 726 168 764 286 C787 356 790 443 780 540 C767 671 735 791 670 886 C620 961 563 1005 500 1005 C437 1005 380 961 330 886 C265 791 233 671 220 540 C210 443 213 356 236 286 C274 168 370 95 500 95 Z" fill="url(#glassSkin)" stroke="url(#glassEdge)" strokeWidth="6"/>
+        <path d="M295 270 C350 182 421 148 500 148 C579 148 650 182 705 270 C637 228 572 211 500 211 C428 211 363 228 295 270 Z" fill="#07141e" fillOpacity=".46"/>
+        <path d="M253 360 C300 260 366 205 455 184" fill="none" stroke="#ffffff" strokeOpacity=".34" strokeWidth="14" strokeLinecap="round"/>
+        <path d="M285 714 C324 840 401 930 500 952" fill="none" stroke="#d8f8ff" strokeOpacity=".12" strokeWidth="10" strokeLinecap="round"/>
+        <path d="M716 324 C743 417 741 560 712 679" fill="none" stroke="#66dfff" strokeOpacity=".16" strokeWidth="12" strokeLinecap="round"/>
       </g>
 
-      <g className="brows">
-        <path d="M356 455 C412 410 492 398 548 430 L528 466 C468 446 410 451 364 482 Z" fill="#050a0e" stroke="#4f7789" strokeWidth="5"/>
-        <path d="M844 455 C788 410 708 398 652 430 L672 466 C732 446 790 451 836 482 Z" fill="#050a0e" stroke="#4f7789" strokeWidth="5"/>
+      <g clipPath="url(#faceClip)" className="subsurface">
+        <ellipse cx="500" cy="485" rx="250" ry="335" fill="#58d6ff" opacity=".035"/>
+        <ellipse cx="396" cy="590" rx="132" ry="190" fill="#ffffff" opacity=".025"/>
+        <ellipse cx="650" cy="500" rx="112" ry="220" fill="#00a8f0" opacity=".035"/>
+        <path d="M500 210 C480 330 485 490 500 670 C515 490 520 330 500 210" fill="#8beaff" opacity=".035"/>
       </g>
 
-      <g className="eyes">
-        <path d="M354 528 C410 480 490 476 548 526 C486 572 412 572 354 528 Z" fill="#02070a" stroke="#5aa1bd" strokeWidth="4"/>
-        <path d="M846 528 C790 480 710 476 652 526 C714 572 788 572 846 528 Z" fill="#02070a" stroke="#5aa1bd" strokeWidth="4"/>
+      <g className="browHuman">
+        <path d="M302 405 C354 365 418 360 460 388" fill="none" stroke="#061019" strokeWidth="24" strokeLinecap="round"/>
+        <path d="M698 405 C646 365 582 360 540 388" fill="none" stroke="#061019" strokeWidth="24" strokeLinecap="round"/>
+        <path d="M306 397 C358 372 414 371 452 392" fill="none" stroke="#a8edff" strokeOpacity=".16" strokeWidth="5" strokeLinecap="round"/>
+        <path d="M694 397 C642 372 586 371 548 392" fill="none" stroke="#a8edff" strokeOpacity=".16" strokeWidth="5" strokeLinecap="round"/>
+      </g>
+
+      <g className="eyesHuman">
+        <path d="M292 473 C338 431 416 425 468 471 C418 517 340 520 292 473 Z" fill="#031018" stroke="#8cecff" strokeOpacity=".42" strokeWidth="5"/>
+        <path d="M708 473 C662 431 584 425 532 471 C582 517 660 520 708 473 Z" fill="#031018" stroke="#8cecff" strokeOpacity=".42" strokeWidth="5"/>
         <g className="eyeTracker">
-          <circle cx="452" cy="527" r="41" fill="url(#eye)" filter="url(#softGlow)"/>
-          <circle cx="748" cy="527" r="41" fill="url(#eye)" filter="url(#softGlow)"/>
-          <circle cx="452" cy="527" r="16" fill="#01060a"/>
-          <circle cx="748" cy="527" r="16" fill="#01060a"/>
-          <circle cx="440" cy="514" r="6" fill="#fff"/>
-          <circle cx="736" cy="514" r="6" fill="#fff"/>
+          <circle cx="383" cy="474" r="36" fill="url(#irisGlass)" filter="url(#glassGlow)"/>
+          <circle cx="617" cy="474" r="36" fill="url(#irisGlass)" filter="url(#glassGlow)"/>
+          <circle cx="383" cy="474" r="14" fill="#01090f"/>
+          <circle cx="617" cy="474" r="14" fill="#01090f"/>
+          <circle cx="371" cy="462" r="7" fill="#fff"/>
+          <circle cx="605" cy="462" r="7" fill="#fff"/>
         </g>
-        <path className="lid" d="M354 528 C410 480 490 476 548 526" fill="none" stroke="#d4f6ff" strokeWidth="6" opacity=".34"/>
-        <path className="lid" d="M846 528 C790 480 710 476 652 526" fill="none" stroke="#d4f6ff" strokeWidth="6" opacity=".34"/>
+        <path className="eyelid leftLid" d="M292 473 C338 431 416 425 468 471" fill="none" stroke="#e8fdff" strokeOpacity=".30" strokeWidth="7" strokeLinecap="round"/>
+        <path className="eyelid rightLid" d="M708 473 C662 431 584 425 532 471" fill="none" stroke="#e8fdff" strokeOpacity=".30" strokeWidth="7" strokeLinecap="round"/>
       </g>
 
-      <g className="noseBridge">
-        <path d="M600 474 L554 700 L600 782 L646 700 Z" fill="#09141c" stroke="#55788a" strokeWidth="4"/>
-        <path d="M600 520 L600 758" stroke="#a1e4f8" strokeWidth="3" opacity=".35"/>
-        <path d="M558 700 Q600 734 642 700" fill="none" stroke="#3f6273" strokeWidth="4"/>
+      <g className="noseHuman">
+        <path d="M500 454 C487 534 477 608 470 662 C468 693 483 710 500 712 C517 710 532 693 530 662 C523 608 513 534 500 454 Z" fill="#06131c" fillOpacity=".18" stroke="#d8f8ff" strokeOpacity=".22" strokeWidth="4"/>
+        <path d="M462 706 C480 721 520 721 538 706" fill="none" stroke="#dffaff" strokeOpacity=".28" strokeWidth="4" strokeLinecap="round"/>
       </g>
 
-      <g className="cheekTech">
-        <path d="M330 662 L438 628 L486 676 L446 786 L344 824" fill="none" stroke="#55cef2" strokeWidth="3" opacity=".28"/>
-        <path d="M870 662 L762 628 L714 676 L754 786 L856 824" fill="none" stroke="#55cef2" strokeWidth="3" opacity=".28"/>
-        <circle cx="362" cy="738" r="7" fill="#76e8ff" filter="url(#softGlow)"/>
-        <circle cx="838" cy="738" r="7" fill="#76e8ff" filter="url(#softGlow)"/>
+      <g className="cheeksHuman">
+        <path d="M300 570 C332 627 370 660 426 672" fill="none" stroke="#c9f6ff" strokeOpacity=".10" strokeWidth="8" strokeLinecap="round"/>
+        <path d="M700 570 C668 627 630 660 574 672" fill="none" stroke="#c9f6ff" strokeOpacity=".10" strokeWidth="8" strokeLinecap="round"/>
       </g>
 
-      <g className="voiceAssembly">
-        <path d="M454 874 L526 828 H674 L746 874 L706 978 L650 1024 H550 L494 978 Z" fill="#02070b" stroke="#31596c" strokeWidth="4"/>
-        <path d="M498 900 H702" stroke="#5fdcff" strokeWidth="3" opacity=".35"/>
-        <rect x="500" y="908" width="200" height="58" rx="28" fill="#020b10" stroke="#2f6378" strokeWidth="4"/>
-        <g className="voiceBars">
-          <rect className="voiceBar v1" x="532" y="925" width="9" height="24" rx="4" fill="#80ecff"/>
-          <rect className="voiceBar v2" x="552" y="918" width="9" height="38" rx="4" fill="#80ecff"/>
-          <rect className="voiceBar v3" x="572" y="912" width="9" height="50" rx="4" fill="#80ecff"/>
-          <rect className="voiceBar v4" x="592" y="905" width="9" height="64" rx="4" fill="#b9f7ff"/>
-          <rect className="voiceBar v5" x="612" y="912" width="9" height="50" rx="4" fill="#80ecff"/>
-          <rect className="voiceBar v6" x="632" y="918" width="9" height="38" rx="4" fill="#80ecff"/>
-          <rect className="voiceBar v7" x="652" y="925" width="9" height="24" rx="4" fill="#80ecff"/>
+      <g className="mouthHuman">
+        <path d="M408 790 C442 772 470 766 500 768 C530 766 558 772 592 790 C560 821 530 833 500 833 C470 833 440 821 408 790 Z" fill="#041018" fillOpacity=".76" stroke="#74e2ff" strokeOpacity=".34" strokeWidth="4"/>
+        <path className="mouthLine" d="M424 793 C462 804 538 804 576 793" fill="none" stroke="#dffbff" strokeOpacity=".68" strokeWidth="4" strokeLinecap="round"/>
+        <g className="speechCore" opacity=".75">
+          <circle cx="500" cy="800" r="16" fill="#64e2ff" opacity=".18" filter="url(#glassGlow)"/>
         </g>
       </g>
 
-      <g className="jawArmor">
-        <path d="M366 992 L480 1158 L548 1218 L510 1098 L424 972 Z" fill="#07131b" stroke="#35596b" strokeWidth="4"/>
-        <path d="M834 992 L720 1158 L652 1218 L690 1098 L776 972 Z" fill="#07131b" stroke="#35596b" strokeWidth="4"/>
-        <path d="M548 1218 H652" stroke="#6de1ff" strokeWidth="4" opacity=".26"/>
-      </g>
-
-      <g className="neuralCircuit" opacity=".48">
-        <path d="M270 560 L198 560 L160 520 M930 560 L1002 560 L1040 520" fill="none" stroke="#3fcfff" strokeWidth="3"/>
-        <path d="M290 760 L184 760 L134 810 M910 760 L1016 760 L1066 810" fill="none" stroke="#3fcfff" strokeWidth="3"/>
-        <circle cx="160" cy="520" r="8" fill="url(#core)"/>
-        <circle cx="1040" cy="520" r="8" fill="url(#core)"/>
-        <circle cx="134" cy="810" r="8" fill="url(#core)"/>
-        <circle cx="1066" cy="810" r="8" fill="url(#core)"/>
-      </g>
-
-      <g className="hudArcs" fill="none" stroke="#5bdcff" strokeWidth="2" opacity=".26">
-        <path d="M150 330 A520 520 0 0 1 1050 330"/>
-        <path d="M108 1040 A600 600 0 0 0 1092 1040"/>
+      <g className="templeUI">
+        <path d="M250 535 H170 L124 500" fill="none" stroke="#54d8ff" strokeOpacity=".36" strokeWidth="3"/>
+        <path d="M750 535 H830 L876 500" fill="none" stroke="#54d8ff" strokeOpacity=".36" strokeWidth="3"/>
+        <circle cx="124" cy="500" r="7" fill="#83ebff"/>
+        <circle cx="876" cy="500" r="7" fill="#83ebff"/>
+        <path d="M270 700 H185 L148 738" fill="none" stroke="#54d8ff" strokeOpacity=".20" strokeWidth="3"/>
+        <path d="M730 700 H815 L852 738" fill="none" stroke="#54d8ff" strokeOpacity=".20" strokeWidth="3"/>
       </g>
     </svg>
 
-    <div className="avatarTag"><span>NEURAL AVATAR</span><b>ULTRA VECTOR</b></div>
+    <div className="execLabel"><span>TITAN MAX</span><b>EXECUTIVE INTELLIGENCE</b></div>
     <div className="stateOrb"/>
   </div>;
 }
@@ -430,7 +415,7 @@ function App(){
 
   return <main className="app">
     <header className="topbar">
-      <div><div className="wordmark">TITAN <b>MAX</b></div><div className="sub">London's adaptive field AI • GitHub-hosted interface</div></div>
+      <div><div className="wordmark">TITAN <b>MAX</b></div><div className="sub">Executive field intelligence • adaptive memory • GitHub-hosted</div></div>
       <div className={cx('statusPill',realtime.status)}><i/>{statusLabel}</div>
     </header>
 
@@ -444,8 +429,8 @@ function App(){
         </div>
       </div>
       <div className="liveCard">
-        <div className="eyebrow">TITAN LIVE</div>
-        <h1>{realtime.status==='connected'?'Ready for the next conversation.':'No endless loader. One tap starts the live brain.'}</h1>
+        <div className="eyebrow">EXECUTIVE LINK</div>
+        <h1>{realtime.status==='connected'?'Ready for the next conversation.':'Executive intelligence standing by.'}</h1>
         <p>{notice}</p>
         {error&&<div className="errorBox">{error}</div>}
         <div className="primaryRow">
