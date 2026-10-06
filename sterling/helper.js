@@ -1,22 +1,23 @@
 (function(){
 'use strict';
 try{
-  if(window.__sterlingONE&&window.__sterlingONE.version==='12.2'){
+  if(window.__sterlingONE&&window.__sterlingONE.version==='13.0'){
     window.__sterlingONE.open();
     return;
   }
-  var oldHost=document.getElementById('sterling-v11-host');
-  if(oldHost)oldHost.remove();
-  try{window.__sterlingV11=null}catch(e){}
-  var existing=document.getElementById('sterling-one-v12-loader');
-  if(existing)existing.remove();
-  var s=document.createElement('script');
-  s.id='sterling-one-v12-loader';
-  s.src='https://sterling-olive.vercel.app/one.js?v=12.2&t='+Date.now();
-  s.async=false;
-  s.onerror=function(){alert('Sterling V12 could not load. Refresh Salesforce and tap the Sterling bookmark again.');};
-  (document.documentElement||document.body).appendChild(s);
+  try{
+    if(window.__sterlingONE&&window.__sterlingONE.stop)window.__sterlingONE.stop();
+  }catch(e){}
+  var ids=['sterling-v11-host','sterling-one-v12','sterling-one-v13-loader','sterling-one-v12-loader'];
+  ids.forEach(function(id){var el=document.getElementById(id);if(el)el.remove()});
+  try{window.__sterlingV11=null;window.__sterlingONE=null}catch(e){}
+  var sc=document.createElement('script');
+  sc.id='sterling-one-v13-loader';
+  sc.src='https://sterling-olive.vercel.app/one.js?v=13.0&t='+Date.now();
+  sc.async=false;
+  sc.onerror=function(){alert('Sterling V13 could not load. Refresh Salesforce and tap the Sterling ONE bookmark again.');};
+  (document.documentElement||document.body).appendChild(sc);
 }catch(e){
-  alert('Sterling V12 loader error: '+(e&&e.message?e.message:e));
+  alert('Sterling V13 loader error: '+(e&&e.message?e.message:e));
 }
 })();
