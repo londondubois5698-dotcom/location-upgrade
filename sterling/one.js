@@ -2,7 +2,7 @@
 'use strict';
 
 var APP='https://sterling-olive.vercel.app';
-var VERSION='12.1';
+var VERSION='12.2';
 var POLL_MS=450;
 var state={
   active:false, connected:false, connecting:false, muted:false, updateBusy:false,
@@ -159,7 +159,7 @@ sh.innerHTML=
 '<div class="panel" id="panel">'+
 '<div class="head"><div><div class="title"><b>Sterling</b> ONE</div><div class="ver">V12 • one page • native realtime audio</div></div><button id="close" class="secondary">Minimize</button></div>'+
 '<div class="body"><div class="route" id="route">Detecting current Salesforce house…</div><div class="status" id="status">READY</div>'+
-'<div class="grid"><button class="full" id="start">Start Sterling</button><button class="secondary" id="mute" style="display:none">Mute</button><button class="danger" id="stop" style="display:none">Stop</button></div>'+
+'<div class="grid"><button class="full" id="start">Start Sterling</button><button class="secondary" id="mute" style="display:none">Mute</button><button class="danger" id="stop" style="display:none">Stop</button><button class="secondary full" id="voiceSetup" style="display:none">Fix Voice Connection</button></div>'+
 '<div class="contact" id="contact">No confirmed customer details yet.</div><div class="code" id="code"></div>'+
 '<div class="mini">No QR. No second tab. Sterling stays inside this Salesforce page, watches the current record, and resets automatically when the house changes.</div>'+
 '</div></div>';
@@ -194,7 +194,7 @@ function render(){
 }
 function openPanel(){$('pill').style.display='none';$('panel').style.display='block'}
 function closePanel(){$('panel').style.display='none';$('pill').style.display='flex'}
-$('open').onclick=openPanel;$('close').onclick=closePanel;$('pillStart').onclick=function(){if(state.active)openPanel();else startSterling()};$('start').onclick=startSterling;
+$('open').onclick=openPanel;$('close').onclick=closePanel;$('pillStart').onclick=function(){if(state.active)openPanel();else startSterling()};$('start').onclick=startSterling;$('voiceSetup').onclick=function(){window.open(APP+'/voice-setup.html?v=12.2','sterling-voice-setup')};
 
 var micStream=null,captureCtx=null,captureSource=null,captureProcessor=null,playCtx=null,playTime=0,playingSources=[];
 function ensurePlay(){
@@ -267,6 +267,9 @@ function releaseMic(){
 }
 function send(obj){try{if(state.socket&&state.socket.readyState===WebSocket.OPEN)state.socket.send(JSON.stringify(obj))}catch(e){}}
 
+function isGatewaySetupError(msg){return /client secrets can only be minted with a Gateway API key|needs a Vercel AI Gateway API key|AI Gateway API key/i.test(String(msg||''))}
+function showVoiceSetup(msg){state.active=false;state.connected=false;state.connecting=false;releaseMic();stopPlayback();render();$('voiceSetup').style.display='block';setStatus(msg||'Sterling voice needs one Gateway API key setup.','bad')}
+
 function routeContext(){
   return 'Current live Salesforce house: '+(state.current?state.current.label:'not detected')+'. Treat this as the only active household. If not detected, confirm the area before any CRM update.';
 }
@@ -275,7 +278,7 @@ async function connectSocket(){
   if(!state.active||state.connecting)return;
   state.connecting=true;state.connected=false;render();setStatus('CONNECTING…');
   try{
-    var r=await fetch(APP+'/api/realtime-token?v=12.1&t='+Date.now(),{method:'GET',mode:'cors',cache:'no-store'});
+    var r=await fetch(APP+'/api/realtime-token?v=12.2&t='+Date.now(),{method:'GET',mode:'cors',cache:'no-store'});
     var setup=await r.json();
     if(!r.ok||!setup.token||!setup.url)throw new Error(setup.error||'Realtime setup failed');
     var protocols=(setup.protocols&&setup.protocols.length)?setup.protocols:['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token];
@@ -297,7 +300,7 @@ async function connectSocket(){
     ws.onmessage=function(ev){
       var m;try{m=JSON.parse(ev.data)}catch(e){return}
       if(m.type==='session-created'||m.type==='session-started'||m.type==='session-updated'){
-        state.connected=true;state.connecting=false;state.reconnects=0;render();setStatus('LIVE • LISTENING','good');
+        state.connected=true;state.connecting=false;state.reconnects=0;$('voiceSetup').style.display='none';render();setStatus('LIVE • LISTENING','good');
         send({type:'context-append',content:routeContext(),delegationId:null});
         if(!greeted){
           greeted=true;
@@ -313,6 +316,7 @@ async function connectSocket(){
       }else if(m.type==='function-call-arguments-done'){
         handleTool(m);
       }else if(m.type==='error'){
+        if(isGatewaySetupError(m.message)){showVoiceSetup(m.message);try{ws.close()}catch(e){};return}
         setStatus(m.message||'Realtime error','bad');
       }
     };
@@ -327,11 +331,10 @@ async function connectSocket(){
       }else setStatus('STOPPED');
     };
   }catch(e){
-    state.connecting=false;state.connected=false;render();setStatus(e.message||String(e),'bad');
-    if(state.active){
-      state.reconnects++;
-      setTimeout(connectSocket,Math.min(6000,1000*state.reconnects));
-    }
+    var msg=e&&e.message?e.message:String(e);
+    if(isGatewaySetupError(msg)){showVoiceSetup(msg);return}
+    state.connecting=false;state.connected=false;render();setStatus(msg,'bad');
+    if(state.active){state.reconnects++;setTimeout(connectSocket,Math.min(6000,1000*state.reconnects))}
   }
 }
 
