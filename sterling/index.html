@@ -21,7 +21,7 @@ input,select{width:100%;padding:13px;border-radius:10px;border:1px solid #315777
 </style></head>
 
 <body><main class="wrap">
-<header class="top"><div class="brand"><b>AT&T</b> PROMOTIONS WITH AI</div><div class="status" id="status" role="status">READY • V4</div></header>
+<header class="top"><div class="brand"><b>AT&T</b> PROMOTIONS WITH AI</div><div class="status" id="status" role="status">READY • V5</div></header>
 <section class="hero"><div class="orb" aria-hidden="true"></div><h1>Meet <span class="sterling">Sterling.</span></h1><div class="sub">A little conversation. A smoother start.</div><div class="micro">London’s digital assistant • live AI + natural voice • contact details stay in this tab until you share them</div><button class="start" id="start">Start Sterling</button></section>
 <section class="grid"><div class="card conversation"><h2>YOUR CONVERSATION</h2>
 <div class="bubble" id="bubble" aria-live="polite">Hi, I’m Sterling. Let’s get your details ready for London.</div>
@@ -31,16 +31,16 @@ input,select{width:100%;padding:13px;border-radius:10px;border:1px solid #315777
 <form id="answerform"><label for="answer" style="margin-top:18px">Or type your answer</label><input id="answer" autocomplete="off" placeholder="Type here…"><div class="controls"><button type="submit">Use this answer</button></div></form>
 <details><summary>Voice & sound</summary><p class="hint">Natural cloud voice is active. If the cloud voice is temporarily unavailable, Sterling automatically falls back to a voice on this phone.</p><label for="voice">Voice</label><select id="voice"></select><label for="rate">Fallback speaking pace</label><input id="rate" type="range" min="0.85" max="1.1" step="0.05" value="1"><label for="boost">Voice boost</label><input id="boost" type="range" min="1" max="1.8" step="0.05" value="1.35"><label><input id="mute" type="checkbox">Text only</label><div class="controls"><button id="testvoice">Test sound</button></div><p class="hint">Cloud audio includes a volume boost. Your iPhone media volume still controls the final output, so turn it up and check Bluetooth if Sterling sounds quiet.</p></details>
 </div><div class="card"><h2>LONDON’S CONTACT PACKET</h2><p class="hint" id="progress">0 of 4 contact details confirmed</p>
-<form id="contactform"><div class="formgrid">
+<div class="hint" id="routecontext" hidden></div><form id="contactform"><div class="formgrid">
 <label>First name<input id="first" name="given-name" autocomplete="given-name" maxlength="80" required></label>
 <label>Last name<input id="last" name="family-name" autocomplete="family-name" maxlength="80" required></label>
 <label class="wide">Phone number<input id="phone" type="tel" name="tel" autocomplete="tel" inputmode="tel" required></label>
 <label class="wide">Email<input id="email" type="email" name="email" autocomplete="email" autocapitalize="none" spellcheck="false" required></label></div>
 <div class="controls"><button type="submit">Confirm these four details</button></div></form>
-<div id="sendbox" hidden><p class="confirmed">Contact packet ready</p><a class="action" id="send" href="#">Open text to London</a><p class="hint" id="delivery" role="status">Not sent. Opens Messages to 205-310-8645; tap Send there.</p><div class="controls"><button id="copy">Copy packet</button></div></div>
-<p class="hint warning">For privacy and iPhone security, the final SMS still requires you to tap Send in Messages. Sterling pre-fills the entire packet automatically.</p>
+<div id="sendbox" hidden><p class="confirmed">Contact packet ready</p><div class="controls"><button id="salesforcecopy" class="primary">Copy for Salesforce Helper</button><a class="action" id="send" href="#">Backup text to London</a><button id="copy">Copy plain packet</button></div><p class="hint" id="delivery" role="status">Use “Copy for Salesforce Helper,” then return to the active ICL/Salesforce house.</p></div>
+<p class="hint warning">Route Helper only transfers first name, last name, phone and email to the active route stop. Keep SSN, ID, PIN, payment and verification data in the approved AT&T process.</p>
 <details><summary>London’s conversation controls</summary><div class="controls"><button id="qualify">Qualification handoff</button><button id="return">Continue phone choices</button><button id="reset">New customer</button></div><p class="hint">New customer clears this tab’s details. Nothing is saved to a public repository or a customer database.</p></details>
-</div></section><footer class="footer">Sterling V4 • Live AI assistant with AI-generated voice and cloud speech fallback. Keep SSNs, ID numbers, payment details, PINs and passcodes in the approved AT&T process. Voice recognition may use your browser’s speech service.</footer>
+</div></section><footer class="footer">Sterling V5 • Live AI assistant with Route Helper handoff, AI-generated voice and cloud speech fallback. Keep SSNs, ID numbers, payment details, PINs and passcodes in the approved AT&T process. Voice recognition may use your browser’s speech service.</footer>
 </main>
 <script>
 'use strict';
@@ -58,6 +58,17 @@ let recognition=null,listenTimer=0,listenWatch=0,speechToken=0,misses=0;
 let audioCtx=null,currentSource=null,currentAudio=null;
 let aiHistory=[];
 let cloudMic=false,recording=false;
+const routeParams=new URLSearchParams(location.search);
+const routeContext={
+  routeId:routeParams.get('routeId')||'',
+  gpRouteStopId:routeParams.get('gpRouteStopId')||'',
+  street:routeParams.get('street')||'',
+  city:routeParams.get('city')||'',
+  postalcode:routeParams.get('postalcode')||'',
+  state:routeParams.get('state')||'',
+  latitude:routeParams.get('latitude')||'',
+  longitude:routeParams.get('longitude')||''
+};
 const Rec=window.SpeechRecognition||window.webkitSpeechRecognition;
 
 function status(t){$('status').textContent=t;}
@@ -406,9 +417,30 @@ function packet(){
     'Phone: '+prettyPhone(data.phone||'')+'\n'+
     'Email: '+(data.email||'');
 }
+function salesforcePacket(){
+  return 'STERLING_ROUTE_V1\n'+JSON.stringify({
+    version:1,
+    first:data.first||'',
+    last:data.last||'',
+    phone:data.phone||'',
+    email:data.email||'',
+    routeId:routeContext.routeId,
+    gpRouteStopId:routeContext.gpRouteStopId,
+    street:routeContext.street,
+    city:routeContext.city,
+    postalcode:routeContext.postalcode,
+    state:routeContext.state
+  });
+}
 function render(){
   const ready=fields.every(f=>confirmed.has(f));
   $('progress').textContent=confirmed.size+' of 4 contact details confirmed';
+  const rc=$('routecontext');
+  const routeLabel=[routeContext.street,routeContext.city,routeContext.state,routeContext.postalcode].filter(Boolean).join(', ');
+  if(routeLabel){
+    rc.hidden=false;
+    rc.textContent='Active route stop: '+routeLabel+(routeContext.gpRouteStopId?' • verified stop ID loaded':'');
+  }else rc.hidden=true;
   $('sendbox').hidden=!ready;
   $('confirmbar').hidden=!pending;
   if(ready){
@@ -420,7 +452,7 @@ function next(){
   stage=fields.findIndex(f=>!confirmed.has(f));
   if(stage<0){
     stage=4;render();
-    say('Perfect. I have all four details. Tap Send to London below, then tap Send in Messages. While we’re here, who do you currently have for wireless service?');
+    say('Perfect. I have all four details. London can copy them straight into the active Salesforce route stop. While we’re here, who do you currently have for wireless service?');
   }else{
     render();say(questions[stage]);
   }
@@ -589,6 +621,17 @@ $('contactform').onsubmit=e=>{
   pending=null;active=true;paused=false;$('pause').textContent='Pause';
   next();
 };
+$('salesforcecopy').onclick=async()=>{
+  try{
+    await navigator.clipboard.writeText(salesforcePacket());
+    status('ROUTE PACKET COPIED');
+    $('delivery').textContent=routeContext.street
+      ? 'Copied for '+routeContext.street+'. Return to that ICL/Salesforce tab, open Sterling Helper, and tap Run full sequence.'
+      : 'Copied. Return to the matching ICL/Salesforce house, open Sterling Helper, and load the packet.';
+  }catch{
+    $('delivery').textContent='Clipboard access was blocked. Use Copy plain packet as a fallback.';
+  }
+};
 $('send').onclick=()=>{
   halt();paused=true;$('pause').textContent='Resume';
   status('MESSAGES HANDOFF');
@@ -627,7 +670,7 @@ $('reset').onclick=()=>{
   $('start').textContent='Start Sterling';$('pause').textContent='Pause';
   $('bubble').textContent='Ready for the next customer.';
   $('live').textContent='Tap Start to begin.';
-  status('READY • V3');render();
+  status('READY • V5');render();
 };
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){
