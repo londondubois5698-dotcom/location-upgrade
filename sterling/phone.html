@@ -132,7 +132,7 @@
 (function(){
 'use strict';
 var APP='https://sterling-olive.vercel.app';
-var VERSION='14.3';
+var VERSION='14.4';
 var tetherId='';
 var currentHouse=null,lastHouseKey='',lastResultId='';
 var contact={first:'',last:'',phone:'',email:''},stage='rapport',mismatch=false;
@@ -249,12 +249,15 @@ function stopPlayback(){for(var i=0;i<playingSources.length;i++)try{playingSourc
 function playAudio(b64){try{var samples=decodePCM(b64);if(!samples.length)return;var ctx=playCtx;if(!ctx)return;var buf=ctx.createBuffer(1,samples.length,24000);buf.getChannelData(0).set(samples);var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);var st=Math.max(playTime,ctx.currentTime);src.start(st);playTime=st+buf.duration;playingSources.push(src);src.onended=function(){playingSources=playingSources.filter(x=>x!==src)}}catch(e){setVoice('Audio playback error','bad')}}
 async function prepareMic(){
   await ensurePlay();
-  if(micStream)return;
+  if(micStream&&micStream.getAudioTracks&&micStream.getAudioTracks().some(function(t){return t.readyState==='live'}))return;
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Microphone access is unavailable.');
 
-  // iPhone-safe capture: start from the exact constraints that worked in the locked V13 build.
-  // Do not request voiceIsolation/channelCount at getUserMedia time; on some iPhones Safari
-  // advertises those constraints but the audio device can fail to start with them.
+  // Use the SAME AudioContext for playback and capture on iPhone.
+  // iOS Safari can intermittently fail when a second hardware audio context is started.
+  captureCtx=playCtx;
+  if(!captureCtx)throw new Error('Audio engine is unavailable.');
+  if(captureCtx.state==='suspended')await captureCtx.resume();
+
   var attempts=[
     {audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}},
     {audio:true}
@@ -268,56 +271,58 @@ async function prepareMic(){
 
   var tracks=micStream.getAudioTracks();
   if(!tracks.length){releaseMic();throw new Error('No microphone audio track was returned.')}
-  tracks[0].enabled=true;
+  var track=tracks[0];track.enabled=true;
+  track.onended=function(){
+    if(active){setVoice('MICROPHONE DISCONNECTED','bad');setCaption('Sterling','The iPhone microphone disconnected. Tap Start Sterling to reconnect.')}
+  };
 
-  var AC=window.AudioContext||window.webkitAudioContext;
   try{
-    captureCtx=new AC();
-    if(captureCtx.state==='suspended')await captureCtx.resume();
     captureSource=captureCtx.createMediaStreamSource(micStream);
-
-    // Keep Alpha's handling-noise protection AFTER Safari has successfully opened the mic.
-    captureHighpass=captureCtx.createBiquadFilter();
-    captureHighpass.type='highpass';captureHighpass.frequency.value=90;captureHighpass.Q.value=.7;
-    captureLowpass=captureCtx.createBiquadFilter();
-    captureLowpass.type='lowpass';captureLowpass.frequency.value=7200;captureLowpass.Q.value=.7;
-    micAnalyser=captureCtx.createAnalyser();micAnalyser.fftSize=256;micAnalyser.smoothingTimeConstant=.72;
     captureProcessor=captureCtx.createScriptProcessor(1024,1,1);
 
-    captureSource.connect(captureHighpass);
-    captureHighpass.connect(captureLowpass);
-    captureLowpass.connect(micAnalyser);
-    captureLowpass.connect(captureProcessor);
+    // Keep the capture graph as close as possible to the proven V13 build.
+    // Handling-noise protection is software-only so it cannot prevent the iPhone audio device from opening.
+    captureSource.connect(captureProcessor);
     captureProcessor.connect(captureCtx.destination);
-    gate={noise:.006,open:false,voiced:0,quiet:0,pre:[]};
 
+    gate={noise:.006,open:false,voiced:0,quiet:0,pre:[]};
     captureProcessor.onaudioprocess=function(ev){
-      var raw=ev.inputBuffer.getChannelData(0),samples=resample(raw,captureCtx.sampleRate,24000),sum=0,peak=0,cross=0,prev=samples[0]||0;
-      for(var i=0;i<samples.length;i++){var x=samples[i],ax=Math.abs(x);sum+=x*x;if(ax>peak)peak=ax;if((x>=0)!=(prev>=0))cross++;prev=x}
+      if(!active||muted)return;
+      var raw=ev.inputBuffer.getChannelData(0);
+      var samples=resample(raw,captureCtx.sampleRate,24000);
+      var sum=0,peak=0,cross=0,prev=samples[0]||0;
+      for(var i=0;i<samples.length;i++){
+        var x=samples[i],ax=Math.abs(x);sum+=x*x;if(ax>peak)peak=ax;
+        if((x>=0)!=(prev>=0))cross++;prev=x
+      }
       var rms=Math.sqrt(sum/Math.max(1,samples.length)),zcr=cross/Math.max(1,samples.length);
       if($('noiseMeter'))$('noiseMeter').style.width=Math.min(100,Math.round(rms*900))+'%';
 
-      if(!gate.open)gate.noise=gate.noise*.985+Math.min(rms,.055)*.015;
-      var threshold=Math.max(.0075,gate.noise*1.9);
-      var transient=(peak>.985&&rms>threshold*3.2)||(zcr>.38&&rms>threshold*2.5);
-      var voiceLike=!transient&&rms>threshold&&zcr>.003&&zcr<.34;
+      if(!gate.open)gate.noise=gate.noise*.99+Math.min(rms,.05)*.01;
+      var threshold=Math.max(.0065,gate.noise*1.7);
 
-      gate.pre.push(samples.slice(0));if(gate.pre.length>10)gate.pre.shift();
+      // Reject only very obvious taps/rubs. Ordinary speech gets through quickly.
+      var hardTap=peak>.995&&rms>threshold*3.8;
+      var harshRub=zcr>.42&&rms>threshold*2.9;
+      var voiceLike=!hardTap&&!harshRub&&rms>threshold&&zcr>.002&&zcr<.38;
+
+      gate.pre.push(samples.slice(0));if(gate.pre.length>12)gate.pre.shift();
       if(voiceLike)gate.voiced=Math.min(12,gate.voiced+1);else gate.voiced=Math.max(0,gate.voiced-1);
 
       var openedNow=false;
-      if(!gate.open&&gate.voiced>=3){
+      if(!gate.open&&gate.voiced>=2){
         gate.open=true;gate.quiet=0;openedNow=true;
-        if(active)setAlphaState('listening');
-        if(connected&&!muted&&socket&&socket.readyState===WebSocket.OPEN){
-          for(var p=0;p<gate.pre.length;p++)send({type:'input-audio-append',audio:encodePCM(gate.pre[p])});
+        setAlphaState('listening');
+        if(connected&&socket&&socket.readyState===WebSocket.OPEN){
+          for(var p=0;p<gate.pre.length;p++)send({type:'input-audio-append',audio:encodePCM(gate.pre[p])})
         }
-        gate.pre=[];
+        gate.pre=[]
       }
+
       if(gate.open){
-        if(!openedNow&&connected&&!muted&&socket&&socket.readyState===WebSocket.OPEN)send({type:'input-audio-append',audio:encodePCM(samples)});
-        if(voiceLike||rms>threshold*.9)gate.quiet=0;else gate.quiet++;
-        if(gate.quiet>50){gate.open=false;gate.voiced=0;gate.quiet=0;gate.pre=[]}
+        if(!openedNow&&connected&&socket&&socket.readyState===WebSocket.OPEN)send({type:'input-audio-append',audio:encodePCM(samples)});
+        if(voiceLike||rms>threshold*.82)gate.quiet=0;else gate.quiet++;
+        if(gate.quiet>46){gate.open=false;gate.voiced=0;gate.quiet=0;gate.pre=[]}
       }
     };
   }catch(e){
@@ -325,7 +330,17 @@ async function prepareMic(){
     throw e;
   }
 }
-function releaseMic(){try{if(captureProcessor)captureProcessor.onaudioprocess=null}catch(e){}try{if(captureProcessor)captureProcessor.disconnect()}catch(e){}try{if(captureLowpass)captureLowpass.disconnect()}catch(e){}try{if(captureHighpass)captureHighpass.disconnect()}catch(e){}try{if(micAnalyser)micAnalyser.disconnect()}catch(e){}try{if(captureSource)captureSource.disconnect()}catch(e){}try{if(captureCtx)captureCtx.close()}catch(e){}try{if(micStream)micStream.getTracks().forEach(t=>t.stop())}catch(e){}captureProcessor=captureLowpass=captureHighpass=micAnalyser=captureSource=captureCtx=micStream=null;gate={noise:.006,open:false,voiced:0,quiet:0,pre:[]};if($('noiseMeter'))$('noiseMeter').style.width='0%'}
+function releaseMic(){
+  try{if(captureProcessor)captureProcessor.onaudioprocess=null}catch(e){}
+  try{if(captureProcessor)captureProcessor.disconnect()}catch(e){}
+  try{if(captureSource)captureSource.disconnect()}catch(e){}
+  try{if(micStream)micStream.getTracks().forEach(function(t){t.onended=null;t.stop()})}catch(e){}
+  // captureCtx intentionally points to playCtx; do not close it here.
+  captureProcessor=captureSource=null;micStream=null;captureCtx=playCtx||null;
+  captureLowpass=captureHighpass=micAnalyser=null;
+  gate={noise:.006,open:false,voiced:0,quiet:0,pre:[]};
+  if($('noiseMeter'))$('noiseMeter').style.width='0%'
+}
 function send(obj){try{if(socket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify(obj))}catch(e){}}
 function toolReply(callId,name,obj){send({type:'conversation-item-create',item:{type:'function-call-output',callId:callId,name:name,output:JSON.stringify(obj)}});send({type:'response-create',options:{modalities:['audio']}})}
 function normalizeContact(field,value){var v=clean(value);if(field==='phone'){var d=v.replace(/\D/g,'');if(d.length===11&&d[0]==='1')d=d.slice(1);if(d.length!==10)throw new Error('Phone must have ten digits');return d}if(field==='email'){v=v.replace(/\s+/g,'').toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))throw new Error('Email is incomplete');return v}if(!/[A-Za-zÀ-ÿ]/.test(v))throw new Error('Name is incomplete');return v.slice(0,80)}
@@ -358,7 +373,7 @@ async function fetchRealtimeSetup(){
   var ctrl=typeof AbortController!=='undefined'?new AbortController():null;
   var timeout=setTimeout(function(){try{if(ctrl)ctrl.abort()}catch(e){}},8000);
   try{
-    var r=await fetch(APP+'/api/realtime-token?v=14.3&t='+Date.now(),{cache:'no-store',signal:ctrl?ctrl.signal:undefined});
+    var r=await fetch(APP+'/api/realtime-token?v=14.4&t='+Date.now(),{cache:'no-store',signal:ctrl?ctrl.signal:undefined});
     var setup=await r.json();
     if(!r.ok||!setup.token||!setup.url)throw new Error(setup.error||'Realtime setup failed');
     return setup;
