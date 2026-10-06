@@ -1,58 +1,55 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#06111f">
 <title>Install Sterling Helper</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#06111f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.w{max-width:760px;margin:auto;padding:20px}.card{background:#0a1c30;border:1px solid #1b456c;border-radius:20px;padding:18px;margin:14px 0}.hero{padding:10px 0 4px}h1{color:#57b8ff;margin:.15em 0}.b{display:block;width:100%;background:#0782db;color:#fff;border:0;border-radius:14px;padding:16px 18px;text-decoration:none;font-size:17px;font-weight:800;text-align:center}.secondary{background:#173550}.small{color:#a7bfd6;font-size:13px;line-height:1.5}.warn{color:#ffd18a}.ok{color:#75efae;font-weight:700}.step{display:flex;gap:12px;align-items:flex-start;margin:14px 0}.n{flex:0 0 34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#0b65b6;font-weight:800}.step p{margin:3px 0;line-height:1.45}textarea{width:100%;height:84px;background:#05101d;color:#bde1ff;border:1px solid #315777;border-radius:12px;padding:10px;font-family:ui-monospace,monospace;font-size:11px}.hide{display:none}
-</style></head>
-<body><main class="w">
-<div class="hero"><h1>Sterling Helper V9</h1><p id="sub">Fast setup for your phone or iPad.</p></div>
-
-<div class="card" id="ioscard">
-<h2>iPhone / iPad setup</h2>
-<p class="warn"><b>Important:</b> do not tap the JavaScript code itself. Safari blocks that and shows the “Cannot Run Script” message you saw.</p>
-<div class="step"><div class="n">1</div><p>Tap <b>Copy Helper Code</b> below.</p></div>
-<button class="b" id="copy">Copy Helper Code</button>
-<p id="copied" class="ok"></p>
-<div class="step"><div class="n">2</div><p>Tap Safari’s <b>Share</b> button → <b>Add Bookmark</b>. Save this page as <b>Sterling Helper</b>.</p></div>
-<div class="step"><div class="n">3</div><p>Open Safari <b>Bookmarks</b> → <b>Edit</b> → tap <b>Sterling Helper</b>. Delete the normal web address and <b>paste the helper code</b> into the URL field. Tap <b>Done</b>.</p></div>
-<div class="step"><div class="n">4</div><p>Go to an active ICL / Geopointe house. Open Bookmarks and tap <b>Sterling Helper</b>. That is the only place you run it.</p></div>
-<p class="small">After that, the helper watches the active route page, links Sterling to the house, and can auto-fill → Save → Order when the confirmed customer packet comes back.</p>
-</div>
-
-<div class="card" id="desktopcard">
-<h2>Desktop setup</h2>
-<p>Drag this button to your bookmarks bar:</p>
-<p><a class="b" id="bookmarklet" href="#">Sterling Helper</a></p>
+*{box-sizing:border-box}body{margin:0;background:#06111f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{max-width:720px;margin:auto;padding:22px 18px calc(30px + env(safe-area-inset-bottom))}.hero{padding:10px 0 8px}h1{font-size:34px;color:#58baff;margin:.2em 0}.sub{color:#b2cee8;line-height:1.5}.card{background:#0a1c30;border:1px solid #1b456c;border-radius:20px;padding:19px;margin:14px 0}.step{display:flex;gap:12px;margin:15px 0;align-items:flex-start}.num{width:34px;height:34px;flex:0 0 34px;border-radius:50%;display:grid;place-items:center;background:#0b69bd;font-weight:900}.step p{margin:4px 0;line-height:1.45}.btn{display:block;width:100%;border:0;border-radius:14px;padding:16px;background:#0782db;color:#fff;font:inherit;font-size:17px;font-weight:850;text-align:center;text-decoration:none}.ok{color:#79efb2;font-weight:800}.muted{font-size:13px;color:#9eb8d1;line-height:1.5}.tiny{font-size:11px;color:#6f8ba6}.code{width:100%;height:78px;background:#04101e;color:#bfe2ff;border:1px solid #2c587d;border-radius:12px;padding:10px;font-family:ui-monospace,monospace;font-size:10px}.desktop{display:none}@media(min-width:800px){.desktop{display:block}}
+</style>
+</head>
+<body><main class="wrap">
+<div class="hero">
+  <h1>Sterling Helper V10</h1>
+  <p class="sub">One small bookmark. After this setup, the bookmark always loads the newest helper automatically, so future fixes do not require reinstalling it.</p>
 </div>
 
 <div class="card">
-<h2>What V9 does automatically</h2>
-<p>When you run the bookmark on an active house, it links that route stop to Sterling, watches for route/address changes, opens Sterling for that stop, receives the confirmed contact packet, checks that it still matches the same house, then can automatically fill the four contact fields, Save, click Order, and capture the Partner Order ID.</p>
-<p class="small">If the house does not match, it stops instead of editing the wrong record.</p>
+  <h2>iPhone / iPad — 3 steps</h2>
+  <div class="step"><div class="num">1</div><p>Tap <b>Copy Sterling Bookmark</b>.</p></div>
+  <button class="btn" id="copy">Copy Sterling Bookmark</button>
+  <p class="ok" id="copied"></p>
+  <div class="step"><div class="num">2</div><p>Tap Safari <b>Share → Add Bookmark</b>. Name it <b>Sterling Helper</b>.</p></div>
+  <div class="step"><div class="num">3</div><p>Open <b>Bookmarks → Edit → Sterling Helper</b>. Delete the normal web address and paste the code you copied into the URL field. Tap <b>Done</b>.</p></div>
+  <p class="muted">From then on: open an active ICL house, tap the <b>Sterling Helper</b> bookmark, then tap <b>Open Sterling Live</b>. That is it.</p>
 </div>
 
-<div class="card small">
-<b>One limitation on iPhone/iPad:</b> Safari does not let a normal website stay secretly active across other apps/tabs or inject itself into Salesforce permanently. The helper becomes autonomous <i>after you tap the Sterling Helper bookmark on the active ICL page</i>. For true always-on phone ↔ iPad background syncing, Sterling needs a private server relay; that is the next step once Vercel storage access is authorized.
+<div class="card desktop">
+  <h2>Desktop</h2>
+  <p>Drag this button to the bookmarks bar:</p>
+  <a class="btn" id="drag" href="#">Sterling Helper</a>
 </div>
 
-<details class="card"><summary>Show helper code manually</summary><textarea id="code" readonly>Loading…</textarea></details>
+<div class="card">
+  <h2>What changed</h2>
+  <p class="muted">The bookmark is now only a tiny loader. The real helper lives on Sterling's site and updates itself. The helper reads the address actually visible on the Salesforce page, so if Salesforce moves from 3739 Pamlico to 3735 Pamlico without updating the old URL, Sterling uses the visible 3735 house instead of the stale URL.</p>
+  <p class="muted">When a confirmed customer packet comes back and matches the active house, Auto mode can fill the four contact fields, save, open Order, and capture the Partner Order ID.</p>
+</div>
+
+<details class="card">
+  <summary>Manual code</summary>
+  <textarea id="code" class="code" readonly></textarea>
+</details>
+<p class="tiny">Safari does not allow a website to create or edit your bookmark for you. That one manual bookmark edit is an Apple browser restriction. After it is saved, V10 updates itself from the web.</p>
 </main>
 <script>
-(async()=>{
- const copy=document.getElementById('copy'),ta=document.getElementById('code'),link=document.getElementById('bookmarklet'),copied=document.getElementById('copied');
- try{
-   const src=await fetch('/salesforce-helper.js?v=9',{cache:'no-store'}).then(r=>r.text());
-   const bm='javascript:'+encodeURIComponent(src);
-   ta.value=bm; link.href=bm;
-   copy.onclick=async()=>{try{await navigator.clipboard.writeText(bm);copied.textContent='Copied. Now do Step 2.';}catch{ta.select();copied.textContent='Press and hold the code below, then Copy.';}};
- }catch{
-   ta.value='Reload this page and try again.';
-   copy.disabled=true;
- }
- const ios=/iPhone|iPad|iPod/i.test(navigator.userAgent);
- if(ios)document.getElementById('desktopcard').classList.add('hide');
-})();
+const code="javascript:(()=>{if(window.__sterlingRouteHelper?.open){window.__sterlingRouteHelper.open();return}const s=document.createElement('script');s.src='https://sterling-olive.vercel.app/helper.js?v=10&t='+Date.now();s.onerror=()=>alert('Sterling Helper could not load. Check your connection and try again.');document.documentElement.appendChild(s)})()";
+document.getElementById('code').value=code;
+document.getElementById('drag').href=code;
+document.getElementById('copy').onclick=async()=>{
+  try{await navigator.clipboard.writeText(code);document.getElementById('copied').textContent='Copied. Now do Step 2.'}
+  catch{document.getElementById('code').select();document.getElementById('copied').textContent='Copy the code shown below, then do Step 2.'}
+};
 </script>
 </body></html>
