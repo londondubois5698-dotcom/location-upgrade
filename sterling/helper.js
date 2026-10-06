@@ -1,425 +1,317 @@
-
 (function(){
-  'use strict';
-  if(window.__sterlingRouteHelper?.open){window.__sterlingRouteHelper.open();return;}
+'use strict';
+if(window.__sterlingV11&&window.__sterlingV11.open){window.__sterlingV11.open();return;}
 
-  const APP_ORIGIN='https://sterling-olive.vercel.app';
-  const VERSION='10.0.0';
-  const bridgeToken=Array.from(crypto.getRandomValues(new Uint32Array(4))).map(n=>n.toString(16)).join('-');
-  const qs=new URLSearchParams(location.search);
+var APP='https://sterling-olive.vercel.app';
+var VERSION='11.0';
+var token=(crypto&&crypto.randomUUID)?crypto.randomUUID():('st-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));
+var packet=null,orderId='',busy=false,autoMode=true,sessionId='',lastHouseKey='',sterlingWindow=null,pollTimer=null;
+var qs=function(sel,root){return (root||document).querySelector(sel)};
+var qsa=function(sel,root){return Array.prototype.slice.call((root||document).querySelectorAll(sel))};
+var clean=function(v){return String(v==null?'':v).trim()};
+var norm=function(v){return clean(v).toLowerCase().replace(/[^a-z0-9]/g,'')};
+var sleep=function(ms){return new Promise(function(r){setTimeout(r,ms)})};
+var visible=function(el){if(!el||!(el instanceof Element))return false;var r=el.getBoundingClientRect(),cs=getComputedStyle(el);return cs.display!=='none'&&cs.visibility!=='hidden'&&Number(cs.opacity)!==0&&r.width>0&&r.height>0};
+var txt=function(el){return clean(el&&(el.innerText||el.textContent))};
 
-  function clean(s){return String(s||'').trim();}
-  function norm(s){return clean(s).toLowerCase().replace(/[^a-z0-9]/g,'');}
-  function visible(el){
-    if(!el||!(el instanceof Element))return false;
-    const r=el.getBoundingClientRect(),cs=getComputedStyle(el);
-    return cs.display!=='none'&&cs.visibility!=='hidden'&&Number(cs.opacity)!==0&&r.width>0&&r.height>0;
-  }
-  function text(el){return clean(el?.innerText||el?.textContent);}
-  function stopFromUrl(raw){
+function allDocs(){
+  var out=[],seen=new Set();
+  function walk(w){
     try{
-      const u=new URL(raw,location.href),p=u.searchParams;
-      return {
-        routeId:p.get('routeId')||p.get('gpRouteId')||'',
-        gpRouteStopId:p.get('gpRouteStopId')||'',
-        street:p.get('street')||'',
-        city:p.get('city')||'',
-        postalcode:p.get('postalcode')||'',
-        state:p.get('state')||'',
-        latitude:p.get('latitude')||'',
-        longitude:p.get('longitude')||''
-      };
-    }catch{return null;}
+      var d=w.document;
+      if(!d||seen.has(d))return;
+      seen.add(d);out.push(d);
+      qsa('iframe',d).forEach(function(f){try{if(f.contentWindow)walk(f.contentWindow)}catch(e){}});
+    }catch(e){}
   }
-  function parseVisibleAddress(){
-    const re=/(\d{1,6}\s+[A-Za-z0-9.'#\- ]+?),\s*([A-Za-z .'‑\-]+?),\s*(Virginia|VA)\s+(\d{5}(?:-\d{4})?)/i;
-    let best=null;
-    for(const d of allDocs()){
-      for(const el of Array.from(d.querySelectorAll('div,span,p,a,strong,h1,h2,h3,td'))){
-        if(!visible(el))continue;
-        const t=text(el);
-        if(!t||t.length>180)continue;
-        const m=t.match(re);
-        if(!m)continue;
-        const r=el.getBoundingClientRect();
-        const score=(r.top<190?100:0)+(180-t.length);
-        if(!best||score>best.score){
-          best={street:clean(m[1]),city:clean(m[2]),state:'Virginia',postalcode:clean(m[4]),score};
-        }
-      }
-    }
-    return best;
-  }
-  function currentStop(){
-    const urls=[location.href];
-    try{
-      for(const el of document.querySelectorAll('iframe[src],a[href]')){
-        const raw=el.getAttribute('src')||el.getAttribute('href');
-        if(raw&&/(?:routeId|gpRouteStopId|street)=/i.test(raw))urls.push(raw);
-      }
-    }catch{}
-    let best=null,bestScore=-1;
-    for(const raw of urls){
-      const st=stopFromUrl(raw);if(!st)continue;
-      const score=['routeId','gpRouteStopId','street','city','postalcode','state'].reduce((n,k)=>n+(st[k]?1:0),0);
-      if(score>bestScore){best=st;bestScore=score;}
-    }
-    best=best||{routeId:'',gpRouteStopId:'',street:'',city:'',postalcode:'',state:'',latitude:'',longitude:''};
-    const dom=parseVisibleAddress();
-    if(dom){
-      const stale=best.street&&norm(best.street)!==norm(dom.street);
-      best={...best,street:dom.street,city:dom.city,state:dom.state,postalcode:dom.postalcode};
-      if(stale){
-        best.gpRouteStopId='';
-        best.latitude='';
-        best.longitude='';
-      }
-    }
-    return best;
-  }
-  function stopLabel(s){
-    return [s.street,s.city,s.state,s.postalcode].filter(Boolean).join(', ');
-  }
-  function allDocs(){
-    const out=[],seen=new Set();
-    function walk(w){
-      try{
-        const d=w.document;
-        if(!d||seen.has(d))return;
-        seen.add(d);out.push(d);
-        for(const f of d.querySelectorAll('iframe')){
-          try{if(f.contentWindow)walk(f.contentWindow);}catch{}
-        }
-      }catch{}
-    }
-    walk(window);try{if(top!==window)walk(top);}catch{}
-    return out;
-  }
-  function candidates(selector){
-    return allDocs().flatMap(d=>Array.from(d.querySelectorAll(selector))).filter(visible);
-  }
-  function byExactText(label,selector='button,a,[role="button"]'){
-    return candidates(selector).filter(el=>text(el).trim().toLowerCase()===label.toLowerCase());
-  }
-  function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
-  async function waitFor(fn,timeout=8000,step=150){
-    const end=Date.now()+timeout;
-    while(Date.now()<end){
-      try{const v=fn();if(v)return v;}catch{}
-      await sleep(step);
-    }
-    return null;
-  }
-  function nativeSet(el,value){
-    const proto=el instanceof HTMLTextAreaElement?HTMLTextAreaElement.prototype:
-      el instanceof HTMLSelectElement?HTMLSelectElement.prototype:HTMLInputElement.prototype;
-    const desc=Object.getOwnPropertyDescriptor(proto,'value');
-    if(desc?.set)desc.set.call(el,value); else el.value=value;
-    for(const type of ['input','change','blur'])el.dispatchEvent(new Event(type,{bubbles:true}));
-  }
-  function parsePacket(raw){
-    raw=clean(raw);
-    if(raw.startsWith('STERLING_ROUTE_V1'))raw=raw.replace(/^STERLING_ROUTE_V1\s*/,'');
-    let obj;
-    try{obj=JSON.parse(raw);}catch{
-      const lines=raw.split(/\n+/),o={};
-      for(const line of lines){
-        const m=line.match(/^\s*([^:]+):\s*(.+)\s*$/);
-        if(m)o[m[1].trim().toLowerCase()]=m[2].trim();
-      }
-      obj={first:o['first name']||o.first,last:o['last name']||o.last,phone:o.phone,email:o.email};
-    }
-    if(!obj||!obj.first||!obj.last||!obj.phone||!obj.email)throw new Error('Packet is missing first name, last name, phone, or email.');
-    if(obj.expiresAt&&Number(obj.expiresAt)<Date.now())throw new Error('Sterling packet expired. Reconfirm the customer in Sterling.');
-    obj.phone=String(obj.phone).replace(/\D/g,'').replace(/^1(?=\d{10}$)/,'');
-    if(obj.phone.length!==10)throw new Error('Phone number is not 10 digits.');
-    return obj;
-  }
-  function verify(packet,stop){
-    if(packet.gpRouteStopId&&stop.gpRouteStopId&&packet.gpRouteStopId!==stop.gpRouteStopId){
-      throw new Error('STOP MISMATCH. Sterling packet is for a different route stop.');
-    }
-    if(packet.street&&stop.street&&norm(packet.street)!==norm(stop.street)){
-      throw new Error('ADDRESS MISMATCH. Sterling packet is for '+packet.street+', but this page is '+stop.street+'.');
-    }
-    return true;
-  }
-
-  const host=document.createElement('div');
-  host.id='sterling-route-helper-host';
-  host.style.cssText='position:fixed;z-index:2147483647;right:12px;bottom:12px;max-width:calc(100vw - 24px);font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;';
-  document.documentElement.appendChild(host);
-  const sh=host.attachShadow({mode:'open'});
-  sh.innerHTML=`
-    <style>
-      *{box-sizing:border-box}.panel{width:min(390px,calc(100vw - 24px));background:#061425;color:#fff;border:1px solid #22527d;border-radius:18px;box-shadow:0 18px 60px #0008;overflow:hidden}
-      .head{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:#0b2743;border-bottom:1px solid #1b4268}
-      .brand{font-weight:800}.brand b{color:#49b5ff}.ver{font-size:10px;color:#7ea7c9}.close{background:#173a59;color:#fff;border:0;border-radius:10px;width:36px;height:36px;font-size:22px}
-      .body{padding:14px}.stop{font-size:13px;line-height:1.35;color:#cce6fb;background:#0a2037;border:1px solid #163e62;padding:10px;border-radius:12px;margin-bottom:10px}
-      .status{font-size:13px;min-height:38px;line-height:1.4;color:#9fd4ff;margin:9px 0}.good{color:#63e6a5}.bad{color:#ffadad}.code{font-size:26px;font-weight:850;letter-spacing:1px;padding:12px;border-radius:12px;background:#071e34;text-align:center;margin:10px 0}
-      .row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.row.one{grid-template-columns:1fr}
-      button{appearance:none;border:0;border-radius:12px;padding:12px 10px;font:inherit;font-weight:700;min-height:46px;background:#155486;color:#fff;touch-action:manipulation}.primary{background:#0788e8}.success{background:#09834d}.quiet{background:#173149}.danger{background:#71343a}
-      .packet{font-size:12px;line-height:1.4;color:#b7cee2;margin-top:10px}.mini{font-size:11px;color:#7695af;margin-top:8px}.hide{display:none}
-      @media(max-width:520px){.panel{width:calc(100vw - 20px)}.row{grid-template-columns:1fr}.head{padding:11px}.body{padding:12px}}
-    </style>
-    <div class="panel">
-      <div class="head"><div><div class="brand"><b>Sterling</b> Route Helper</div><div class="ver">v${VERSION} • self-updating</div></div><button class="close" id="x">×</button></div>
-      <div class="body">
-        <div class="stop" id="stop"></div>
-        <div class="status" id="status">Ready. Open Sterling Live or load a customer packet.</div>
-        <div class="packet" id="packet">No customer packet loaded.</div>
-        <div class="code hide" id="code"></div>
-        <div class="row one"><button class="primary" id="openSterling">Open Sterling Live</button></div>
-        <div class="row one"><button class="success" id="all">Run now</button></div>
-        <div style="display:none"><button id="pull">Pull from Sterling</button><button id="load">Paste packet</button><button id="fill">Fill + Save</button><button id="order">Create Order ID</button><button id="copyCode">Copy Order ID</button></div>
-        <div class="mini">Safety: helper verifies route stop/address when Sterling supplied them. It only edits name, phone and email, then uses Save and Order.</div>
-      </div>
-    </div>`;
-
-  const $=id=>sh.getElementById(id);
-  const state={packet:null,orderId:'',stop:currentStop(),sterlingWindow:null,autoRunning:false,lastStopKey:''};
-  $('stop').textContent=stopLabel(state.stop)||'Current Salesforce / ICL record';
-  function setStatus(msg,kind=''){const el=$('status');el.textContent=msg;el.className='status '+kind;}
-  function renderPacket(){
-    $('packet').textContent=state.packet
-      ? state.packet.first+' '+state.packet.last+' • '+state.packet.phone+' • '+state.packet.email
-      : 'No customer packet loaded.';
-  }
-  function showCode(code){
-    state.orderId=code||'';
-    $('code').textContent=code||'';
-    $('code').classList.toggle('hide',!code);
-  }
-
-  function acceptPacket(raw){
-    try{
-      const p=typeof raw==='string'?parsePacket(raw):parsePacket(JSON.stringify(raw));
-      verify(p,state.stop);state.packet=p;renderPacket();
-      setStatus('Packet loaded and matched to this stop. Auto mode is starting…','good');
-      setTimeout(()=>{ if(!state.autoRunning) runAll(true); },350);
-      return p;
-    }catch(e){setStatus(e.message||String(e),'bad');return null;}
-  }
-
-  async function loadPacket(){
-    let raw='';
-    try{raw=await navigator.clipboard.readText();}catch{}
-    if(!raw||(!raw.includes('STERLING_ROUTE_V1')&&!raw.includes('{'))){
-      raw=prompt('Paste the packet copied from Sterling:')||'';
-    }
-    return acceptPacket(raw);
-  }
-
-  function findForm(){
-    for(const d of allDocs()){
-      const phone=Array.from(d.querySelectorAll('input')).find(el=>visible(el)&&/primary\s*number/i.test(el.getAttribute('placeholder')||''));
-      const email=Array.from(d.querySelectorAll('input')).find(el=>visible(el)&&/^email/i.test(el.getAttribute('placeholder')||''));
-      if(phone&&email)return {d,phone,email};
-    }
-    return null;
-  }
-  async function openEditor(){
-    let f=findForm();if(f)return f;
-    const sels='[title*="Edit Address" i],[aria-label*="Edit Address" i],a[title*="Edit" i],button[title*="Edit" i],[aria-label*="Edit" i]';
-    const edits=candidates(sels);
-    let edit=edits.find(el=>/address/i.test((el.getAttribute('title')||'')+' '+(el.getAttribute('aria-label')||'')));
-    if(!edit){
-      edit=edits.find(el=>{
-        const p=el.parentElement?.parentElement;
-        return p&&/Prospective\s+Customer/i.test(text(p));
-      });
-    }
-    if(!edit)throw new Error('I cannot find the pencil/Edit Address control in this view.');
-    edit.click();
-    f=await waitFor(findForm,7000);
-    if(!f)throw new Error('Edit form did not open.');
-    return f;
-  }
-  function findNameInputs(f){
-    const inputs=Array.from(f.d.querySelectorAll('input')).filter(el=>visible(el)&&el!==f.phone&&el!==f.email&&((el.type||'text')==='text'||!el.type));
-    let first=inputs.find(el=>/^prospective$/i.test(clean(el.value)));
-    let last=inputs.find(el=>/^customer$/i.test(clean(el.value)));
-    if(!first||!last){
-      const streetNorm=norm(state.stop.street);
-      const excluded=inputs.filter(el=>norm(el.value)!==streetNorm && norm(el.value)!==norm(state.stop.city) && norm(el.value)!==norm(state.stop.postalcode));
-      const top=excluded.sort((a,b)=>a.getBoundingClientRect().top-b.getBoundingClientRect().top);
-      first=first||top[0];last=last||top.find(el=>el!==first);
-    }
-    if(!first||!last)throw new Error('Could not identify first/last name fields.');
-    return {first,last};
-  }
-  function clickSave(d){
-    const els=Array.from(d.querySelectorAll('button,input[type=button],input[type=submit],a')).filter(visible);
-    const save=els.find(el=>clean(el.value||text(el)).toLowerCase()==='save'&&!el.disabled);
-    if(!save)throw new Error('Save button not found or still disabled.');
-    save.click();
-  }
-
-  async function fillAndSave(){
-    if(!state.packet){const p=await loadPacket();if(!p)return false;}
-    try{
-      verify(state.packet,state.stop);
-      setStatus('Opening customer editor…');
-      const f=await openEditor();
-      const {first,last}=findNameInputs(f);
-
-      if(state.stop.street){
-        const streetInput=Array.from(f.d.querySelectorAll('input')).find(el=>visible(el)&&norm(el.value)===norm(state.stop.street));
-        if(!streetInput)throw new Error('Safety stop: I cannot verify the street field before saving.');
-      }
-
-      nativeSet(first,state.packet.first);
-      nativeSet(last,state.packet.last);
-      nativeSet(f.phone,state.packet.phone);
-      nativeSet(f.email,state.packet.email);
-
-      setStatus('Filled '+state.packet.first+' '+state.packet.last+'. Saving…');
-      await sleep(250);
-      clickSave(f.d);
-      await sleep(900);
-      setStatus('Customer details saved.','good');
-      return true;
-    }catch(e){setStatus(e.message||String(e),'bad');return false;}
-  }
-
-  function orderCandidates(){
-    return byExactText('Order').filter(el=>{
-      if(el.closest('nav,header,[role="navigation"],.slds-context-bar,.oneAppNavContainer'))return false;
-      return true;
+  walk(window);try{if(top!==window)walk(top)}catch(e){}
+  return out;
+}
+function parseUrl(raw){
+  try{
+    var u=new URL(raw,location.href),p=u.searchParams;
+    return {
+      routeId:p.get('routeId')||p.get('gpRouteId')||'',
+      gpRouteStopId:p.get('gpRouteStopId')||'',
+      street:p.get('street')||'',
+      city:p.get('city')||'',
+      postalcode:p.get('postalcode')||'',
+      state:p.get('state')||'',
+      latitude:p.get('latitude')||'',
+      longitude:p.get('longitude')||''
+    };
+  }catch(e){return {routeId:'',gpRouteStopId:'',street:'',city:'',postalcode:'',state:'',latitude:'',longitude:''}}
+}
+function urlStop(){
+  var urls=[location.href];
+  try{
+    qsa('iframe[src],a[href]').forEach(function(el){
+      var raw=el.getAttribute('src')||el.getAttribute('href');
+      if(raw&&/(routeId|gpRouteStopId|street)=/i.test(raw))urls.push(raw);
     });
-  }
-  function chooseOrder(){
-    const cs=orderCandidates();
-    if(!cs.length)return null;
-    return cs.sort((a,b)=>{
-      const ar=a.getBoundingClientRect(),br=b.getBoundingClientRect();
-      return (br.top+br.left/1000)-(ar.top+ar.left/1000);
-    })[0];
-  }
-  function readOrderId(){
-    for(const d of allDocs()){
-      const body=text(d.body);
-      const m=body.match(/Partner\s+Order\s+Id\s*:\s*([A-Z0-9-]{5,})/i);
-      if(m)return m[1];
-    }
-    return '';
-  }
-  async function createOrder(){
-    try{
-      showCode('');
-      setStatus('Opening order process…');
-      const order=chooseOrder();
-      if(!order)throw new Error('I cannot find the record-level Order button in this view.');
-      order.click();
-      const code=await waitFor(readOrderId,12000,200);
-      if(!code)throw new Error('Order window opened, but Partner Order ID was not detected.');
-      showCode(code);
-      host.style.display='block';
-      try{await navigator.clipboard.writeText(code);setStatus('Partner Order ID '+code+' created and copied.','good');}
-      catch{setStatus('Partner Order ID '+code+' created.','good');}
-      try{
-        if(state.sterlingWindow&&!state.sterlingWindow.closed){
-          state.sterlingWindow.postMessage({type:'STERLING_ORDER_ID_V1',token:bridgeToken,orderId:code},APP_ORIGIN);
-        }
-      }catch{}
-      return code;
-    }catch(e){host.style.display='block';setStatus(e.message||String(e),'bad');return '';}
-  }
-
-  async function runAll(auto=false){
-    if(state.autoRunning)return;
-    if(!state.packet){
-      if(auto)return;
-      const p=await loadPacket();if(!p)return;
-    }
-    state.autoRunning=true;
-    try{
-      state.stop=currentStop();
-      verify(state.packet,state.stop);
-      const ok=await fillAndSave();if(!ok)return;
-      await sleep(900);
-      await createOrder();
-    }catch(e){
-      setStatus(e.message||String(e),'bad');
-    }finally{
-      state.autoRunning=false;
-    }
-  }
-
-  $('x').onclick=()=>host.style.display='none';
-  window.addEventListener('message',e=>{
-    if(e.origin!==APP_ORIGIN)return;
-    const m=e.data||{};
-    if(m.type!=='STERLING_ROUTE_PACKET_V2'||m.token!==bridgeToken)return;
-    const p=acceptPacket(m.packet);
-    if(p)setStatus('Sterling sent '+p.first+' '+p.last+' to this active house. Auto mode is starting…','good');
+  }catch(e){}
+  var best=null,bestScore=-1;
+  urls.forEach(function(raw){
+    var st=parseUrl(raw),score=0;
+    ['routeId','gpRouteStopId','street','city','postalcode','state'].forEach(function(k){if(st[k])score++});
+    if(score>bestScore){best=st;bestScore=score}
   });
-
-  $('openSterling').onclick=()=>{
-    const st=state.stop;
-    const p=new URLSearchParams();
-    for(const k of ['routeId','gpRouteStopId','street','city','postalcode','state','latitude','longitude'])if(st[k])p.set(k,st[k]);
-    p.set('routeHelper','1');
-    p.set('helperToken',bridgeToken);
-    p.set('helperOrigin',location.origin);
-    state.sterlingWindow=window.open(APP_ORIGIN+'/live.html?'+p.toString(),'sterling-route');
-    if(!state.sterlingWindow)setStatus('Pop-up blocked. Allow pop-ups for this site, then tap Open Sterling again.','bad');
-    else{setStatus('Sterling opened and linked to this route stop.','good');host.style.display='none';}
-  };
-  $('pull').onclick=()=>{
-    const u=APP_ORIGIN+'/bridge.html?token='+encodeURIComponent(bridgeToken)+'&origin='+encodeURIComponent(location.origin);
-    const w=window.open(u,'sterling-bridge');
-    if(!w)setStatus('Pop-up blocked. Allow pop-ups, then try Pull from Sterling again.','bad');
-    else setStatus('Checking Sterling for the latest confirmed customer…');
-  };
-  $('load').onclick=loadPacket;
-  $('fill').onclick=fillAndSave;
-  $('order').onclick=createOrder;
-  $('all').onclick=()=>runAll(false);
-  $('copyCode').onclick=async()=>{
-    if(!state.orderId){setStatus('No Partner Order ID captured yet.');return;}
-    try{await navigator.clipboard.writeText(state.orderId);setStatus('Order ID copied.','good');}
-    catch{prompt('Copy this Order ID:',state.orderId);}
-  };
-
-  function refreshActiveStop(){
-    const next=currentStop();
-    const key=norm(next.street)+'|'+norm(next.city)+'|'+norm(next.postalcode);
-    if(!key)return;
-    if(key!==state.lastStopKey){
-      const had=!!state.lastStopKey;
-      state.lastStopKey=key;
-      state.stop=next;
-      $('stop').textContent=stopLabel(state.stop)||'Current Salesforce / ICL record';
-      if(had){
-        showCode('');
-        if(state.packet){
-          try{verify(state.packet,state.stop);}
-          catch{state.packet=null;renderPacket();}
-        }
-        setStatus('New house detected: '+(state.stop.street||'route stop')+'. Sterling Helper updated automatically.','good');
-      }
-    }
+  return best||parseUrl('');
+}
+function visibleCurrentAddress(){
+  var re=/(\d{1,6}\s+[A-Za-z0-9.'#\- ]+?),\s*([A-Za-z .'\-]+?),\s*(Virginia|VA)\s+(\d{5}(?:-\d{4})?)/i;
+  var candidates=[];
+  allDocs().forEach(function(d){
+    qsa('div,span,p,a,strong,h1,h2,h3,td',d).forEach(function(el){
+      if(!visible(el))return;
+      var t=txt(el);if(!t||t.length>220)return;
+      var m=t.match(re);if(!m)return;
+      var anc=el,context='';
+      for(var i=0;i<4&&anc;i++,anc=anc.parentElement)context+=' '+txt(anc);
+      if(/Previous\s+Opportunity|Next\s+Opportunity/i.test(context))return;
+      var r=el.getBoundingClientRect(),score=0;
+      if(r.top>=0&&r.top<90)score+=800;
+      else if(r.top<180)score+=500;
+      else if(r.top<300)score+=150;
+      if(/Prospective\s+Customer/i.test(context))score+=600;
+      if(/Edit\s+Address/i.test((el.getAttribute('title')||'')+' '+(el.getAttribute('aria-label')||'')+' '+context))score+=300;
+      if(t.trim()===m[0].trim())score+=120;
+      score+=Math.max(0,200-t.length);
+      candidates.push({street:clean(m[1]),city:clean(m[2]),state:'Virginia',postalcode:clean(m[4]),score:score,top:r.top,text:t});
+    });
+  });
+  candidates.sort(function(a,b){return b.score-a.score});
+  return candidates[0]||null;
+}
+function currentStop(){
+  var u=urlStop(),v=visibleCurrentAddress();
+  if(v){
+    var stale=u.street&&norm(u.street)!==norm(v.street);
+    u.street=v.street;u.city=v.city;u.state=v.state;u.postalcode=v.postalcode;
+    if(stale){u.gpRouteStopId='';u.latitude='';u.longitude=''}
   }
-  function autoPullFromSterling(){
-    try{
-      const old=document.getElementById('sterling-helper-bridge-frame');
-      if(old)old.remove();
-      const frame=document.createElement('iframe');
-      frame.id='sterling-helper-bridge-frame';
-      frame.style.display='none';
-      frame.src=APP_ORIGIN+'/bridge.html?frame=1&token='+encodeURIComponent(bridgeToken)+'&origin='+encodeURIComponent(location.origin)+'&t='+Date.now();
-      document.documentElement.appendChild(frame);
-      setTimeout(()=>frame.remove(),3000);
-    }catch{}
+  return u;
+}
+function label(st){return [st.street,st.city,st.state,st.postalcode].filter(Boolean).join(', ')}
+function houseKey(st){return norm(st.street)+'|'+norm(st.city)+'|'+norm(st.postalcode)}
+function makeSession(){sessionId='relay-'+token.replace(/[^A-Za-z0-9_-]/g,'')+'-'+Date.now().toString(36)}
+var stop=currentStop();makeSession();
+
+var host=document.createElement('div');
+host.id='sterling-v11-host';
+host.style.cssText='position:fixed;z-index:2147483647;right:12px;bottom:12px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;';
+document.documentElement.appendChild(host);
+var sh=host.attachShadow({mode:'open'});
+sh.innerHTML=
+'<style>'+
+'*{box-sizing:border-box}.panel{width:min(390px,calc(100vw - 24px));max-height:76vh;overflow:auto;background:#061425;color:#fff;border:1px solid #22527d;border-radius:18px;box-shadow:0 18px 60px #0009}.head{display:flex;justify-content:space-between;align-items:center;padding:12px 13px;background:#0b2743}.brand{font-weight:900}.brand b{color:#57baff}.ver{font-size:10px;color:#80a8ca}.x{border:0;border-radius:9px;background:#173a59;color:#fff;padding:8px 10px}.body{padding:13px}.stop{font-size:12px;line-height:1.4;color:#cde8ff;background:#0a2037;border-radius:11px;padding:9px 10px}.status{font-size:13px;line-height:1.42;color:#a2d4ff;margin:10px 0}.good{color:#76efb6}.bad{color:#ffb2b2}.customer{font-size:12px;color:#c6d9ea;line-height:1.45;margin:8px 0}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.one{grid-template-columns:1fr}button{border:0;border-radius:11px;padding:12px 10px;font:inherit;font-weight:850;min-height:45px;background:#155486;color:#fff;touch-action:manipulation}.primary{background:#0788e8}.success{background:#07814c}.quiet{background:#173149}.qrbox{display:none;text-align:center;background:#fff;border-radius:14px;padding:10px;margin-top:10px}.qrbox img{width:220px;max-width:90%;height:auto}.qrnote{color:#173149;font-size:12px;font-weight:800;margin-top:6px}.code{display:none;font-size:25px;font-weight:900;letter-spacing:1px;text-align:center;color:#79efb5;background:#071e34;border-radius:11px;padding:11px;margin:9px 0}.mini{font-size:10px;color:#738fa9;line-height:1.4;margin-top:9px}.compact{display:none;background:#061425;color:#fff;border:1px solid #22527d;border-radius:999px;padding:8px 10px;box-shadow:0 12px 38px #0007;align-items:center;gap:8px}.compact b{color:#57baff}.compact button{min-height:0;padding:8px 11px;border-radius:999px;background:#0b6fc9}@media(max-width:600px){.panel{width:calc(100vw - 16px);max-height:64vh}.row{grid-template-columns:1fr}:host{right:8px!important;bottom:calc(8px + env(safe-area-inset-bottom))!important}}</style>'+
+'<div id="compact" class="compact"><b>Sterling</b><span id="compactHouse">Ready</span><button id="expand">Open</button></div>'+
+'<div id="panel" class="panel">'+
+'<div class="head"><div><div class="brand"><b>Sterling</b> Route Helper</div><div class="ver">V11 • phone ↔ iPad relay</div></div><button class="x" id="min">Minimize</button></div>'+
+'<div class="body">'+
+'<div class="stop" id="stop"></div>'+
+'<div class="status" id="status">Checking the active Salesforce house…</div>'+
+'<div class="customer" id="customer">Waiting for a confirmed customer.</div>'+
+'<div class="code" id="code"></div>'+
+'<div class="row one"><button class="primary" id="phone">Use Customer Phone</button></div>'+
+'<div id="qrbox" class="qrbox"><img id="qr"><div class="qrnote">Scan this with the customer phone</div></div>'+
+'<div class="row"><button class="quiet" id="same">Use This Device</button><button class="quiet" id="auto">Auto: ON</button></div>'+
+'<div class="row one"><button class="success" id="run" disabled>Run Now</button></div>'+
+'<div class="mini">The helper watches the visible Salesforce address, not just the old URL. A customer packet must match this house before Auto mode can edit anything.</div>'+
+'</div></div>';
+
+function $(id){return sh.getElementById(id)}
+function status(msg,kind){var e=$('status');e.textContent=msg;e.className='status '+(kind||'')}
+function renderStop(){
+  stop=currentStop();
+  $('stop').textContent='Active house: '+(label(stop)||'address not detected');
+  $('compactHouse').textContent=stop.street||'Route ready';
+}
+function renderPacket(){
+  $('customer').textContent=packet?(packet.first+' '+packet.last+' • '+packet.phone+' • '+packet.email):'Waiting for a confirmed customer.';
+  $('run').disabled=!packet;
+}
+function showPanel(){host.style.display='block';$('panel').style.display='block';$('compact').style.display='none'}
+function minimize(){ $('panel').style.display='none';$('compact').style.display='flex'}
+$('min').onclick=minimize;$('expand').onclick=showPanel;
+
+function liveUrl(){
+  stop=currentStop();
+  var p=new URLSearchParams();
+  ['routeId','gpRouteStopId','street','city','postalcode','state','latitude','longitude'].forEach(function(k){if(stop[k])p.set(k,stop[k])});
+  p.set('relay',sessionId);
+  p.set('helperToken',token);
+  return APP+'/live.html?'+p.toString();
+}
+function refreshQr(){
+  var u=liveUrl();
+  $('qr').src=APP+'/api/qr?u='+encodeURIComponent(u);
+}
+$('phone').onclick=function(){
+  refreshQr();$('qrbox').style.display='block';
+  status('Phone relay is ready. Have the customer scan the QR. I will receive the confirmed contact here automatically.','good');
+};
+$('same').onclick=function(){
+  sterlingWindow=window.open(liveUrl(),'sterling-live');
+  if(!sterlingWindow)status('Safari blocked the new tab. Allow pop-ups and try again.','bad');
+  else{status('Sterling Live opened for '+(stop.street||'this house')+'.','good');minimize()}
+};
+$('auto').onclick=function(){autoMode=!autoMode;$('auto').textContent='Auto: '+(autoMode?'ON':'OFF');status(autoMode?'Auto mode is on. A matching packet will run automatically.':'Auto mode is off. Tap Run Now after the customer is confirmed.')};
+
+function parsePacket(p){
+  if(!p||typeof p!=='object')throw new Error('No packet');
+  if(!p.first||!p.last||!p.phone||!p.email)throw new Error('Incomplete');
+  var d=String(p.phone).replace(/\D/g,'');if(d.length===11&&d[0]==='1')d=d.slice(1);
+  if(d.length!==10)throw new Error('Phone is not ten digits');
+  p.phone=d;return p;
+}
+function verify(p){
+  stop=currentStop();
+  if(!stop.street)throw new Error('Safety stop: I cannot read the current Salesforce house.');
+  if(p.street&&norm(p.street)!==norm(stop.street))throw new Error('Safety stop: Sterling has '+p.street+', but Salesforce is showing '+stop.street+'.');
+  if(p.gpRouteStopId&&stop.gpRouteStopId&&p.gpRouteStopId!==stop.gpRouteStopId)throw new Error('Safety stop: route-stop ID changed.');
+  return true;
+}
+function accept(p){
+  try{
+    p=parsePacket(p);verify(p);packet=p;renderPacket();
+    status('Confirmed customer matched to '+stop.street+'. '+(autoMode?'Running automatically…':'Ready.'),'good');
+    if(autoMode)setTimeout(function(){runAll()},350);
+  }catch(e){
+    if(e.message==='Incomplete'||e.message==='No packet'){status('Waiting for Sterling to finish the four confirmed contact details.');return}
+    packet=null;renderPacket();status(e.message||String(e),'bad');showPanel();
   }
-  setInterval(autoPullFromSterling,5000);
-  autoPullFromSterling();
+}
 
-  const observer=new MutationObserver(()=>setTimeout(refreshActiveStop,120));
-  try{observer.observe(document.documentElement,{subtree:true,childList:true,characterData:true});}catch{}
-  setInterval(refreshActiveStop,900);
-  refreshActiveStop();
+window.addEventListener('message',function(e){
+  if(e.origin!==APP)return;
+  var m=e.data||{};
+  if(m.type==='STERLING_ROUTE_PACKET_V2'&&(!m.token||m.token===token))accept(m.packet);
+  if(m.type==='STERLING_PARTNER_ORDER_ID'&&m.code){orderId=m.code;showOrder(orderId)}
+});
 
-  window.__sterlingRouteHelper={open(){if(!host.isConnected)document.documentElement.appendChild(host);host.style.display='block';refreshActiveStop();},state};
+async function relayPoll(){
+  try{
+    var r=await fetch(APP+'/api/relay?session='+encodeURIComponent(sessionId)+'&t='+Date.now(),{cache:'no-store'});
+    if(!r.ok)return;
+    var j=await r.json();
+    if(j&&j.packet&&!packet)accept(j.packet);
+  }catch(e){}
+}
+function startPolling(){if(pollTimer)clearInterval(pollTimer);pollTimer=setInterval(relayPoll,1500);relayPoll()}
+startPolling();
+
+function docs(){return allDocs()}
+function findForm(){
+  var ds=docs();
+  for(var i=0;i<ds.length;i++){
+    var d=ds[i],ins=qsa('input',d).filter(visible);
+    var phone=ins.find(function(el){return /primary\s*(number|phone)|phone/i.test((el.placeholder||'')+' '+(el.getAttribute('aria-label')||''))});
+    var email=ins.find(function(el){return /email/i.test((el.placeholder||'')+' '+(el.getAttribute('aria-label')||''))});
+    if(phone&&email)return {d:d,phone:phone,email:email};
+  }
+  return null;
+}
+async function waitFor(fn,timeout){
+  var end=Date.now()+(timeout||8000);
+  while(Date.now()<end){try{var v=fn();if(v)return v}catch(e){}await sleep(150)}
+  return null;
+}
+function nativeSet(el,val){
+  var proto=el instanceof HTMLTextAreaElement?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;
+  var desc=Object.getOwnPropertyDescriptor(proto,'value');
+  if(desc&&desc.set)desc.set.call(el,val);else el.value=val;
+  ['input','change','blur'].forEach(function(t){el.dispatchEvent(new Event(t,{bubbles:true}))});
+}
+async function openEditor(){
+  var f=findForm();if(f)return f;
+  var els=[];
+  docs().forEach(function(d){els=els.concat(qsa('[title],[aria-label],button,a,span',d).filter(visible))});
+  var edit=els.find(function(el){return /edit address/i.test((el.getAttribute('title')||'')+' '+(el.getAttribute('aria-label')||''))});
+  if(!edit)edit=els.find(function(el){var c=(el.getAttribute('title')||'')+' '+(el.getAttribute('aria-label')||'')+' '+txt(el.parentElement);return /edit/i.test(c)&&/address|customer/i.test(c)});
+  if(!edit)throw new Error('I cannot find the pencil / Edit Address control in this view.');
+  edit.click();
+  f=await waitFor(findForm,8000);
+  if(!f)throw new Error('The customer edit form did not open.');
+  return f;
+}
+function names(f){
+  var ins=qsa('input',f.d).filter(function(el){return visible(el)&&el!==f.phone&&el!==f.email});
+  var first=ins.find(function(el){return /^prospective$/i.test(clean(el.value))});
+  var last=ins.find(function(el){return /^customer$/i.test(clean(el.value))});
+  if(!first||!last){
+    var labels=function(el){return (el.name||'')+' '+(el.id||'')+' '+(el.placeholder||'')+' '+(el.getAttribute('aria-label')||'')};
+    first=first||ins.find(function(el){return /first.*name/i.test(labels(el))});
+    last=last||ins.find(function(el){return /last.*name/i.test(labels(el))});
+  }
+  if(!first||!last)throw new Error('I could not identify the first and last name fields.');
+  return {first:first,last:last};
+}
+function saveButton(d){
+  return qsa('button,input[type=button],input[type=submit],a',d).filter(visible).find(function(el){return clean(el.value||txt(el)).toLowerCase()==='save'&&!el.disabled});
+}
+async function fillSave(){
+  verify(packet);
+  var expected=houseKey(currentStop());
+  status('Opening customer editor…');
+  var f=await openEditor();
+  if(houseKey(currentStop())!==expected)throw new Error('Safety stop: Salesforce changed houses while I was opening the editor.');
+  var nm=names(f);
+  if(stop.street){
+    var streetField=qsa('input',f.d).filter(visible).find(function(el){return norm(el.value)===norm(stop.street)});
+    if(!streetField)throw new Error('Safety stop: the edit form does not match the visible house.');
+  }
+  nativeSet(nm.first,packet.first);nativeSet(nm.last,packet.last);nativeSet(f.phone,packet.phone);nativeSet(f.email,packet.email);
+  await sleep(250);
+  var b=saveButton(f.d);if(!b)throw new Error('Save button is missing or disabled.');
+  b.click();await sleep(1100);
+  status('Customer saved. Opening Order…','good');
+}
+function orderBtn(){
+  var all=[];docs().forEach(function(d){all=all.concat(qsa('button,a,[role=button]',d).filter(visible))});
+  var arr=all.filter(function(el){return txt(el).toLowerCase()==='order'&&!el.closest('nav,header,[role=navigation],.slds-context-bar,.oneAppNavContainer')});
+  arr.sort(function(a,b){return b.getBoundingClientRect().top-a.getBoundingClientRect().top});
+  return arr[0]||null;
+}
+function readOrder(){
+  var re=/Partner\s+Order\s+Id\s*:\s*([A-Z0-9-]{5,})/i;
+  var ds=docs();for(var i=0;i<ds.length;i++){var m=txt(ds[i].body).match(re);if(m)return m[1]}
+  return '';
+}
+function showOrder(code){
+  $('code').style.display='block';$('code').textContent='Partner Order ID: '+code;showPanel();
+}
+async function createOrder(){
+  var b=orderBtn();if(!b)throw new Error('I cannot find the record-level Order button.');
+  b.click();var c=await waitFor(readOrder,13000);if(!c)throw new Error('Order opened, but I could not detect the Partner Order ID.');
+  orderId=c;showOrder(c);try{await navigator.clipboard.writeText(c)}catch(e){}
+  if(sterlingWindow&&!sterlingWindow.closed)try{sterlingWindow.postMessage({type:'STERLING_PARTNER_ORDER_ID',token:token,code:c},APP)}catch(e){}
+  try{await fetch(APP+'/api/relay?session='+encodeURIComponent(sessionId),{method:'DELETE'})}catch(e){}
+  status('Done. '+c+' was captured and copied.','good');
+}
+async function runAll(){
+  if(busy||!packet)return;busy=true;$('run').disabled=true;
+  try{verify(packet);await fillSave();await createOrder()}
+  catch(e){status(e.message||String(e),'bad');showPanel()}
+  finally{busy=false;$('run').disabled=!packet}
+}
+$('run').onclick=runAll;
+
+function houseRefresh(){
+  var n=currentStop(),k=houseKey(n);if(!k)return;
+  if(k!==lastHouseKey){
+    var had=!!lastHouseKey;lastHouseKey=k;stop=n;renderStop();
+    if(had){
+      packet=null;orderId='';renderPacket();$('code').style.display='none';
+      makeSession();startPolling();refreshQr();$('qrbox').style.display='none';
+      status('New house detected: '+stop.street+'. New Sterling session created.','good');
+    }else status('House detected. Use Customer Phone or Use This Device.','good');
+  }
+}
+var observer=new MutationObserver(function(){setTimeout(houseRefresh,120)});
+try{observer.observe(document.documentElement,{subtree:true,childList:true,characterData:true})}catch(e){}
+setInterval(houseRefresh,900);
+renderStop();renderPacket();houseRefresh();refreshQr();
+
+window.__sterlingV11={open:showPanel,state:function(){return {stop:currentStop(),packet:packet,sessionId:sessionId,autoMode:autoMode}}};
 })();
