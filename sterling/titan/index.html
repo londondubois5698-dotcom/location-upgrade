@@ -151,12 +151,20 @@ async function mic(){
 }
 function releaseMic(){try{if(captureProcessor)captureProcessor.onaudioprocess=null;captureProcessor&&captureProcessor.disconnect();captureSource&&captureSource.disconnect();micStream&&micStream.getTracks().forEach(t=>t.stop())}catch{}captureProcessor=captureSource=micStream=null}
 async function connect(){
-  if(connecting||connected||locked)return;connecting=true;state('CONNECTING');
-  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),8000);
+  if(connecting||connected||locked)return true;
+  connecting=true;state('BRAIN LINK');cap('TITAN','Connecting…');
+  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),12000);
   try{
     const r=await fetch('/api/titan-token?t='+Date.now(),{cache:'no-store',signal:controller.signal});clearTimeout(timer);const setup=await r.json();if(!r.ok||!setup.token)throw new Error(setup.error||'Titan voice setup failed');
-    socket=new WebSocket(setup.url,setup.protocols||['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token]);let tr='';
-    socket.onopen=()=>send({type:'session-update',config:{instructions:setup.instructions,voice:'cedar',outputModalities:['audio'],inputAudioFormat:{type:'audio/pcm',rate:24000},outputAudioFormat:{type:'audio/pcm',rate:24000},turnDetection:{type:'server-vad',threshold:.52,prefixPaddingMs:300,silenceDurationMs:650},tools:setup.tools||[]}});
+    const protocols=(setup.protocols&&setup.protocols.length)?setup.protocols:['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token];
+    socket=new WebSocket(setup.url,protocols);let tr='';
+    const ready=new Promise((resolve,reject)=>{
+      const wsTimer=setTimeout(()=>reject(new Error('Titan brain socket did not become ready.')),12000);
+      socket.addEventListener('open',()=>{clearTimeout(wsTimer);resolve(true)},{once:true});
+      socket.addEventListener('error',()=>{clearTimeout(wsTimer);reject(new Error('Titan brain socket connection failed.'))},{once:true});
+    });
+    socket.onopen=()=>send({type:'session-update',config:{instructions:setup.instructions,voice:'cedar',outputModalities:['audio'],inputAudioFormat:{type:'audio/pcm',rate:24000},outputAudioFormat:{type:'audio/pcm',rate:24000},turnDetection:{type:'server-vad',threshold:.52,prefixPaddingMs:300,silenceDurationMs:600},tools:setup.tools||[]}});
+    await ready;return true;
     socket.onmessage=e=>{
       let m;try{m=JSON.parse(e.data)}catch{return}const t=String(m.type||''),n=t.replace(/[._]/g,'-').toLowerCase();
       if(t==='session-created'||t==='session-started'||t==='session-updated'){
@@ -190,9 +198,10 @@ async function start(){
     const tokenPromise=connect();
     const micPromise=mic();
     await Promise.all([tokenPromise,micPromise]);
-    btn.textContent='Titan Live';state(ring?'RING MODE':'LISTENING');
+    btn.textContent='Titan Live';
+    if(!connected){state('SYNCING');cap('TITAN','Brain connected. Finishing voice sync…')}
   }catch(e){
-    active=false;state('MIC ERROR');cap('MIC',e.message||String(e));btn.textContent='Try Again';
+    active=false;stop();state('START ERROR');cap('STARTUP',e.message||String(e));btn.textContent='Try Again';
   }finally{btn.disabled=false}
 }
 function stop(){active=false;connected=false;connecting=false;try{socket&&socket.close()}catch{}socket=null;releaseMic();stopPlay();if(!locked)state('PAUSED')}
