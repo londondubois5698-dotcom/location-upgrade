@@ -1,41 +1,37 @@
+import { generateSpeech } from 'ai';
+import { gateway } from '@ai-sdk/gateway';
+
 export default async function handler(req,res){
-  if(req.method!=="POST") return res.status(405).json({error:"POST only"});
-  const token=process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN;
-  if(!token) return res.status(503).json({error:"Voice authentication unavailable"});
+  if(req.method!=='POST') return res.status(405).json({error:'POST only'});
   try{
-    const body=typeof req.body==="string"?JSON.parse(req.body):req.body||{};
-    const input=String(body.text||"").trim().slice(0,3500);
-    if(!input) return res.status(400).json({error:"text required"});
-    const payload={
-      model:"openai/tts-1-hd",
-      input,
-      voice:"onyx",
-      response_format:"mp3",
-      speed:1.03
-    };
-    let r=await fetch("https://ai-gateway.vercel.sh/v1/audio/speech",{
-      method:"POST",
-      headers:{"content-type":"application/json","authorization":"Bearer "+token},
-      body:JSON.stringify(payload)
-    });
-    if(!r.ok){
-      payload.model="openai/tts-1";
-      r=await fetch("https://ai-gateway.vercel.sh/v1/audio/speech",{
-        method:"POST",
-        headers:{"content-type":"application/json","authorization":"Bearer "+token},
-        body:JSON.stringify(payload)
+    const body=typeof req.body==='string'?JSON.parse(req.body):req.body||{};
+    const text=String(body.text||'').trim().slice(0,3500);
+    if(!text) return res.status(400).json({error:'text required'});
+
+    let result;
+    try{
+      result=await generateSpeech({
+        model:gateway.speechModel('google/gemini-3.8-flash-tts'),
+        text,
+        voice:'Kore',
+        instructions:'Natural American conversational voice. Warm, confident and relaxed. Sound like a polished human sales concierge, not an announcer or robot. Use natural phrasing, slight conversational variation, and clear volume. Keep a brisk but comfortable pace.',
+        outputFormat:'wav'
+      });
+    }catch{
+      result=await generateSpeech({
+        model:gateway.speechModel('openai/tts-1'),
+        text,
+        voice:'onyx',
+        outputFormat:'mp3'
       });
     }
-    if(!r.ok){
-      let msg="Voice request failed";
-      try{const j=await r.json();msg=j?.error?.message||msg;}catch{}
-      return res.status(r.status).json({error:msg});
-    }
-    const buf=Buffer.from(await r.arrayBuffer());
-    res.setHeader("Content-Type",r.headers.get("content-type")||"audio/mpeg");
-    res.setHeader("Cache-Control","private, no-store");
-    return res.status(200).send(buf);
+
+    const bytes=Buffer.from(result.audio.uint8Array);
+    const mediaType=result.audio.mediaType || (bytes.slice(0,4).toString()==='RIFF'?'audio/wav':'audio/mpeg');
+    res.setHeader('Content-Type',mediaType);
+    res.setHeader('Cache-Control','private, no-store');
+    return res.status(200).send(bytes);
   }catch(e){
-    return res.status(500).json({error:e?.message||"Voice request failed"});
+    return res.status(500).json({error:e?.message||'Voice request failed'});
   }
 }
