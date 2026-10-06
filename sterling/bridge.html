@@ -30,12 +30,13 @@
       help.textContent='Reopen Sterling from the active house and reconfirm the customer.';
       return;
     }
-    if(!window.opener){
+    const receiver=window.opener||((window.parent&&window.parent!==window)?window.parent:null);
+    if(!receiver){
       out.textContent='The helper connection was lost.';
       help.innerHTML='Return to the active ICL page and tap the <b>Sterling Helper</b> bookmark again.';
       return;
     }
-    window.opener.postMessage({type:'STERLING_ROUTE_PACKET_V2',token,packet},target);
+    receiver.postMessage({type:'STERLING_ROUTE_PACKET_V2',token,packet},target);
     out.textContent='Customer packet transferred to the active route.';
     help.textContent='You can close this tab.';
     setTimeout(()=>window.close(),700);
