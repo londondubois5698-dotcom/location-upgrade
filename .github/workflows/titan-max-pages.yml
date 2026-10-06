@@ -44,4 +44,5 @@ jobs:
             exit 0
           fi
           git commit -m "Publish Titan Max compiled GitHub site [skip ci]"
+          git pull --rebase origin main
           git push origin HEAD:main
