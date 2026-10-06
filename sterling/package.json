@@ -1,0 +1,9 @@
+{
+  "name": "sterling-ai",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "ai": "^7.0.0",
+    "@ai-sdk/gateway": "^2.0.0"
+  }
+}
