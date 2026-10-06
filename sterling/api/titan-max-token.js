@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { loadStoredGatewayKey } from './gateway-key.js';
 
-const MODEL='openai/gpt-realtime-2';
+const MODEL='openai/gpt-realtime-2.1';
 const TEAM_SCOPE='londondubois5698-dotcom';
 const OWNER_HASH='740f047570fece67841e2e293720d5cd12ffe24fe4b8b9269851a1b2a37084f2';
 
