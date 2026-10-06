@@ -79,16 +79,150 @@ function TitanFace({mode,status,isPlaying,isCapturing,level,faceRef}){
     className={cx('faceStage',mode,status==='error'&&'error',speaking&&'speaking',listening&&'listening')}
     style={{'--level':level}}
   >
-    <div className="halo h1"/><div className="halo h2"/><div className="halo h3"/>
-    <div className="neural n1"/><div className="neural n2"/><div className="neural n3"/><div className="neural n4"/>
-    <div className="head3d">
-      <div className="brow browL"/><div className="brow browR"/>
-      <div className="eyeShell eyeL"><div className="iris"><div className="pupil"/><div className="glint"/></div></div>
-      <div className="eyeShell eyeR"><div className="iris"><div className="pupil"/><div className="glint"/></div></div>
-      <div className="nose"/>
-      <div className="mouth"><span/><span/><span/><span/><span/></div>
-      <div className="cheek c1"/><div className="cheek c2"/>
-    </div>
+    <div className="hudGrid"/>
+    <div className="hudVignette"/>
+    <svg className="titanPortrait" viewBox="0 0 1200 1450" role="img" aria-label="Titan Max neural avatar">
+      <defs>
+        <linearGradient id="skin" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0" stopColor="#d7edf5"/>
+          <stop offset=".16" stopColor="#8ba7b8"/>
+          <stop offset=".38" stopColor="#263d4d"/>
+          <stop offset=".63" stopColor="#0a1721"/>
+          <stop offset=".83" stopColor="#1d3342"/>
+          <stop offset="1" stopColor="#02070b"/>
+        </linearGradient>
+        <linearGradient id="armor" x1="0" x2="1">
+          <stop offset="0" stopColor="#061018"/>
+          <stop offset=".47" stopColor="#264657"/>
+          <stop offset=".53" stopColor="#0c1a23"/>
+          <stop offset="1" stopColor="#020609"/>
+        </linearGradient>
+        <radialGradient id="eye" cx="50%" cy="45%" r="55%">
+          <stop offset="0" stopColor="#ffffff"/>
+          <stop offset=".18" stopColor="#aef3ff"/>
+          <stop offset=".48" stopColor="#2dc4ff"/>
+          <stop offset=".72" stopColor="#075b8f"/>
+          <stop offset="1" stopColor="#011018"/>
+        </radialGradient>
+        <radialGradient id="core" cx="50%" cy="50%" r="60%">
+          <stop offset="0" stopColor="#ffffff"/>
+          <stop offset=".18" stopColor="#9cf7ff"/>
+          <stop offset=".52" stopColor="#18aeea"/>
+          <stop offset="1" stopColor="#013252"/>
+        </radialGradient>
+        <filter id="softGlow" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="18" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="microTexture" x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency=".72" numOctaves="2" seed="11" result="n"/>
+          <feColorMatrix in="n" type="saturate" values="0" result="g"/>
+          <feBlend in="SourceGraphic" in2="g" mode="soft-light"/>
+        </filter>
+        <clipPath id="headClip">
+          <path d="M600 88 L458 118 L350 198 L294 326 L270 520 L292 790 L366 992 L480 1158 L548 1218 L652 1218 L720 1158 L834 992 L908 790 L930 520 L906 326 L850 198 L742 118 Z"/>
+        </clipPath>
+      </defs>
+
+      <g className="ambientGlow">
+        <ellipse cx="600" cy="650" rx="420" ry="560" fill="#0ba9ff" opacity=".08" filter="url(#softGlow)"/>
+        <ellipse cx="600" cy="630" rx="325" ry="480" fill="none" stroke="#7fe8ff" strokeWidth="2" opacity=".16"/>
+        <ellipse cx="600" cy="630" rx="395" ry="555" fill="none" stroke="#2dbdff" strokeWidth="1.5" opacity=".09"/>
+      </g>
+
+      <g className="shoulders">
+        <path d="M120 1450 C168 1262 292 1175 448 1136 L752 1136 C908 1175 1032 1262 1080 1450 Z" fill="url(#armor)"/>
+        <path d="M302 1450 L392 1210 L508 1150 L692 1150 L808 1210 L898 1450 Z" fill="#08131c" stroke="#365b6b" strokeWidth="4"/>
+        <path d="M458 1450 L505 1194 L695 1194 L742 1450 Z" fill="#02070b" stroke="#17394b" strokeWidth="3"/>
+        <path d="M503 1300 H697" stroke="#40cfff" strokeWidth="3" opacity=".28"/>
+      </g>
+
+      <g className="headShell" filter="url(#microTexture)">
+        <path d="M600 88 L458 118 L350 198 L294 326 L270 520 L292 790 L366 992 L480 1158 L548 1218 L652 1218 L720 1158 L834 992 L908 790 L930 520 L906 326 L850 198 L742 118 Z" fill="url(#skin)" stroke="#7aa8bc" strokeWidth="5"/>
+        <path d="M600 90 L600 1220" stroke="#9ad9ef" strokeWidth="2" opacity=".12"/>
+        <path d="M458 118 L530 270 L600 236 L670 270 L742 118" fill="#102733" opacity=".58"/>
+        <path d="M294 326 L410 392 L372 590 L286 656" fill="#061018" opacity=".72"/>
+        <path d="M906 326 L790 392 L828 590 L914 656" fill="#061018" opacity=".72"/>
+      </g>
+
+      <g clipPath="url(#headClip)">
+        <path className="templePlate left" d="M282 372 L438 294 L492 418 L418 558 L294 610 Z" fill="#07131c" stroke="#305667" strokeWidth="4"/>
+        <path className="templePlate right" d="M918 372 L762 294 L708 418 L782 558 L906 610 Z" fill="#07131c" stroke="#305667" strokeWidth="4"/>
+        <path d="M352 690 L482 642 L542 778 L476 930 L366 990 L314 810 Z" fill="#172c38" opacity=".72"/>
+        <path d="M848 690 L718 642 L658 778 L724 930 L834 990 L886 810 Z" fill="#172c38" opacity=".72"/>
+        <path d="M422 1000 L540 946 L660 946 L778 1000 L710 1140 L650 1190 L550 1190 L490 1140 Z" fill="#050d13" opacity=".75"/>
+      </g>
+
+      <g className="brows">
+        <path d="M356 455 C412 410 492 398 548 430 L528 466 C468 446 410 451 364 482 Z" fill="#050a0e" stroke="#4f7789" strokeWidth="5"/>
+        <path d="M844 455 C788 410 708 398 652 430 L672 466 C732 446 790 451 836 482 Z" fill="#050a0e" stroke="#4f7789" strokeWidth="5"/>
+      </g>
+
+      <g className="eyes">
+        <path d="M354 528 C410 480 490 476 548 526 C486 572 412 572 354 528 Z" fill="#02070a" stroke="#5aa1bd" strokeWidth="4"/>
+        <path d="M846 528 C790 480 710 476 652 526 C714 572 788 572 846 528 Z" fill="#02070a" stroke="#5aa1bd" strokeWidth="4"/>
+        <g className="eyeTracker">
+          <circle cx="452" cy="527" r="41" fill="url(#eye)" filter="url(#softGlow)"/>
+          <circle cx="748" cy="527" r="41" fill="url(#eye)" filter="url(#softGlow)"/>
+          <circle cx="452" cy="527" r="16" fill="#01060a"/>
+          <circle cx="748" cy="527" r="16" fill="#01060a"/>
+          <circle cx="440" cy="514" r="6" fill="#fff"/>
+          <circle cx="736" cy="514" r="6" fill="#fff"/>
+        </g>
+        <path className="lid" d="M354 528 C410 480 490 476 548 526" fill="none" stroke="#d4f6ff" strokeWidth="6" opacity=".34"/>
+        <path className="lid" d="M846 528 C790 480 710 476 652 526" fill="none" stroke="#d4f6ff" strokeWidth="6" opacity=".34"/>
+      </g>
+
+      <g className="noseBridge">
+        <path d="M600 474 L554 700 L600 782 L646 700 Z" fill="#09141c" stroke="#55788a" strokeWidth="4"/>
+        <path d="M600 520 L600 758" stroke="#a1e4f8" strokeWidth="3" opacity=".35"/>
+        <path d="M558 700 Q600 734 642 700" fill="none" stroke="#3f6273" strokeWidth="4"/>
+      </g>
+
+      <g className="cheekTech">
+        <path d="M330 662 L438 628 L486 676 L446 786 L344 824" fill="none" stroke="#55cef2" strokeWidth="3" opacity=".28"/>
+        <path d="M870 662 L762 628 L714 676 L754 786 L856 824" fill="none" stroke="#55cef2" strokeWidth="3" opacity=".28"/>
+        <circle cx="362" cy="738" r="7" fill="#76e8ff" filter="url(#softGlow)"/>
+        <circle cx="838" cy="738" r="7" fill="#76e8ff" filter="url(#softGlow)"/>
+      </g>
+
+      <g className="voiceAssembly">
+        <path d="M454 874 L526 828 H674 L746 874 L706 978 L650 1024 H550 L494 978 Z" fill="#02070b" stroke="#31596c" strokeWidth="4"/>
+        <path d="M498 900 H702" stroke="#5fdcff" strokeWidth="3" opacity=".35"/>
+        <rect x="500" y="908" width="200" height="58" rx="28" fill="#020b10" stroke="#2f6378" strokeWidth="4"/>
+        <g className="voiceBars">
+          <rect className="voiceBar v1" x="532" y="925" width="9" height="24" rx="4" fill="#80ecff"/>
+          <rect className="voiceBar v2" x="552" y="918" width="9" height="38" rx="4" fill="#80ecff"/>
+          <rect className="voiceBar v3" x="572" y="912" width="9" height="50" rx="4" fill="#80ecff"/>
+          <rect className="voiceBar v4" x="592" y="905" width="9" height="64" rx="4" fill="#b9f7ff"/>
+          <rect className="voiceBar v5" x="612" y="912" width="9" height="50" rx="4" fill="#80ecff"/>
+          <rect className="voiceBar v6" x="632" y="918" width="9" height="38" rx="4" fill="#80ecff"/>
+          <rect className="voiceBar v7" x="652" y="925" width="9" height="24" rx="4" fill="#80ecff"/>
+        </g>
+      </g>
+
+      <g className="jawArmor">
+        <path d="M366 992 L480 1158 L548 1218 L510 1098 L424 972 Z" fill="#07131b" stroke="#35596b" strokeWidth="4"/>
+        <path d="M834 992 L720 1158 L652 1218 L690 1098 L776 972 Z" fill="#07131b" stroke="#35596b" strokeWidth="4"/>
+        <path d="M548 1218 H652" stroke="#6de1ff" strokeWidth="4" opacity=".26"/>
+      </g>
+
+      <g className="neuralCircuit" opacity=".48">
+        <path d="M270 560 L198 560 L160 520 M930 560 L1002 560 L1040 520" fill="none" stroke="#3fcfff" strokeWidth="3"/>
+        <path d="M290 760 L184 760 L134 810 M910 760 L1016 760 L1066 810" fill="none" stroke="#3fcfff" strokeWidth="3"/>
+        <circle cx="160" cy="520" r="8" fill="url(#core)"/>
+        <circle cx="1040" cy="520" r="8" fill="url(#core)"/>
+        <circle cx="134" cy="810" r="8" fill="url(#core)"/>
+        <circle cx="1066" cy="810" r="8" fill="url(#core)"/>
+      </g>
+
+      <g className="hudArcs" fill="none" stroke="#5bdcff" strokeWidth="2" opacity=".26">
+        <path d="M150 330 A520 520 0 0 1 1050 330"/>
+        <path d="M108 1040 A600 600 0 0 0 1092 1040"/>
+      </g>
+    </svg>
+
+    <div className="avatarTag"><span>NEURAL AVATAR</span><b>ULTRA VECTOR</b></div>
     <div className="stateOrb"/>
   </div>;
 }
@@ -172,7 +306,7 @@ function App(){
   });
 
   async function apiFetch(path,opts={}){
-    if(!ownerKey)return {ok:false,error:'Owner key required'};
+    if(!ownerKey)return {ok:false,error:'Titan passcode required'};
     try{
       const r=await fetch(API+path,{
         ...opts,
@@ -234,7 +368,7 @@ function App(){
   }
 
   async function startTitan(){
-    if(!ownerKey){setSetupOpen(true);setNotice('Enter your Titan Owner Key once on this iPhone.');return}
+    if(!ownerKey){setSetupOpen(true);setNotice('Enter your Titan passcode once on this iPhone.');return}
     if(starting)return;
     setStarting(true);setError('');setNotice('Unlocking microphone…');setFaceMode(ring?'ring':'friendly');
     try{
@@ -287,8 +421,8 @@ function App(){
   }
 
   function saveOwner(){
-    const v=ownerDraft.trim();if(!v){setError('Enter the Titan Owner Key.');return}
-    localStorage.setItem(OWNER_STORAGE,v);setOwnerKey(v);setOwnerDraft('');setSetupOpen(false);setError('');setNotice('Owner key saved on this iPhone. Titan is ready.');
+    const v=ownerDraft.trim();if(!v){setError('Enter the Titan passcode.');return}
+    localStorage.setItem(OWNER_STORAGE,v);setOwnerKey(v);setOwnerDraft('');setSetupOpen(false);setError('');setNotice('Titan passcode saved on this iPhone. Titan is ready.');
   }
 
   const n=estimate(discovery.lines),b=money(discovery.bill),diff=n&&b?Math.round(b-n):0;
@@ -355,9 +489,9 @@ function App(){
 
     {setupOpen&&<div className="modalShade"><div className="modal">
       <div className="modalLogo">TITAN <b>MAX</b></div>
-      <h2>Pair this iPhone once</h2>
-      <p>Enter your private Titan Owner Key. Your AI Gateway key stays server-side and is not placed in GitHub.</p>
-      <input type="password" value={ownerDraft} onChange={e=>setOwnerDraft(e.target.value)} placeholder="Titan Owner Key" autoCapitalize="none" autoCorrect="off"/>
+      <h2>Pair Titan once</h2>
+      <p>This is Titan's private app passcode — not your AI API key. Titan already uses the same server-side Vercel AI Gateway key as Sterling.</p>
+      <input type="password" value={ownerDraft} onChange={e=>setOwnerDraft(e.target.value)} placeholder="Titan passcode (not API key)" autoCapitalize="none" autoCorrect="off"/>
       <button onClick={saveOwner}>Save Owner Key</button>
       <button className="ghost" onClick={()=>setSetupOpen(false)}>Cancel</button>
     </div></div>}
