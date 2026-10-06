@@ -17,7 +17,7 @@ function ownerOk(v){
 function cors(req,res){
   const o=String(req.headers.origin||'');
   if(o==='https://londondubois5698-dotcom.github.io'||o.endsWith('.vercel.app')||o.startsWith('http://localhost:'))res.setHeader('Access-Control-Allow-Origin',o);
-  res.setHeader('Vary','Origin');res.setHeader('Access-Control-Allow-Methods','GET,OPTIONS');res.setHeader('Access-Control-Allow-Headers','Content-Type');res.setHeader('Cache-Control','no-store,max-age=0');
+  res.setHeader('Vary','Origin');res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');res.setHeader('Access-Control-Allow-Headers','Content-Type');res.setHeader('Cache-Control','no-store,max-age=0');
 }
 const tools={
   saveDiscovery:tool({
@@ -43,7 +43,7 @@ const tools={
 
 export default async function handler(req,res){
   cors(req,res);if(req.method==='OPTIONS')return res.status(204).end();
-  if(req.method!=='GET')return res.status(405).json({error:'GET only'});
+  if(req.method!=='GET'&&req.method!=='POST')return res.status(405).json({error:'GET or POST only'});
   if(!ownerOk(req.query?.device))return res.status(401).json({error:'Titan owner key required'});
   try{
     const apiKey=await loadStoredGatewayKey();
