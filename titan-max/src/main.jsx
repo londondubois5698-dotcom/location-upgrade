@@ -313,6 +313,21 @@ function App(){
     }
   }
 
+  async function preflightTitan(){
+    if(!ownerKey)return {ok:false,error:'Titan passcode required'};
+    try{
+      const r=await fetch(API+'/api/titan-max-health?t='+Date.now(),{
+        cache:'no-store',
+        headers:{'X-Titan-Owner-Key':ownerKey}
+      });
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok)return {ok:false,status:r.status,error:j.error||`Titan health check failed (${r.status})`};
+      return j;
+    }catch(e){
+      return {ok:false,error:e?.message||'Titan backend is unreachable'};
+    }
+  }
+
   useEffect(()=>{
     fetch(API+'/api/gateway-key?t='+Date.now(),{cache:'no-store'})
       .then(r=>r.json()).then(j=>setConfigured(!!j.configured)).catch(()=>setConfigured(false));
@@ -355,25 +370,46 @@ function App(){
   async function startTitan(){
     if(!ownerKey){setSetupOpen(true);setNotice('Enter your Titan passcode once on this iPhone.');return}
     if(starting)return;
-    setStarting(true);setError('');setNotice('Unlocking microphone…');setFaceMode(ring?'ring':'friendly');
+    setStarting(true);setError('');setNotice('Running executive systems check…');setFaceMode(ring?'ring':'thinking');
     try{
-      const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+      const health=await Promise.race([
+        preflightTitan(),
+        new Promise(resolve=>setTimeout(()=>resolve({ok:false,error:'Titan backend health check timed out'}),4500))
+      ]);
+      if(!health?.ok){
+        if(health?.status===401){
+          localStorage.removeItem(OWNER_STORAGE);setOwnerKey('');setSetupOpen(true);
+        }
+        throw new Error(health?.error||'Titan backend is not ready');
+      }
+
+      setNotice('Systems green. Unlocking microphone…');
+      const stream=await navigator.mediaDevices.getUserMedia({audio:{
+        echoCancellation:true,
+        noiseSuppression:true,
+        autoGainControl:true,
+        channelCount:1
+      }});
       streamRef.current=stream;startAnalyzer(stream);
-      setNotice('Connecting Titan brain…');
+
+      setNotice('Opening realtime executive link…');
       let timeoutId;
-      const timeout=new Promise((_,reject)=>{timeoutId=setTimeout(()=>reject(new Error('Titan startup exceeded 10 seconds. Connection was reset instead of hanging.')),10000)});
+      const timeout=new Promise((_,reject)=>{timeoutId=setTimeout(()=>reject(new Error('Realtime link did not open within 10 seconds. Titan reset it cleanly.')),10000)});
       await Promise.race([realtime.connect({stream,capture:true}),timeout]);
       clearTimeout(timeoutId);
-      setNotice('Titan is live and listening.');
+
+      setNotice('Titan Executive AI is live and listening.');
       setFaceMode(ring?'ring':'friendly');
       if(ring){
-        realtime.sendTextMessage("Ring Mode is active. Speak first now with a short playful tech/doorbell opener, identify yourself as Titan, London's AI partner, say London is right here, ask for 20 seconds, then listen.");
+        realtime.sendTextMessage("Ring Mode is active. Speak first now with a short polished technology opener, identify yourself as Titan, London's AI partner, say London is right here, ask for about 20 seconds, then listen.");
       }else{
-        realtime.sendTextMessage('Say exactly: Titan, AI assistant ready. Then stop and listen immediately.');
+        realtime.sendTextMessage('Say exactly: Titan, executive AI ready. Then stop and listen immediately.');
       }
     }catch(e){
       realtime.disconnect();stopLocalMedia();
-      setError(e.message||String(e));setNotice('Titan did not hang. Startup was stopped cleanly; tap Start Titan to retry.');setFaceMode('serious');
+      setError(e.message||String(e));
+      setNotice('Startup stopped cleanly. Fix the message above, then tap Start Titan again.');
+      setFaceMode('serious');
     }finally{setStarting(false)}
   }
 
