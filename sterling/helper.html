@@ -1,55 +1,32 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#06111f">
-<title>Install Sterling Helper</title>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Install Sterling ONE V12</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#06111f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{max-width:720px;margin:auto;padding:22px 18px calc(30px + env(safe-area-inset-bottom))}.hero{padding:10px 0 8px}h1{font-size:34px;color:#58baff;margin:.2em 0}.sub{color:#b2cee8;line-height:1.5}.card{background:#0a1c30;border:1px solid #1b456c;border-radius:20px;padding:19px;margin:14px 0}.step{display:flex;gap:12px;margin:15px 0;align-items:flex-start}.num{width:34px;height:34px;flex:0 0 34px;border-radius:50%;display:grid;place-items:center;background:#0b69bd;font-weight:900}.step p{margin:4px 0;line-height:1.45}.btn{display:block;width:100%;border:0;border-radius:14px;padding:16px;background:#0782db;color:#fff;font:inherit;font-size:17px;font-weight:850;text-align:center;text-decoration:none}.ok{color:#79efb2;font-weight:800}.muted{font-size:13px;color:#9eb8d1;line-height:1.5}.tiny{font-size:11px;color:#6f8ba6}.code{width:100%;height:78px;background:#04101e;color:#bfe2ff;border:1px solid #2c587d;border-radius:12px;padding:10px;font-family:ui-monospace,monospace;font-size:10px}.desktop{display:none}@media(min-width:800px){.desktop{display:block}}
-</style>
-</head>
+*{box-sizing:border-box}body{margin:0;background:#06111f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{max-width:700px;margin:auto;padding:28px 18px}.hero{font-size:42px;font-weight:900}.hero b{color:#58baff}.sub{color:#acc8df;line-height:1.5}.card{background:#0a1d31;border:1px solid #1c486f;border-radius:20px;padding:18px;margin:16px 0}.step{font-size:18px;font-weight:800;margin:16px 0 7px}.code{width:100%;min-height:130px;background:#04101d;color:#bde2ff;border:1px solid #28557d;border-radius:14px;padding:12px;font-size:12px;line-height:1.45}.btn{width:100%;border:0;border-radius:14px;padding:16px;background:#0786e2;color:#fff;font:inherit;font-weight:900}.ok{color:#77efb3}.warn{color:#ffd087}.mini{font-size:12px;color:#839fb8;line-height:1.5}
+</style></head>
 <body><main class="wrap">
-<div class="hero">
-  <h1>Sterling Helper V11</h1>
-  <p class="sub">One small bookmark. After this setup, it always loads the newest helper automatically. V11 can pair a customer phone to your Salesforce iPad with a private QR relay.</p>
-</div>
-
+<div class="hero"><b>Sterling</b> ONE V12</div>
+<p class="sub">One bookmark. One Salesforce page. One live voice connection. No QR, no customer phone, no second Sterling tab.</p>
 <div class="card">
-  <h2>iPhone / iPad — 3 steps</h2>
-  <div class="step"><div class="num">1</div><p>Tap <b>Copy Sterling Bookmark</b>.</p></div>
-  <button class="btn" id="copy">Copy Sterling Bookmark</button>
-  <p class="ok" id="copied"></p>
-  <div class="step"><div class="num">2</div><p>Tap Safari <b>Share → Add Bookmark</b>. Name it <b>Sterling Helper</b>.</p></div>
-  <div class="step"><div class="num">3</div><p>Open <b>Bookmarks → Edit → Sterling Helper</b>. Delete the normal web address and paste the code you copied into the URL field. Tap <b>Done</b>.</p></div>
-  <p class="muted">From then on: open the active ICL house, tap the <b>Sterling Helper</b> bookmark, then tap <b>Use Customer Phone</b>. Let the customer scan the QR. Sterling sends the confirmed contact back to your iPad automatically.</p>
+<div class="step">1. Delete the old Sterling Helper bookmark</div>
+<p class="mini">The old bookmark checks for the V11 helper before loading new code, so keeping it can reopen the broken version.</p>
+<div class="step">2. Bookmark this page in Safari</div>
+<p class="mini">Tap Share → Add Bookmark. Name it <b>Sterling ONE</b>.</p>
+<div class="step">3. Edit that bookmark and replace its URL with this code</div>
+<textarea id="code" class="code" readonly></textarea>
+<button class="btn" id="copy">Copy Sterling ONE bookmark code</button>
+<p id="copied" class="ok"></p>
+<div class="step">4. Open Salesforce / ICL and tap the bookmark once</div>
+<p class="mini">Sterling appears as a small pill on the same page. Tap Start once for microphone permission. After that the realtime connection stays inside the Salesforce page while you move house to house.</p>
 </div>
-
-<div class="card desktop">
-  <h2>Desktop</h2>
-  <p>Drag this button to the bookmarks bar:</p>
-  <a class="btn" id="drag" href="#">Sterling Helper</a>
-</div>
-
 <div class="card">
-  <h2>What changed</h2>
-  <p class="muted">The bookmark is only a tiny loader. The real helper updates itself. V11 reads the current address actually visible at the top of the Salesforce record and ignores Previous Opportunity and Next Opportunity addresses. If Salesforce changes houses without changing the old URL, the visible current-house address wins.</p>
-  <p class="muted">When a confirmed customer packet comes back and matches the active house, Auto mode can fill the four contact fields, save, open Order, and capture the Partner Order ID.</p>
+<div class="step">What V12 changed</div>
+<p class="mini">V12 no longer trusts the route URL for the house. It reads the current visible Salesforce record, including same-origin iframe content. It also uses the iframe's own DOM constructors and events, which fixes the cross-frame bug that stopped V11 from seeing the address and reliably editing fields.</p>
 </div>
-
-<details class="card">
-  <summary>Manual code</summary>
-  <textarea id="code" class="code" readonly></textarea>
-</details>
-<p class="tiny">Safari does not allow a website to create or edit your bookmark for you. That one manual bookmark edit is an Apple browser restriction. After it is saved, V10 updates itself from the web.</p>
+<div class="card"><a href="/diagnostics.html?v=12" style="color:#8bd1ff;font-weight:800">Open Sterling Systems Check</a></div>
 </main>
 <script>
-const code="javascript:(()=>{if(window.__sterlingRouteHelper?.open){window.__sterlingRouteHelper.open();return}const s=document.createElement('script');s.src='https://sterling-olive.vercel.app/helper.js?v=11&t='+Date.now();s.onerror=()=>alert('Sterling Helper could not load. Check your connection and try again.');document.documentElement.appendChild(s)})()";
+const code="javascript:(()=>{if(window.__sterlingONE&&window.__sterlingONE.version==='12.0'){window.__sterlingONE.open();return}const x=document.getElementById('sterling-v12-bookmark-loader');if(x)x.remove();const s=document.createElement('script');s.id='sterling-v12-bookmark-loader';s.src='https://sterling-olive.vercel.app/helper.js?v=12&t='+Date.now();s.onerror=()=>alert('Sterling could not load. Refresh Salesforce and tap the bookmark again.');document.documentElement.appendChild(s)})()";
 document.getElementById('code').value=code;
-document.getElementById('drag').href=code;
-document.getElementById('copy').onclick=async()=>{
-  try{await navigator.clipboard.writeText(code);document.getElementById('copied').textContent='Copied. Now do Step 2.'}
-  catch{document.getElementById('code').select();document.getElementById('copied').textContent='Copy the code shown below, then do Step 2.'}
-};
-</script>
-</body></html>
+document.getElementById('copy').onclick=async()=>{try{await navigator.clipboard.writeText(code);document.getElementById('copied').textContent='Copied. Paste it over the bookmark URL.'}catch(e){document.getElementById('code').select();document.execCommand('copy');document.getElementById('copied').textContent='Copied. Paste it over the bookmark URL.'}};
+</script></body></html>
