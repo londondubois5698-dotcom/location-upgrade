@@ -61,7 +61,7 @@ export default async function handler(req,res){
     const existing=await readConfig();
     if(existing?.apiKey)return res.status(200).json({ok:true,alreadyConfigured:true,source:'private-store',verifiedAt:existing.verifiedAt||null});
     const apiKey=String(body.apiKey||'').trim();
-    if(apiKey.length<20||!/^(vck_|vca_)/.test(apiKey))return res.status(400).json({ok:false,error:'That does not look like a Vercel AI Gateway API key.'});
+    if(apiKey.length<20||/\s/.test(apiKey))return res.status(400).json({ok:false,error:'That does not look like a valid Vercel AI Gateway API key.'});
     await verifyGatewayKey(apiKey);
     const saved={
       apiKey,
