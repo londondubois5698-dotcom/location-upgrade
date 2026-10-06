@@ -119,16 +119,19 @@ function App(){
     const learned=lessons.length?'\nPERSISTENT FIELD LESSONS FROM PRIOR SESSIONS:\n'+lessons.slice(0,25).map((x,i)=>`${i+1}. ${x}`).join('\n'):'';
     return BASE_BRAIN+learned;
   },[lessons]);
+  // Realtime session config must stay referentially stable. Recreating it on every
+  // face animation render can tear down the live session on iPhone.
+  const sessionConfig=useMemo(()=>({
+    instructions,
+    inputAudioTranscription:{},
+    voice:'ash',
+    turnDetection:{type:'server-vad'}
+  }),[instructions]);
 
   const realtime=experimental_useRealtime({
     model,
     api:{token:`${API}/api/titan-max-token?device=${encodeURIComponent(ownerKey||'missing')}`},
-    sessionConfig:{
-      instructions,
-      inputAudioTranscription:{},
-      voice:'ash',
-      turnDetection:{type:'server-vad'}
-    },
+    sessionConfig,
     startupTimeoutMs:9000,
     closeTimeoutMs:5000,
     maxEvents:250,
@@ -212,8 +215,14 @@ function App(){
     try{
       const AC=window.AudioContext||window.webkitAudioContext,ctx=new AC();
       const src=ctx.createMediaStreamSource(stream),an=ctx.createAnalyser();an.fftSize=256;src.connect(an);
-      analyzerRef.current={ctx,an,src};const arr=new Uint8Array(an.frequencyBinCount);
-      const tick=()=>{an.getByteFrequencyData(arr);let sum=0;for(const v of arr)sum+=v;const x=Math.min(1,sum/arr.length/90);setLevel(.06+x*.94);rafRef.current=requestAnimationFrame(tick)};tick();
+      analyzerRef.current={ctx,an,src};const arr=new Uint8Array(an.frequencyBinCount);let last=0;
+      const tick=(ts=0)=>{
+        an.getByteFrequencyData(arr);let sum=0;for(const v of arr)sum+=v;
+        const x=Math.min(1,sum/arr.length/90),value=.06+x*.94;
+        if(faceRef.current)faceRef.current.style.setProperty('--level',String(value));
+        if(ts-last>120){last=ts;setLevel(value)}
+        rafRef.current=requestAnimationFrame(tick)
+      };tick();
     }catch{}
   }
   function stopLocalMedia(){
@@ -232,8 +241,10 @@ function App(){
       const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
       streamRef.current=stream;startAnalyzer(stream);
       setNotice('Connecting Titan brain…');
-      const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('Titan startup exceeded 10 seconds. Connection was reset instead of hanging.')),10000));
+      let timeoutId;
+      const timeout=new Promise((_,reject)=>{timeoutId=setTimeout(()=>reject(new Error('Titan startup exceeded 10 seconds. Connection was reset instead of hanging.')),10000)});
       await Promise.race([realtime.connect({stream,capture:true}),timeout]);
+      clearTimeout(timeoutId);
       setNotice('Titan is live and listening.');
       setFaceMode(ring?'ring':'friendly');
       if(ring){
