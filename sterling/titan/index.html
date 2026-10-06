@@ -167,9 +167,10 @@ async function connect(){
     await ready;return true;
     socket.onmessage=e=>{
       let m;try{m=JSON.parse(e.data)}catch{return}const t=String(m.type||''),n=t.replace(/[._]/g,'-').toLowerCase();
-      if(t==='session-created'||t==='session-started'||t==='session-updated'){
+      if(t==='session-created'||t==='session-started'||t==='session-updated'||n==='session-created'||n==='session-started'||n==='session-updated'){
         connected=true;connecting=false;reconnects=0;$('start').textContent='Titan Live';state(ring?'RING MODE':'LISTENING');cap('TITAN',ring?'Ring Mode armed. I will wait for them to speak.':"I'm live. Let's make somebody smile.");
         if(!ring){send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Start naturally as Titan, London's AI partner. Open with one short light joke, then listen."}});send({type:'response-create',options:{modalities:['audio']}})}
+        else{send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"RING MODE IS LIVE. Speak first now. You are talking through London's phone to a homeowner on their doorbell camera. Be funny, warm and instantly likable, like two familiar pieces of tech joking with each other. One quick doorbell/AI joke, then: I'm Titan, London's AI partner. London's right here with me. We just need 20 seconds to tell you why we're at your door. Keep it under 25 words, then stop and listen."}});send({type:'response-create',options:{modalities:['audio']}})}
       }else if(t==='speech-started'){stopPlay();send({type:'response-cancel'});state('LISTENING')}
       else if(t==='speech-stopped')state('THINKING');
       else if(t==='audio-delta'||t==='audio-chunk'){play(m.delta||'');state('TITAN SPEAKING')}
@@ -207,7 +208,22 @@ async function start(){
 function stop(){active=false;connected=false;connecting=false;try{socket&&socket.close()}catch{}socket=null;releaseMic();stopPlay();if(!locked)state('PAUSED')}
 $('start').onclick=start;
 $('mute').onclick=()=>{muted=!muted;render();state(muted?'MUTED':'LISTENING')};
-$('ring').onclick=()=>{ring=!ring;render();if(connected)send({type:'context-append',content:ring?'Ring Mode is active. Stay quiet until the person at the doorbell speaks, then use one brief playful line and move to why London is there.':'Ring Mode is off. Return to normal conversation.',delegationId:null});state(ring?'RING MODE':'LISTENING')};
+$('ring').onclick=async()=>{
+ ring=!ring;render();
+ if(ring){
+   state('RING STARTING');cap('RING MODE','Titan is getting ready to talk to the doorbell…');
+   if(!active&&!connecting&&!connected)await start();
+   if(connected){
+     send({type:'context-append',content:"Ring Mode is active. This is a doorbell-camera conversation. Be charming, playful and concise. Speak first now; do not wait silently for the homeowner.",delegationId:null});
+     send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Go live on the Ring camera now. Open with a quick BFF-style tech joke, introduce yourself as Titan, London's AI partner, say London's right here, and ask for 20 seconds. Then listen."}});
+     send({type:'response-create',options:{modalities:['audio']}});
+     state('RING LIVE');
+   }
+ }else{
+   if(connected)send({type:'context-append',content:'Ring Mode is off. Return to normal conversation.',delegationId:null});
+   state(connected?'LISTENING':'READY');
+ }
+};
 $('remember').onclick=()=>{saveMem();stop();cap('MEMORY','Session saved on this iPhone. Tap New Person when you move on.');$('tag').textContent='REMEMBERED'};
 $('newPerson').onclick=reset;
 document.querySelectorAll('[data-fallback]').forEach(b=>b.onclick=()=>speakLocal(b.textContent));
