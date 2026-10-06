@@ -5,17 +5,14 @@
 <script>
 (function(){
   const out=document.getElementById('s');
-  function send(){
-    try{
-      const raw=localStorage.getItem('sterling.pending.v2')||localStorage.getItem('sterling.pending.v1');
-      if(!raw){out.textContent='No confirmed Sterling customer packet is saved on this device.';return;}
-      const packet=JSON.parse(raw);
-      if(!window.opener){out.textContent='Open Sterling Helper from the active Salesforce/ICL page so this window has a return path.';return;}
-      window.opener.postMessage({type:'STERLING_ROUTE_PACKET_V2',packet},'*');
-      out.textContent='Packet transferred. You can close this window.';
-      setTimeout(()=>window.close(),450);
-    }catch(e){out.textContent='Sterling packet could not be transferred.';}
-  }
-  send();
+  try{
+    const raw=localStorage.getItem('sterling.pending.v2')||localStorage.getItem('sterling.pending.v1');
+    if(!raw){out.textContent='No confirmed Sterling customer packet is saved on this device.';return;}
+    const packet=JSON.parse(raw);
+    if(!window.opener){out.textContent='Open Sterling Helper from the active Salesforce/ICL page so this window has a return path.';return;}
+    window.opener.postMessage({type:'STERLING_ROUTE_PACKET_V2',packet},'*');
+    out.textContent='Packet transferred. You can close this window.';
+    setTimeout(()=>window.close(),450);
+  }catch(e){out.textContent='Sterling packet could not be transferred.';}
 })();
 </script></body></html>
