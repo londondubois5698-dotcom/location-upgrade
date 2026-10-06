@@ -150,14 +150,15 @@ async function mic(){
 function releaseMic(){try{if(captureProcessor)captureProcessor.onaudioprocess=null;captureProcessor&&captureProcessor.disconnect();captureSource&&captureSource.disconnect();micStream&&micStream.getTracks().forEach(t=>t.stop())}catch{}captureProcessor=captureSource=micStream=null}
 async function connect(){
   if(connecting||connected||locked)return;connecting=true;state('CONNECTING');
+  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),8000);
   try{
-    const r=await fetch('/api/titan-token?t='+Date.now(),{cache:'no-store'}),setup=await r.json();if(!r.ok||!setup.token)throw new Error(setup.error||'Titan voice setup failed');
+    const r=await fetch('/api/titan-token?t='+Date.now(),{cache:'no-store',signal:controller.signal});clearTimeout(timer);const setup=await r.json();if(!r.ok||!setup.token)throw new Error(setup.error||'Titan voice setup failed');
     socket=new WebSocket(setup.url,setup.protocols||['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token]);let tr='';
     socket.onopen=()=>send({type:'session-update',config:{instructions:setup.instructions,voice:'cedar',outputModalities:['audio'],inputAudioFormat:{type:'audio/pcm',rate:24000},outputAudioFormat:{type:'audio/pcm',rate:24000},turnDetection:{type:'server-vad',threshold:.52,prefixPaddingMs:300,silenceDurationMs:650},tools:setup.tools||[]}});
     socket.onmessage=e=>{
       let m;try{m=JSON.parse(e.data)}catch{return}const t=String(m.type||''),n=t.replace(/[._]/g,'-').toLowerCase();
       if(t==='session-created'||t==='session-started'||t==='session-updated'){
-        connected=true;connecting=false;reconnects=0;state(ring?'RING MODE':'LISTENING');cap('TITAN',ring?'Ring Mode armed. I will wait for them to speak.':"I'm live. Let's make somebody smile.");
+        connected=true;connecting=false;reconnects=0;$('start').textContent='Titan Live';state(ring?'RING MODE':'LISTENING');cap('TITAN',ring?'Ring Mode armed. I will wait for them to speak.':"I'm live. Let's make somebody smile.");
         if(!ring){send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Start naturally as Titan, London's AI partner. Open with one short light joke, then listen."}});send({type:'response-create',options:{modalities:['audio']}})}
       }else if(t==='speech-started'){stopPlay();send({type:'response-cancel'});state('LISTENING')}
       else if(t==='speech-stopped')state('THINKING');
@@ -174,9 +175,24 @@ async function connect(){
       else if(!locked){active=false;state('PAUSED');cap('TITAN','Connection paused. Tap Start Titan to try again.')}
     };
     socket.onerror=()=>state('CONNECTION ERROR');
-  }catch(e){connecting=false;state('ERROR');cap('TITAN',e.message||String(e))}
+  }catch(e){clearTimeout(timer);connecting=false;state('ERROR');cap('TITAN',e.name==='AbortError'?'Titan took too long to connect. Tap Try Again.':(e.message||String(e)));throw e}
 }
-async function start(){if(locked)return;try{await mic();active=true;muted=false;render();await connect()}catch(e){state('MIC ERROR');cap('MIC',e.message||String(e))}}
+async function start(){
+  if(locked)return;
+  const btn=$('start');
+  if(active||connecting||connected){cap('TITAN',connected?'Already live and ready to talk.':'Titan is starting…');return}
+  btn.disabled=true;btn.textContent='Starting…';state('STARTING');cap('TITAN','Getting the live brain ready…');
+  try{
+    await ensurePlay();
+    active=true;muted=false;render();
+    const tokenPromise=connect();
+    const micPromise=mic();
+    await Promise.all([tokenPromise,micPromise]);
+    btn.textContent='Titan Live';state(ring?'RING MODE':'LISTENING');
+  }catch(e){
+    active=false;state('MIC ERROR');cap('MIC',e.message||String(e));btn.textContent='Try Again';
+  }finally{btn.disabled=false}
+}
 function stop(){active=false;connected=false;connecting=false;try{socket&&socket.close()}catch{}socket=null;releaseMic();stopPlay();if(!locked)state('PAUSED')}
 $('start').onclick=start;
 $('mute').onclick=()=>{muted=!muted;render();state(muted?'MUTED':'LISTENING')};
