@@ -14,7 +14,7 @@
       if(!allowed||!token){out.textContent='This bridge request is not valid.';return;}
       const raw=localStorage.getItem('sterling.pending.v2')||localStorage.getItem('sterling.pending.v1');
       if(!raw){out.textContent='No confirmed Sterling customer packet is saved on this device.';return;}
-      const packet=JSON.parse(raw);
+      const packet=JSON.parse(raw); if(packet.expiresAt&&Date.now()>packet.expiresAt){localStorage.removeItem('sterling.pending.v2');out.textContent='That Sterling customer packet expired. Start Sterling again for the active stop.';return;}
       if(packet.expiresAt&&Number(packet.expiresAt)<Date.now()){
         localStorage.removeItem('sterling.pending.v2');
         out.textContent='The saved Sterling packet expired. Reconfirm the customer in Sterling.';
