@@ -314,6 +314,7 @@
       const code=await waitFor(readOrderId,12000,200);
       if(!code)throw new Error('Order window opened, but Partner Order ID was not detected.');
       showCode(code);
+      host.style.display='block';
       try{await navigator.clipboard.writeText(code);setStatus('Partner Order ID '+code+' created and copied.','good');}
       catch{setStatus('Partner Order ID '+code+' created.','good');}
       try{
@@ -322,7 +323,7 @@
         }
       }catch{}
       return code;
-    }catch(e){setStatus(e.message||String(e),'bad');return '';}
+    }catch(e){host.style.display='block';setStatus(e.message||String(e),'bad');return '';}
   }
 
   async function runAll(auto=false){
@@ -363,7 +364,7 @@
     p.set('helperOrigin',location.origin);
     state.sterlingWindow=window.open(APP_ORIGIN+'/live.html?'+p.toString(),'sterling-route');
     if(!state.sterlingWindow)setStatus('Pop-up blocked. Allow pop-ups for this site, then tap Open Sterling again.','bad');
-    else setStatus('Sterling opened and linked to this route stop.','good');
+    else{setStatus('Sterling opened and linked to this route stop.','good');host.style.display='none';}
   };
   $('pull').onclick=()=>{
     const u=APP_ORIGIN+'/bridge.html?token='+encodeURIComponent(bridgeToken)+'&origin='+encodeURIComponent(location.origin);
@@ -400,6 +401,21 @@
       }
     }
   }
+  function autoPullFromSterling(){
+    try{
+      const old=document.getElementById('sterling-helper-bridge-frame');
+      if(old)old.remove();
+      const frame=document.createElement('iframe');
+      frame.id='sterling-helper-bridge-frame';
+      frame.style.display='none';
+      frame.src=APP_ORIGIN+'/bridge.html?frame=1&token='+encodeURIComponent(bridgeToken)+'&origin='+encodeURIComponent(location.origin)+'&t='+Date.now();
+      document.documentElement.appendChild(frame);
+      setTimeout(()=>frame.remove(),3000);
+    }catch{}
+  }
+  setInterval(autoPullFromSterling,5000);
+  autoPullFromSterling();
+
   const observer=new MutationObserver(()=>setTimeout(refreshActiveStop,120));
   try{observer.observe(document.documentElement,{subtree:true,childList:true,characterData:true});}catch{}
   setInterval(refreshActiveStop,900);
