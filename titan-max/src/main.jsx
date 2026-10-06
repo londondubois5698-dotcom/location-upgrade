@@ -255,7 +255,6 @@ function App(){
     startupTimeoutMs:9000,
     closeTimeoutMs:5000,
     maxEvents:250,
-    maxPlaybackBufferSeconds:3,
     onToolCall:async({toolCall})=>{
       const a=toolCall.args||{};
       if(toolCall.toolName==='saveDiscovery'){
