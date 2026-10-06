@@ -16,7 +16,7 @@ button{border:0;cursor:pointer}.start{margin-top:31px;padding:18px 38px;border-r
 
 button,a.action{touch-action:manipulation}button:disabled{opacity:.45;cursor:default}
 .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.controls button,.action{padding:13px 16px;border-radius:12px;background:#124779;color:white;font:inherit;text-decoration:none;display:inline-block;text-align:center}.controls .primary,.action{background:#0782db}.controls .quiet{background:#142a42}
-input,select{width:100%;padding:13px;border-radius:10px;border:1px solid #315777;background:#071b30;color:white;font:inherit;margin:6px 0 12px;min-width:0}label{display:block;color:#b3cde5;font-size:14px}input[type=checkbox]{width:auto;margin-right:8px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.wide{grid-column:1/-1}.hint{font-size:13px;line-height:1.5;color:#afc7df}.warning{color:#ffd18a}.live{min-height:24px;color:#6fdaff;margin:12px 0}.confirmed{color:#66edac}details{margin-top:18px}summary{cursor:pointer;color:#b8daff}.bubble{min-height:80px}.hero{padding-top:30px}.orb{width:94px;height:94px;margin-bottom:20px}.hero h1{font-size:44px}.start{margin-top:20px}.footer{color:#99b1c9}.rep-row{gap:12px}.rep-row span:last-child{text-align:right;overflow-wrap:anywhere}#confirmbar[hidden],#sendbox[hidden]{display:none}.status{white-space:nowrap}button:focus-visible,a:focus-visible{outline:3px solid #7fd9ff;outline-offset:3px}@media(max-width:400px){.formgrid{grid-template-columns:1fr}.wide{grid-column:auto}.brand{font-size:12px}}
+input,select{width:100%;padding:13px;border-radius:10px;border:1px solid #315777;background:#071b30;color:white;font:inherit;margin:6px 0 12px;min-width:0}label{display:block;color:#b3cde5;font-size:14px}input[type=checkbox]{width:auto;margin-right:8px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.wide{grid-column:1/-1}.hint{font-size:13px;line-height:1.5;color:#afc7df}.warning{color:#ffd18a}.live{min-height:24px;color:#6fdaff;margin:12px 0}.confirmed{color:#66edac}.code{font-size:22px;font-weight:850;letter-spacing:.6px;padding:12px;border-radius:12px;background:#071e34;text-align:center;margin:10px 0;color:#eaf6ff}details{margin-top:18px}summary{cursor:pointer;color:#b8daff}.bubble{min-height:80px}.hero{padding-top:30px}.orb{width:94px;height:94px;margin-bottom:20px}.hero h1{font-size:44px}.start{margin-top:20px}.footer{color:#99b1c9}.rep-row{gap:12px}.rep-row span:last-child{text-align:right;overflow-wrap:anywhere}#confirmbar[hidden],#sendbox[hidden]{display:none}.status{white-space:nowrap}button:focus-visible,a:focus-visible{outline:3px solid #7fd9ff;outline-offset:3px}@media(max-width:400px){.formgrid{grid-template-columns:1fr}.wide{grid-column:auto}.brand{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.orb{animation:none}}
 </style></head>
 
@@ -37,7 +37,7 @@ input,select{width:100%;padding:13px;border-radius:10px;border:1px solid #315777
 <label class="wide">Phone number<input id="phone" type="tel" name="tel" autocomplete="tel" inputmode="tel" required></label>
 <label class="wide">Email<input id="email" type="email" name="email" autocomplete="email" autocapitalize="none" spellcheck="false" required></label></div>
 <div class="controls"><button type="submit">Confirm these four details</button></div></form>
-<div id="sendbox" hidden><p class="confirmed">Contact packet ready</p><div class="controls"><button id="salesforcesend" class="primary">Send to Route Helper</button><button id="salesforcecopy">Copy helper packet</button><a class="action" id="send" href="#">Backup text</a><button id="copy">Copy plain packet</button></div><p class="hint" id="delivery" role="status">Send directly to the linked route helper, or copy the helper packet as a fallback.</p></div>
+<div id="sendbox" hidden><p class="confirmed">Contact packet ready</p><div class="code" id="orderresult" hidden></div><div class="controls"><button id="salesforcesend" class="primary">Send to Route Helper</button><button id="salesforcecopy">Copy helper packet</button><a class="action" id="send" href="#">Backup text</a><button id="copy">Copy plain packet</button></div><p class="hint" id="delivery" role="status">Send directly to the linked route helper, or copy the helper packet as a fallback.</p></div>
 <p class="hint warning">Route Helper only transfers first name, last name, phone and email to the active route stop. Keep SSN, ID, PIN, payment and verification data in the approved AT&T process.</p>
 <details><summary>London’s conversation controls</summary><div class="controls"><button id="qualify">Qualification handoff</button><button id="return">Continue phone choices</button><button id="reset">New customer</button></div><p class="hint">New customer clears this tab’s details. Nothing is saved to a public repository or a customer database.</p></details>
 </div></section><footer class="footer">Sterling V6 • Live AI assistant with Route Helper handoff, AI-generated voice and cloud speech fallback. Keep SSNs, ID numbers, payment details, PINs and passcodes in the approved AT&T process. Voice recognition may use your browser’s speech service.</footer>
@@ -577,7 +577,12 @@ function next(){
   stage=fields.findIndex(f=>!confirmed.has(f));
   if(stage<0){
     stage=4;render();
-    say('Perfect. I have all four details. London can copy them straight into the active Salesforce route stop. While we’re here, who do you currently have for wireless service?');
+    if(helperLinked){
+      sendToHelper(false);
+      say('Perfect. I sent those details to London’s route helper for this house. While we’re here, who do you currently have for wireless service?');
+    }else{
+      say('Perfect. I have all four details ready for London’s route helper. While we’re here, who do you currently have for wireless service?');
+    }
   }else{
     render();say(questions[stage]);
   }
@@ -590,6 +595,11 @@ function safeContext(){
   if(data.lines)parts.push('Lines: '+data.lines);
   if(data.bill)parts.push('Approximate monthly wireless bill: '+data.bill);
   if(data.device)parts.push('Device interest: '+data.device);
+  if(toneProfile.total>=3){
+    const shortRatio=toneProfile.short/toneProfile.total;
+    const playfulRatio=toneProfile.playful/toneProfile.total;
+    parts.push('Conversation style preference: '+(playfulRatio>.25?'playful and conversational':shortRatio>.6?'brief and direct':'natural and conversational'));
+  }
   return parts.join('\n');
 }
 
@@ -614,7 +624,7 @@ async function aiReply(message){
     const j=await r.json();
     if(!r.ok||!j.text)throw new Error(j.error||'AI unavailable');
     aiHistory.push({role:'user',content:message},{role:'assistant',content:j.text});
-    aiHistory=aiHistory.slice(-10);
+    aiHistory=aiHistory.slice(-6);
     await say(j.text);
   }catch{
     await say('I can still keep us moving. London can verify the live offer for you. Who do you currently have for wireless service?');
@@ -814,6 +824,20 @@ $('reset').onclick=()=>{
   $('live').textContent='Tap Start to begin.';
   status('READY • V6');render();
 };
+window.addEventListener('message',e=>{
+  if(!helperLinked||e.origin!==helperOrigin)return;
+  const m=e.data||{};
+  if(m.token!==helperToken)return;
+  if(m.type==='STERLING_ORDER_ID_V1'&&m.orderId){
+    const code=String(m.orderId).trim();
+    const out=$('orderresult');
+    out.hidden=false;
+    out.textContent='Partner Order ID: '+code;
+    $('delivery').textContent='Salesforce created the Partner Order ID and the helper captured it.';
+    status('ORDER ID READY');
+    say('Got it. Your Partner Order ID is '+code.split('').join(' ')+'.',false);
+  }
+});
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){
     halt();paused=true;$('pause').textContent='Resume';
