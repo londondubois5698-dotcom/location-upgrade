@@ -21,8 +21,8 @@ input,select{width:100%;padding:13px;border-radius:10px;border:1px solid #315777
 </style></head>
 
 <body><main class="wrap">
-<header class="top"><div class="brand"><b>AT&T</b> PROMOTIONS WITH AI</div><div class="status" id="status" role="status">READY • V6</div></header>
-<section class="hero"><div class="orb" aria-hidden="true"></div><h1>Meet <span class="sterling">Sterling.</span></h1><div class="sub">A little conversation. A smoother start.</div><div class="micro">London’s digital assistant • live AI + local brain + natural voice • common responses run without AI calls</div><button class="start" id="start">Start Sterling</button><div class="controls" style="justify-content:center"><a class="action" href="/helper.html">Install Route Helper</a></div></section>
+<header class="top"><div class="brand"><b>AT&T</b> PROMOTIONS WITH AI</div><div class="status" id="status" role="status">READY • V7</div></header>
+<section class="hero"><div class="orb" aria-hidden="true"></div><h1>Meet <span class="sterling">Sterling.</span></h1><div class="sub">A little conversation. A smoother start.</div><div class="micro">London’s digital assistant • local sales brain + live AI + natural voice • route verification • common responses run without AI calls</div><button class="start" id="start">Start Sterling</button><div class="controls" style="justify-content:center"><a class="action" href="/helper.html">Install Route Helper</a></div></section>
 <section class="grid"><div class="card conversation"><h2>YOUR CONVERSATION</h2>
 <div class="bubble" id="bubble" aria-live="polite">Hi, I’m Sterling. Let’s get your details ready for London.</div>
 <div class="live" id="live" role="status">Tap Start, allow microphone access, then wait for “Listening.”</div>
@@ -40,7 +40,7 @@ input,select{width:100%;padding:13px;border-radius:10px;border:1px solid #315777
 <div id="sendbox" hidden><p class="confirmed">Contact packet ready</p><div class="code" id="orderresult" hidden></div><div class="controls"><button id="salesforcesend" class="primary">Send to Route Helper</button><button id="salesforcecopy">Copy helper packet</button><a class="action" id="send" href="#">Backup text</a><button id="copy">Copy plain packet</button></div><p class="hint" id="delivery" role="status">Send directly to the linked route helper, or copy the helper packet as a fallback.</p></div>
 <p class="hint warning">Route Helper only transfers first name, last name, phone and email to the active route stop. Keep SSN, ID, PIN, payment and verification data in the approved AT&T process.</p>
 <details><summary>London’s conversation controls</summary><div class="controls"><button id="qualify">Qualification handoff</button><button id="return">Continue phone choices</button><button id="reset">New customer</button></div><p class="hint">New customer clears this tab’s details. Nothing is saved to a public repository or a customer database.</p></details>
-</div></section><footer class="footer">Sterling V6 • Live AI assistant with Route Helper handoff, AI-generated voice and cloud speech fallback. Keep SSNs, ID numbers, payment details, PINs and passcodes in the approved AT&T process. Voice recognition may use your browser’s speech service.</footer>
+</div></section><footer class="footer">Sterling V7 • Live AI assistant with Route Helper handoff, AI-generated voice and cloud speech fallback. Keep SSNs, ID numbers, payment details, PINs and passcodes in the approved AT&T process. Voice recognition may use your browser’s speech service.</footer>
 </main>
 <script>
 'use strict';
@@ -822,7 +822,7 @@ $('reset').onclick=()=>{
   $('start').textContent='Start Sterling';$('pause').textContent='Pause';
   $('bubble').textContent='Ready for the next customer.';
   $('live').textContent='Tap Start to begin.';
-  status('READY • V6');render();
+  status('READY • V7');render();
 };
 window.addEventListener('message',e=>{
   if(!helperLinked||e.origin!==helperOrigin)return;
@@ -845,4 +845,4 @@ document.addEventListener('visibilitychange',()=>{
   }
 });
 loadBrain();render();updateBrainStat();
-</script><script src="/brain.js"></script></body></html>
+</script><script src="/brain.js"></script><script src="/sales-v7.js"></script></body></html>
