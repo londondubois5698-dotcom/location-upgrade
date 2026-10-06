@@ -45,6 +45,7 @@
   <div class="contact" id="contact" style="margin-top:13px">No confirmed customer details yet.</div>
   <div id="order" class="good" style="display:none;margin-top:12px;font-weight:900"></div>
   <button id="voiceSetup" class="btn secondary" style="display:none;margin-top:10px">Fix Voice Connection</button>
+  <button id="repair" class="btn secondary" style="margin-top:10px;font-size:14px;min-height:44px">Re-pair This Phone</button>
 </section>
 
 <section class="card liveOnly">
@@ -109,14 +110,17 @@ async function pollStatus(){
     $('ipad').textContent=ipadFresh?'CONNECTED':'Waiting for iPad';
     $('ipad').className='value status '+(ipadFresh?'good':'warn');
     if(j.house&&j.house.key&&j.house.key!==lastHouseKey){
-      currentHouse=j.house;lastHouseKey=j.house.key;render();
-      if(connected)send({type:'context-append',content:'The iPad Salesforce record changed. Current live house is now '+j.house.label+'. Reset all assumptions about the prior household.',delegationId:null});
+      var hadHouse=!!lastHouseKey;
+      currentHouse=j.house;lastHouseKey=j.house.key;
+      if(hadHouse){contact={first:'',last:'',phone:'',email:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent=''}
+      render();
+      if(connected)send({type:'context-append',content:'The iPad Salesforce record changed. Current live house is now '+j.house.label+'. Reset all assumptions and contact details from the prior household.',delegationId:null});
     }else if(j.house){currentHouse=j.house;render()}
     if(j.result&&j.result.id&&j.result.id!==lastResultId){
       lastResultId=j.result.id;
       var rr=j.result.result||{};
-      if(rr.ok&&rr.orderId){
-        $('order').style.display='block';$('order').textContent='Partner Order ID: '+rr.orderId;
+      if(rr.ok&&rr.orderId&&(!rr.houseKey||!currentHouse||rr.houseKey===currentHouse.key)){
+        $('order').style.display='block';$('order').textContent='Salesforce is ready. Partner Order ID sent to London on the iPad.';
         if(connected)send({type:'context-append',content:'The iPad completed the Salesforce update successfully for '+(rr.houseLabel||'the current house')+'. The Partner Order ID is ready for London. Do not read the ID aloud unless London asks for it.',delegationId:null});
       }else if(rr.error&&connected){
         send({type:'context-append',content:'The iPad safely stopped the Salesforce update. Reason: '+rr.error+'. Do not claim that Salesforce was updated.',delegationId:null});
@@ -184,6 +188,7 @@ async function start(){if(active)return;try{await prepareMic();active=true;muted
 function stop(){active=false;connected=false;connecting=false;try{if(socket)socket.close()}catch(e){}socket=null;releaseMic();stopPlayback();render();setVoice('STOPPED')}
 $('start').onclick=start;$('stop').onclick=stop;$('mute').onclick=function(){muted=!muted;render();setVoice(muted?'MIC MUTED':'LIVE • LISTENING',muted?'warn':'good')};
 $('voiceSetup').onclick=function(){location.href=APP+'/voice-setup.html?v=13'};
+$('repair').onclick=function(){stop();localStorage.removeItem('sterling.tetherId.v1');tetherId='';currentHouse=null;lastHouseKey='';lastResultId='';contact={first:'',last:'',phone:'',email:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';render();$('pairStatus').textContent='Enter the new six-digit code from the iPad.'};
 
 tetherId=localStorage.getItem('sterling.tetherId.v1')||'';
 render();if(tetherId){heartbeat();pollStatus()}
