@@ -4,6 +4,8 @@
   "type": "module",
   "dependencies": {
     "ai": "^7.0.128",
-    "zod": "^4.1.11"
+    "zod": "^4.1.11",
+    "@vercel/blob": "^1.1.1",
+    "qrcode": "^1.5.4"
   }
 }
