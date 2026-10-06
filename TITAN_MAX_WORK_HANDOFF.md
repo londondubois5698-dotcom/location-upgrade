@@ -47,3 +47,10 @@ Titan Max is London's standalone iPhone field AI. The target experience is an el
 
 ## Continuity instruction
 When this project is opened in ChatGPT Work, read this file first, then inspect the latest commits and current live deployment before modifying anything.
+
+## Latest realtime reliability fix
+- Fixed the concrete `Realtime session is not accepting submissions` bug seen on iPhone.
+- Root cause: AI SDK `connect()` can return before the provider has emitted its writable-ready session event.
+- Titan no longer sends its greeting immediately after `connect()`.
+- The first spoken turn is now queued until `session-created`, `session-updated`, or `session-started` arrives, then it is submitted.
+- Transport promise rejections are caught and converted into a clean retry state instead of an unhandled failure.
