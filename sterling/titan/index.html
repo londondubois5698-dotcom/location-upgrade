@@ -8,8 +8,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Titan">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="/titan/manifest.webmanifest?v=2">
-<link rel="icon" href="/titan/icon.svg?v=2" type="image/svg+xml">
+<link rel="manifest" href="/titan/manifest.webmanifest?v=3">
+<link rel="icon" href="/titan/icon.svg?v=3" type="image/svg+xml">
 <title>Titan • London Field AI</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#050914;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -30,7 +30,7 @@
 </style>
 </head>
 <body>
-<div class="boot" id="boot"><div class="bootBox"><div class="bootRing"></div><div class="bootTitle"><b>Titan</b></div><div class="bootText" id="bootText">Loading independent AI brain…</div><button class="bootTap" id="bootTap">Enable Titan Voice</button></div></div>
+<div class="boot" id="boot"><div class="bootBox"><div class="bootRing" id="bootRing"></div><div class="bootTitle"><b>Titan</b></div><div class="bootText" id="bootText">Warming Titan brain…</div><button class="bootTap" id="bootTap">Start Titan</button></div></div>
 <main class="wrap">
 <div class="head"><div><div class="brand"><b>Titan</b></div><div class="mini">London's standalone iPhone field AI</div></div><div class="mini" id="tag">NEW PERSON</div></div>
 <section class="hero">
@@ -74,7 +74,7 @@
 'use strict';
 const MAX=2000,WARN=1500,FINAL=1850,SAFE_LOCK=1950,$=id=>document.getElementById(id);
 let active=false,muted=false,ring=false,locked=false,warned=false,finalizing=false,socket=null,connecting=false,connected=false,reconnects=0;
-let setupCache=null,setupAt=0,booting=false,wakeLock=null;
+let setupCache=null,setupAt=0,setupPromise=null,booting=false,wakeLock=null;
 let playCtx=null,playTime=0,playing=[],micStream=null,captureCtx=null,captureSource=null,captureProcessor=null,gate={noise:.006,open:false,voiced:0,quiet:0,pre:[]};
 let transcriptIn=0,audioIn=0,outWords=0,lastOut='',currentLocation=null,currentAddress='';
 let d={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',internetProvider:'',internetBill:'',internetUse:'',tv:'',notes:''};
@@ -110,12 +110,16 @@ function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 async function requestWake(){try{if('wakeLock'in navigator){wakeLock=await navigator.wakeLock.request('screen')}}catch{}}
 async function warmSetup(force=false){
   if(!force&&setupCache&&(Date.now()-setupAt)<90000)return setupCache;
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),9000);
-  try{
-    const r=await fetch('/api/titan-token?t='+Date.now(),{cache:'no-store',signal:controller.signal});
-    const j=await r.json();if(!r.ok||!j.token||!j.url)throw new Error(j.error||'Titan voice setup failed');
-    setupCache=j;setupAt=Date.now();return j;
-  }finally{clearTimeout(timer)}
+  if(!force&&setupPromise)return setupPromise;
+  setupPromise=(async()=>{
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),6000);
+    try{
+      const r=await fetch('/api/titan-token?t='+Date.now(),{cache:'no-store',signal:controller.signal});
+      const j=await r.json();if(!r.ok||!j.token||!j.url)throw new Error(j.error||'Titan voice setup failed');
+      setupCache=j;setupAt=Date.now();return j;
+    }finally{clearTimeout(timer);setupPromise=null}
+  })();
+  return setupPromise;
 }
 function toolReply(m,obj){send({type:'conversation-item-create',item:{type:'function-call-output',callId:m.callId,name:m.name,output:JSON.stringify(obj)}});send({type:'response-create',options:{modalities:['audio']}})}
 function tool(m){
@@ -230,26 +234,27 @@ async function start(fromBoot=false){
   const btn=$('start');
   if(active||connected){cap('TITAN',connected?'Already live and ready to talk.':'Titan is starting…');return true}
   if(connecting)return false;
-  btn.disabled=true;btn.textContent='Starting…';state('STARTING');cap('TITAN','Loading Titan brain…');
+  btn.disabled=true;btn.textContent='Starting…';state('STARTING');cap('TITAN','Unlocking voice…');
   try{
-    if(!fromBoot)localStorage.setItem('titan.autostart.v2','1');
-    await ensurePlay();
-    if(playCtx&&playCtx.state!=='running'){const e=new Error('iPhone audio needs one tap to unlock.');e.name='NotAllowedError';throw e}
+    localStorage.setItem('titan.autostart.v3','1');
+    const audioUnlock=ensurePlay();
+    await Promise.race([audioUnlock,wait(2200).then(()=>{const e=new Error('Tap Start Titan again to unlock iPhone audio.');e.name='NotAllowedError';throw e})]);
+    if(playCtx&&playCtx.state!=='running'){const e=new Error('iPhone audio is still locked.');e.name='NotAllowedError';throw e}
     active=true;muted=false;render();requestWake();
-    /* Unlock microphone first. This prevents burning a short-lived brain token when iOS blocks autoplay/audio on page load. */
     await mic();
+    cap('TITAN','Voice unlocked. Connecting brain…');
     await connect();
     btn.textContent='Titan Live';state(ring?'RING LIVE':'LISTENING');cap('TITAN','AI assistant ready. Listening now.');bootHide();
     return true;
   }catch(e){
-    active=false;stop();state('READY');cap('STARTUP',e.name==='NotAllowedError'?'Tap Enable Titan Voice once so iPhone can unlock the microphone and speaker.':(e.message||String(e)));btn.textContent='Start Titan';
-    if(fromBoot)bootText('Brain is loaded. Tap once to unlock iPhone microphone + speaker.',true);
+    active=false;stop();state('READY');cap('STARTUP',e.name==='NotAllowedError'?'Tap Start Titan once. iPhone requires a touch before microphone + speaker can run.':(e.message||String(e)));btn.textContent='Start Titan';
+    bootText(e.name==='NotAllowedError'?'Tap Start Titan once to unlock iPhone audio.':'Startup hit a snag. Tap Start Titan to retry.',true);
     return false;
   }finally{btn.disabled=false}
 }
 function stop(){active=false;connected=false;connecting=false;try{socket&&socket.close()}catch{}socket=null;releaseMic();stopPlay();if(!locked)state('PAUSED')}
 $('start').onclick=()=>start(false);
-$('bootTap').onclick=async()=>{bootText('Starting Titan voice…');const ok=await start(false);if(ok)bootHide()};
+$('bootTap').onclick=async()=>{bootText('Unlocking voice + connecting brain…');$('bootTap').classList.remove('show');const ok=await start(false);if(ok)bootHide();else $('bootTap').classList.add('show')};
 $('mute').onclick=()=>{muted=!muted;render();state(muted?'MUTED':'LISTENING')};
 $('ring').onclick=async()=>{
  ring=!ring;render();
@@ -272,27 +277,28 @@ $('newPerson').onclick=reset;
 document.querySelectorAll('[data-fallback]').forEach(b=>b.onclick=()=>speakLocal(b.textContent));
 
 async function boot(){
-  if(booting)return;booting=true;state('BOOTING');bootText('Loading independent AI brain…');
-  const minimum=wait(1200);
-  try{
-    await Promise.all([warmSetup(),minimum]);
-    bootText('Brain loaded. Unlocking voice…');
-    const ok=await start(true);
-    if(ok){localStorage.setItem('titan.autostart.v2','1');bootHide()}
-    else bootText('Brain is loaded. Tap once to unlock iPhone microphone + speaker.',true);
-  }catch(e){
-    state('START ERROR');cap('STARTUP',e.name==='AbortError'?'Titan brain took too long to answer. Tap to retry.':(e.message||String(e)));
-    bootText('Could not finish startup. Tap to retry.',true);
-  }finally{booting=false}
+  if(booting)return;booting=true;state('BOOTING');bootText('Warming Titan brain…');
+  /* Critical iPhone rule: never await AudioContext.resume() during page load.
+     Safari can leave that promise pending forever without a user gesture, which caused the old endless spinner. */
+  const prewarm=warmSetup().catch(()=>null);
+  await wait(700);
+  let ready=!!setupCache;
+  if(!ready){
+    await Promise.race([prewarm,wait(900)]);
+    ready=!!setupCache;
+  }
+  state('READY');
+  cap('TITAN',ready?'Brain warmed. Tap Start Titan and I’ll speak, then listen.':'Tap Start Titan. Voice will connect immediately while the brain finishes warming.');
+  bootText(ready?'Titan brain ready. Tap once to go live.':'Titan is ready to start. Tap once to go live.',true);
+  booting=false;
 }
-document.addEventListener('visibilitychange',async()=>{
+document.addEventListener('visibilitychange',()=>{
   if(document.hidden){try{wakeLock&&wakeLock.release()}catch{}wakeLock=null;return}
   if(active&&!locked)requestWake();
-  if(!active&&!locked&&localStorage.getItem('titan.autostart.v2')==='1')await start(true);
 });
-window.addEventListener('pageshow',()=>{if(!locked&&!active&&!booting&&localStorage.getItem('titan.autostart.v2')==='1')boot()});
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/titan/sw.js?v=2',{scope:'/titan/'}).catch(()=>{}));
-render();budget();setTimeout(boot,40);
+window.addEventListener('pageshow',()=>{if(!active&&!connected&&!booting)boot()});
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/titan/sw.js?v=3',{scope:'/titan/'}).catch(()=>{}));
+render();budget();setTimeout(boot,25);
 })();
 </script>
 </body></html>
