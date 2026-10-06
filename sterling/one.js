@@ -2,7 +2,7 @@
 'use strict';
 
 var APP='https://sterling-olive.vercel.app';
-var VERSION='12.0';
+var VERSION='12.1';
 var POLL_MS=450;
 var state={
   active:false, connected:false, connecting:false, muted:false, updateBusy:false,
@@ -275,10 +275,11 @@ async function connectSocket(){
   if(!state.active||state.connecting)return;
   state.connecting=true;state.connected=false;render();setStatus('CONNECTING…');
   try{
-    var r=await fetch(APP+'/api/realtime-token?v=12&t='+Date.now(),{method:'GET',mode:'cors',cache:'no-store'});
+    var r=await fetch(APP+'/api/realtime-token?v=12.1&t='+Date.now(),{method:'GET',mode:'cors',cache:'no-store'});
     var setup=await r.json();
     if(!r.ok||!setup.token||!setup.url)throw new Error(setup.error||'Realtime setup failed');
-    var ws=new WebSocket(setup.url,['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token]);
+    var protocols=(setup.protocols&&setup.protocols.length)?setup.protocols:['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token];
+    var ws=new WebSocket(setup.url,protocols);
     state.socket=ws;
     var greeted=false;
     ws.onopen=function(){
