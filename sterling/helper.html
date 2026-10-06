@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Install Sterling ONE V13</title>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Install Sterling ONE V14 Alpha</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#06111f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{max-width:700px;margin:auto;padding:28px 18px}.hero{font-size:42px;font-weight:900}.hero b{color:#58baff}.sub{color:#acc8df;line-height:1.5}.card{background:#0a1d31;border:1px solid #1c486f;border-radius:20px;padding:18px;margin:16px 0}.step{font-size:18px;font-weight:800;margin:16px 0 7px}.code{width:100%;min-height:130px;background:#04101d;color:#bde2ff;border:1px solid #28557d;border-radius:14px;padding:12px;font-size:12px;line-height:1.45}.btn{display:block;width:100%;border:0;border-radius:14px;padding:16px;background:#0786e2;color:#fff;font:inherit;font-weight:900;text-align:center;text-decoration:none}.ok{color:#77efb3}.mini{font-size:12px;color:#839fb8;line-height:1.5}
 </style></head>
 <body><main class="wrap">
-<div class="hero"><b>Sterling</b> ONE V13</div>
+<div class="hero"><b>Sterling</b> ONE V14 Alpha</div>
 <p class="sub">Phone = Sterling's live conversation. iPad = Salesforce. The two stay paired in the background.</p>
 
 <div class="card">
@@ -20,22 +20,22 @@
 
 <div class="card">
 <div class="step">Phone: pair once, then use it for every customer conversation</div>
-<a class="btn" href="/phone.html?v=13">Open Sterling Field Voice</a>
+<a class="btn" href="/phone.html?v=14">Open Sterling Field Voice</a>
 <p class="mini">Enter the six-digit code from the iPad once. The phone remembers the tether. After that, the phone carries the conversation while the iPad stays on Salesforce.</p>
 </div>
 
 <div class="card">
 <div class="step">Voice credential: one-time server setup</div>
-<a class="btn" href="/voice-setup.html?v=13">Open Sterling Voice Connection</a>
+<a class="btn" href="/voice-setup.html?v=14">Open Sterling Voice Connection</a>
 <p class="mini">The Vercel AI Gateway key is stored server-side after it is verified. It is never put into the bookmark, phone page, or Salesforce page.</p>
 </div>
 
 <div class="card">
-<a href="/diagnostics.html?v=13" style="color:#8bd1ff;font-weight:800">Run Sterling V13 Systems Check</a>
+<a href="/diagnostics.html?v=14" style="color:#8bd1ff;font-weight:800">Run Sterling V14 Alpha Systems Check</a>
 </div>
 </main>
 <script>
-const code="javascript:(()=>{if(window.__sterlingONE&&window.__sterlingONE.version==='13.0'){window.__sterlingONE.open();return}const x=document.getElementById('sterling-one-v13-loader');if(x)x.remove();const s=document.createElement('script');s.id='sterling-one-v13-loader';s.src='https://sterling-olive.vercel.app/helper.js?v=13.0&t='+Date.now();s.onerror=()=>alert('Sterling could not load. Refresh Salesforce and tap the bookmark again.');document.documentElement.appendChild(s)})()";
+const code="javascript:(()=>{if(window.__sterlingONE&&window.__sterlingONE.version==='14.0'){window.__sterlingONE.open();return}const x=document.getElementById('sterling-one-v14-loader');if(x)x.remove();const s=document.createElement('script');s.id='sterling-one-v14-loader';s.src='https://sterling-olive.vercel.app/helper.js?v=14.0&t='+Date.now();s.onerror=()=>alert('Sterling could not load. Refresh Salesforce and tap the bookmark again.');document.documentElement.appendChild(s)})()";
 document.getElementById('code').value=code;
 document.getElementById('copy').onclick=async()=>{try{await navigator.clipboard.writeText(code);document.getElementById('copied').textContent='Copied. Paste it over the bookmark URL.'}catch(e){document.getElementById('code').select();document.execCommand('copy');document.getElementById('copied').textContent='Copied. Paste it over the bookmark URL.'}};
 </script></body></html>
