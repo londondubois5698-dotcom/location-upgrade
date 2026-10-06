@@ -4,7 +4,8 @@
   if(window.__sterlingRouteHelper?.open){window.__sterlingRouteHelper.open();return;}
 
   const APP_ORIGIN='https://sterling-olive.vercel.app';
-  const VERSION='1.0.0';
+  const VERSION='1.1.0';
+  const bridgeToken=Array.from(crypto.getRandomValues(new Uint32Array(4))).map(n=>n.toString(16)).join('-');
   const qs=new URLSearchParams(location.search);
 
   function clean(s){return String(s||'').trim();}
@@ -80,6 +81,7 @@
       obj={first:o['first name']||o.first,last:o['last name']||o.last,phone:o.phone,email:o.email};
     }
     if(!obj||!obj.first||!obj.last||!obj.phone||!obj.email)throw new Error('Packet is missing first name, last name, phone, or email.');
+    if(obj.expiresAt&&Number(obj.expiresAt)<Date.now())throw new Error('Sterling packet expired. Reconfirm the customer in Sterling.');
     obj.phone=String(obj.phone).replace(/\D/g,'').replace(/^1(?=\d{10}$)/,'');
     if(obj.phone.length!==10)throw new Error('Phone number is not 10 digits.');
     return obj;
@@ -112,14 +114,15 @@
       @media(max-width:520px){.panel{width:calc(100vw - 20px)}.row{grid-template-columns:1fr}.head{padding:11px}.body{padding:12px}}
     </style>
     <div class="panel">
-      <div class="head"><div><div class="brand"><b>Sterling</b> Route Helper</div><div class="ver">v1.0.0 • iPhone/iPad/Desktop</div></div><button class="close" id="x">×</button></div>
+      <div class="head"><div><div class="brand"><b>Sterling</b> Route Helper</div><div class="ver">v1.1.0 • iPhone/iPad/Desktop</div></div><button class="close" id="x">×</button></div>
       <div class="body">
         <div class="stop" id="stop"></div>
         <div class="status" id="status">Ready. Open Sterling for this stop or load a customer packet.</div>
         <div class="packet" id="packet">No customer packet loaded.</div>
         <div class="code hide" id="code"></div>
         <div class="row one"><button class="primary" id="openSterling">Open Sterling for this stop</button></div>
-        <div class="row"><button id="load">Paste customer packet</button><button id="fill">Fill + Save</button></div>
+        <div class="row"><button id="pull">Pull from Sterling</button><button id="load">Paste packet</button></div>
+        <div class="row one"><button id="fill">Fill + Save</button></div>
         <div class="row"><button class="success" id="order">Create Order ID</button><button class="quiet" id="all">Run full sequence</button></div>
         <div class="row one"><button class="quiet" id="copyCode">Copy Order ID</button></div>
         <div class="mini">Safety: helper verifies route stop/address when Sterling supplied them. It only edits name, phone and email, then uses Save and Order.</div>
@@ -127,7 +130,7 @@
     </div>\`;
 
   const $=id=>sh.getElementById(id);
-  const state={packet:null,orderId:'',stop:currentStop()};
+  const state={packet:null,orderId:'',stop:currentStop(),sterlingWindow:null};
   $('stop').textContent=stopLabel(state.stop)||'Current Salesforce / ICL record';
   function setStatus(msg,kind=''){const el=$('status');el.textContent=msg;el.className='status '+kind;}
   function renderPacket(){
@@ -141,17 +144,22 @@
     $('code').classList.toggle('hide',!code);
   }
 
+  function acceptPacket(raw){
+    try{
+      const p=typeof raw==='string'?parsePacket(raw):parsePacket(JSON.stringify(raw));
+      verify(p,state.stop);state.packet=p;renderPacket();
+      setStatus('Packet loaded and matched to this stop.','good');
+      return p;
+    }catch(e){setStatus(e.message||String(e),'bad');return null;}
+  }
+
   async function loadPacket(){
     let raw='';
     try{raw=await navigator.clipboard.readText();}catch{}
     if(!raw||(!raw.includes('STERLING_ROUTE_V1')&&!raw.includes('{'))){
       raw=prompt('Paste the packet copied from Sterling:')||'';
     }
-    try{
-      const p=parsePacket(raw);verify(p,state.stop);state.packet=p;renderPacket();
-      setStatus('Packet loaded and matched to this stop.','good');
-      return p;
-    }catch(e){setStatus(e.message||String(e),'bad');return null;}
+    return acceptPacket(raw);
   }
 
   function findForm(){
@@ -260,6 +268,11 @@
       showCode(code);
       try{await navigator.clipboard.writeText(code);setStatus('Partner Order ID '+code+' created and copied.','good');}
       catch{setStatus('Partner Order ID '+code+' created.','good');}
+      try{
+        if(state.sterlingWindow&&!state.sterlingWindow.closed){
+          state.sterlingWindow.postMessage({type:'STERLING_ORDER_ID_V1',token:bridgeToken,orderId:code},APP_ORIGIN);
+        }
+      }catch{}
       return code;
     }catch(e){setStatus(e.message||String(e),'bad');return '';}
   }
@@ -275,12 +288,30 @@
   }
 
   $('x').onclick=()=>host.remove();
+  window.addEventListener('message',e=>{
+    if(e.origin!==APP_ORIGIN)return;
+    const m=e.data||{};
+    if(m.type!=='STERLING_ROUTE_PACKET_V2'||m.token!==bridgeToken)return;
+    const p=acceptPacket(m.packet);
+    if(p)setStatus('Sterling sent '+p.first+' '+p.last+' to this exact route stop. Ready to run.','good');
+  });
+
   $('openSterling').onclick=()=>{
-    const s=state.stop;
+    const st=state.stop;
     const p=new URLSearchParams();
-    for(const k of ['routeId','gpRouteStopId','street','city','postalcode','state','latitude','longitude'])if(s[k])p.set(k,s[k]);
+    for(const k of ['routeId','gpRouteStopId','street','city','postalcode','state','latitude','longitude'])if(st[k])p.set(k,st[k]);
     p.set('routeHelper','1');
-    window.open(APP_ORIGIN+'/?'+p.toString(),'_blank','noopener');
+    p.set('helperToken',bridgeToken);
+    p.set('helperOrigin',location.origin);
+    state.sterlingWindow=window.open(APP_ORIGIN+'/?'+p.toString(),'sterling-route');
+    if(!state.sterlingWindow)setStatus('Pop-up blocked. Allow pop-ups for this site, then tap Open Sterling again.','bad');
+    else setStatus('Sterling opened and linked to this route stop.','good');
+  };
+  $('pull').onclick=()=>{
+    const u=APP_ORIGIN+'/bridge.html?token='+encodeURIComponent(bridgeToken)+'&origin='+encodeURIComponent(location.origin);
+    const w=window.open(u,'sterling-bridge');
+    if(!w)setStatus('Pop-up blocked. Allow pop-ups, then try Pull from Sterling again.','bad');
+    else setStatus('Checking Sterling for the latest confirmed customer…');
   };
   $('load').onclick=loadPacket;
   $('fill').onclick=fillAndSave;
