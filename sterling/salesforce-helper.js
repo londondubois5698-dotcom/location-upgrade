@@ -56,13 +56,13 @@ const panel=document.createElement('div');
 panel.id=ID;
 panel.innerHTML=
 '<div style="display:flex;justify-content:space-between;gap:12px;align-items:center">'+
-'<div><b style="font-size:18px;color:#61bdff">Sterling Helper</b><div style="font-size:11px;color:#82a8c8;margin-top:2px">V8 • auto route mode</div></div>'+
+'<div><b style="font-size:18px;color:#61bdff">Sterling Helper</b><div style="font-size:11px;color:#82a8c8;margin-top:2px">V9 • Live Voice auto route mode</div></div>'+
 '<button id="srh-close" style="background:#173550;color:#fff;border:0;border-radius:9px;padding:8px 11px">Close</button></div>'+
 '<div id="srh-stop" style="margin:10px 0;color:#b9d8f3"></div>'+
 '<div id="srh-msg" style="padding:10px 12px;background:#0b233a;border-radius:12px;line-height:1.4">Linking this house to Sterling…</div>'+
 '<div id="srh-customer" style="display:none;margin:12px 0;line-height:1.55"></div>'+
 '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">'+
-'<button id="srh-start" style="flex:1;background:#124779;color:#fff;border:0;border-radius:11px;padding:13px;font-weight:700">Open Sterling</button>'+
+'<button id="srh-start" style="flex:1;background:#124779;color:#fff;border:0;border-radius:11px;padding:13px;font-weight:700">Open Sterling Live</button>'+
 '<button id="srh-run" disabled style="flex:1;background:#087fe2;color:#fff;border:0;border-radius:11px;padding:13px;font-weight:700">Run now</button></div>'+
 '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'+
 '<button id="srh-paste" style="background:#173550;color:#fff;border:0;border-radius:11px;padding:11px">Paste backup packet</button>'+
@@ -82,7 +82,7 @@ function renderStop(){
   q('#srh-stop',panel).textContent='Active house: '+([stop.street,stop.city,stop.state,stop.postalcode].filter(Boolean).join(', ')||'route stop detected')+(stop.gpRouteStopId?' • verified stop ID loaded':'');
 }
 function sterlingUrl(){
-  const u=new URL(ORIGIN+'/');
+  const u=new URL(ORIGIN+'/live.html');
   for(const [k,v] of Object.entries(stop))if(v)u.searchParams.set(k,v);
   u.searchParams.set('helperToken',helperToken);
   u.searchParams.set('helperOrigin',location.origin);
