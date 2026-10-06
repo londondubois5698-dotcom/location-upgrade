@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#050914">
+<title>Titan • London Field AI</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#050914;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:720px;margin:auto;padding:calc(14px + env(safe-area-inset-top)) 14px calc(28px + env(safe-area-inset-bottom))}
+.head{display:flex;justify-content:space-between;align-items:end;gap:10px;margin-bottom:10px}.brand{font-size:42px;font-weight:950;letter-spacing:-1.6px}.brand b{color:#78ddff}.mini{font-size:11px;color:#7895ae}
+.hero{position:relative;overflow:hidden;min-height:330px;border-radius:28px;border:1px solid #285171;background:radial-gradient(circle at 50% 24%,#17456f 0,#0a1b2d 36%,#050914 73%);box-shadow:0 24px 80px #000a}
+.face{position:absolute;left:50%;top:42%;width:178px;height:178px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 38% 33%,#d6f9ff 0 3%,#71d9ff 9%,#1d8ed0 28%,#0c3d64 54%,#030811 77%);box-shadow:0 0 36px #59d3ff,0 0 110px #168be266;animation:breathe 3.2s ease-in-out infinite}
+.face:before,.face:after{content:"";position:absolute;inset:-24px;border-radius:50%;border:1px solid #7ce3ff66;animation:ring 2.5s linear infinite}.face:after{inset:-47px;animation-delay:-1.25s}
+.eyes{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);display:flex;gap:38px;z-index:2}.eye{width:13px;height:6px;border-radius:999px;background:#e6fbff;box-shadow:0 0 12px #a9f0ff}.mouth{position:absolute;left:50%;top:53%;transform:translateX(-50%);width:54px;height:18px;border-bottom:3px solid #b9f4ff;border-radius:0 0 60px 60px;z-index:2}
+@keyframes breathe{50%{transform:translate(-50%,-50%) scale(1.045);filter:brightness(1.15)}}@keyframes ring{0%{transform:scale(.83);opacity:.85}100%{transform:scale(1.2);opacity:0}}
+.badge{position:absolute;top:13px;left:13px;padding:7px 10px;border-radius:999px;background:#04111ddd;border:1px solid #2d7199;font-size:10px;font-weight:900;color:#93eaff}.budget{left:auto;right:13px}
+.caption{position:absolute;left:13px;right:13px;bottom:13px;background:#06131fe8;border:1px solid #224d6c;border-radius:18px;padding:12px;backdrop-filter:blur(12px)}.lab{font-size:10px;letter-spacing:1.2px;color:#6cd5ff;font-weight:900}.text{font-size:15px;line-height:1.35;margin-top:5px}.meter{height:6px;background:#142332;border-radius:999px;overflow:hidden;margin-top:9px}.meter span{display:block;height:100%;width:0;background:linear-gradient(90deg,#36bfff,#7df1ad);transition:width .2s}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:11px}.card{background:#08131f;border:1px solid #1c405d;border-radius:20px;padding:13px}.card h3{margin:0 0 8px;font-size:11px;letter-spacing:1.5px;color:#78a9c8}.card.new h3{color:#79efae}.bill{font-size:37px;font-weight:950;letter-spacing:-1.6px;min-height:44px;color:#ff8c8c}.bill.new{color:#79efb0}.row{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #173148;font-size:12px}.row:last-child{border:0}.row span:first-child{color:#7998b1}.row strong{text-align:right;max-width:62%}
+.device{display:none;margin-top:10px;align-items:center;gap:10px;background:#071827;border:1px solid #2c5f82;border-radius:16px;padding:10px}.phone{width:34px;height:60px;border:3px solid #8be5ff;border-radius:9px;box-shadow:inset 0 0 0 2px #06101a}.device b{display:block;font-size:15px}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:11px}.btn{border:0;border-radius:16px;min-height:54px;padding:12px;background:#0b8be8;color:#fff;font:inherit;font-weight:950;font-size:16px}.btn.alt{background:#173a55}.btn.warn{background:#6a4b18}.btn.stop{background:#632b34}.full{grid-column:1/-1}.ringOn{box-shadow:inset 0 0 0 2px #ffd36d}.fallback{display:none;margin-top:10px}.fallback.show{display:grid}.foot{font-size:10px;color:#6f8ca5;line-height:1.45;margin-top:10px}
+@media(max-width:430px){.brand{font-size:36px}.grid{gap:7px}.card{padding:11px}.bill{font-size:31px}.hero{min-height:315px}}
+</style>
+</head>
+<body><main class="wrap">
+<div class="head"><div><div class="brand"><b>Titan</b></div><div class="mini">London's standalone iPhone field AI</div></div><div class="mini" id="tag">NEW PERSON</div></div>
+<section class="hero">
+  <div class="badge" id="state">READY</div><div class="badge budget" id="budget">0 / 2000 words</div>
+  <div class="face"><div class="eyes"><i class="eye"></i><i class="eye"></i></div><div class="mouth"></div></div>
+  <div class="caption"><div class="lab" id="capLab">TITAN</div><div class="text" id="caption">Tap Start Titan. NOW → NEW will build live as the customer talks.</div><div class="meter"><span id="meter"></span></div></div>
+</section>
+
+<section class="grid">
+  <div class="card"><h3>NOW</h3><div class="bill" id="nowBill">—</div>
+    <div class="row"><span>Carrier</span><strong id="carrier">—</strong></div><div class="row"><span>Lines</span><strong id="lines">—</strong></div><div class="row"><span>Phones</span><strong id="phones">—</strong></div><div class="row"><span>Plan</span><strong id="plan">—</strong></div>
+  </div>
+  <div class="card new"><h3>NEW • ESTIMATE</h3><div class="bill new" id="newBill">—</div>
+    <div class="row"><span>Difference</span><strong id="savings">—</strong></div><div class="row"><span>Upgrade</span><strong id="upgrade">Discovering…</strong></div><div class="row"><span>Discount fit</span><strong id="discount">Check fit</strong></div><div class="row"><span>Next step</span><strong>London verifies</strong></div>
+  </div>
+</section>
+
+<div class="device" id="device"><div class="phone"></div><div>Phone interest<b id="deviceName">—</b></div></div>
+
+<section class="controls">
+  <button class="btn full" id="start">Start Titan</button>
+  <button class="btn alt" id="ring">Ring Mode</button>
+  <button class="btn alt" id="mute">Mute</button>
+  <button class="btn warn" id="remember">End & Remember</button>
+  <button class="btn stop" id="newPerson">New Person</button>
+</section>
+
+<section class="controls fallback" id="fallback">
+  <button class="btn alt" data-fallback="verify">London will verify everything in the official system.</button>
+  <button class="btn alt" data-fallback="numbers">Your NOW → NEW numbers are still right here on the screen.</button>
+  <button class="btn alt full" data-fallback="thanks">It was great talking with you. You're in London's hands now.</button>
+</section>
+
+<div class="foot">NOW → NEW uses London's field-sheet estimates until AT&T's official system verifies eligibility, pricing, taxes, fees, device condition, financing, and promotions. Titan never collects SSNs, ID numbers, payment cards, account PINs, passwords, or one-time codes.</div>
+</main>
+
+<script>
+(function(){
+'use strict';
+const MAX=2000,WARN=1500,FINAL=1850,SAFE_LOCK=1950,$=id=>document.getElementById(id);
+let active=false,muted=false,ring=false,locked=false,warned=false,finalizing=false,socket=null,connecting=false,connected=false,reconnects=0;
+let playCtx=null,playTime=0,playing=[],micStream=null,captureCtx=null,captureSource=null,captureProcessor=null,gate={noise:.006,open:false,voiced:0,quiet:0,pre:[]};
+let transcriptIn=0,audioIn=0,outWords=0,lastOut='';
+let d={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',internetProvider:'',internetBill:'',internetUse:'',tv:'',notes:''};
+
+const wc=s=>{s=String(s||'').trim();return s?s.split(/\s+/).length:0};
+const used=()=>Math.min(MAX,Math.ceil(Math.max(transcriptIn,audioIn)+outWords));
+function cap(l,t){$('capLab').textContent=l;$('caption').textContent=String(t||'').slice(-340)}
+function state(s){$('state').textContent=s}
+function speakLocal(t){if(!('speechSynthesis'in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.rate=.98;u.pitch=.92;speechSynthesis.speak(u)}
+function budget(){
+  const u=used();$('budget').textContent=u+' / '+MAX+' words';$('meter').style.width=Math.min(100,u/MAX*100)+'%';
+  if(u>=WARN&&!warned)handoff();
+  if(u>=FINAL&&!finalizing)finalize();
+  if(u>=SAFE_LOCK&&!locked)lock();
+}
+function money(v){const m=String(v||'').replace(/,/g,'').match(/\d+(?:\.\d+)?/);return m?Number(m[0]):0}
+function lc(v){const m=String(v||'').match(/\d+/);if(m)return +m[0];return({one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10})[String(v||'').toLowerCase().trim()]||0}
+function est(v){const n=lc(v),p={1:80,2:140,3:180,4:200,5:250,6:300};return !n?0:n<=6?p[n]:300+(n-6)*50}
+function render(){
+  $('carrier').textContent=d.carrier||'—';$('lines').textContent=d.lines||'—';$('phones').textContent=d.phones||'—';$('plan').textContent=d.currentPlan||'—';
+  $('nowBill').textContent=d.bill?(String(d.bill).includes('$')?d.bill:'$'+d.bill):'—';
+  const e=est(d.lines),b=money(d.bill);$('newBill').textContent=e?'$'+e:'—';
+  $('savings').textContent=e&&b?(b>e?'$'+Math.round(b-e)+'/mo less*':'Compare total*'):'—';
+  $('upgrade').textContent=d.upgradeInterest||'Discovering…';$('discount').textContent=d.discountEligibility||'Check fit';
+  if(d.phones||d.upgradeInterest){$('device').style.display='flex';$('deviceName').textContent=d.upgradeInterest||d.phones}else $('device').style.display='none';
+  $('ring').className='btn alt'+(ring?' ringOn':'');$('ring').textContent=ring?'Ring Mode • ON':'Ring Mode';$('mute').textContent=muted?'Unmute':'Mute';
+}
+function note(f,v){if(!(f in d))return;d[f]=String(v||'').trim();render();cap('LIVE UPDATE',f+': '+d[f])}
+function send(o){try{if(socket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify(o))}catch{}}
+function toolReply(m,obj){send({type:'conversation-item-create',item:{type:'function-call-output',callId:m.callId,name:m.name,output:JSON.stringify(obj)}});send({type:'response-create',options:{modalities:['audio']}})}
+function tool(m){
+  let a={};try{a=JSON.parse(m.arguments||'{}')}catch{}
+  if(m.name==='saveDiscovery'&&a.field&&a.value){note(a.field,a.value);toolReply(m,{ok:true,saved:a.field});return}
+  if(m.name==='setStage'){toolReply(m,{ok:true});return}
+  toolReply(m,{ok:false,error:'Unknown Titan tool'});
+}
+function handoff(){
+  warned=true;cap('75% • HANDOFF',"Titan is entering handoff mode. A couple more quick questions, then London's got it.");
+  if(connected)send({type:'context-append',content:"About 75% of your session budget is used. Give the graceful appointment/live-brain handoff now. Tell the customer you can take a couple more quick questions, then they are in London's hands. Keep every answer under 20 words and do not open new topics.",delegationId:null});
+}
+function finalize(){
+  finalizing=true;
+  if(connected){send({type:'context-append',content:"Your live budget is nearly exhausted. Give one final brief handoff to London now and do not ask another question.",delegationId:null});send({type:'response-create',options:{modalities:['audio']}});setTimeout(lock,4200)}
+  else lock();
+}
+function lock(){
+  if(locked)return;locked=true;active=false;muted=true;try{socket&&socket.close()}catch{}socket=null;releaseMic();state('LOCAL ONLY');$('fallback').classList.add('show');cap('TITAN',"My live brain is off for this person. NOW → NEW stays on screen. You're in London's hands now.");
+}
+function saveMem(){
+  let a=[];try{a=JSON.parse(localStorage.getItem('titan.memory.v1')||'[]')}catch{}
+  a.unshift({at:new Date().toISOString(),carrier:d.carrier,lines:d.lines,bill:d.bill,phones:d.phones,notes:d.notes});
+  localStorage.setItem('titan.memory.v1',JSON.stringify(a.slice(0,50)));
+}
+function reset(){
+  stop();d={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',internetProvider:'',internetBill:'',internetUse:'',tv:'',notes:''};
+  transcriptIn=audioIn=outWords=0;lastOut='';locked=warned=finalizing=false;ring=false;reconnects=0;$('fallback').classList.remove('show');render();budget();cap('TITAN','Fresh person. Tap Start Titan.');state('READY');$('tag').textContent='NEW PERSON';
+}
+function ensurePlay(){if(!playCtx){const AC=window.AudioContext||window.webkitAudioContext;playCtx=new AC({sampleRate:24000})}return playCtx.resume()}
+function enc(s){const b=new ArrayBuffer(s.length*2),v=new DataView(b);for(let i=0;i<s.length;i++){let x=Math.max(-1,Math.min(1,s[i]));v.setInt16(i*2,x<0?x*32768:x*32767,true)}const u=new Uint8Array(b);let z='';for(let j=0;j<u.length;j+=32768)z+=String.fromCharCode.apply(null,u.subarray(j,j+32768));return btoa(z)}
+function dec(b64){const b=atob(b64),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);const a=new Int16Array(u.buffer),o=new Float32Array(a.length);for(let i=0;i<a.length;i++)o[i]=a[i]/32768;return o}
+function rs(input,inR,outR){if(inR===outR)return new Float32Array(input);const q=inR/outR,n=Math.round(input.length/q),o=new Float32Array(n);for(let i=0;i<n;i++){const x=i*q,a=Math.floor(x),b=Math.min(a+1,input.length-1),f=x-a;o[i]=input[a]*(1-f)+input[b]*f}return o}
+function stopPlay(){playing.forEach(x=>{try{x.stop()}catch{}});playing=[];if(playCtx)playTime=playCtx.currentTime}
+function play(b64){if(!playCtx||!b64)return;const s=dec(b64),buf=playCtx.createBuffer(1,s.length,24000);buf.getChannelData(0).set(s);const src=playCtx.createBufferSource();src.buffer=buf;src.connect(playCtx.destination);const st=Math.max(playTime,playCtx.currentTime);src.start(st);playTime=st+buf.duration;playing.push(src);src.onended=()=>playing=playing.filter(x=>x!==src)}
+async function mic(){
+  await ensurePlay();if(micStream)return;
+  micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+  captureCtx=playCtx;captureSource=captureCtx.createMediaStreamSource(micStream);captureProcessor=captureCtx.createScriptProcessor(1024,1,1);captureSource.connect(captureProcessor);captureProcessor.connect(captureCtx.destination);
+  gate={noise:.006,open:false,voiced:0,quiet:0,pre:[]};
+  captureProcessor.onaudioprocess=e=>{
+    if(!active||muted||locked)return;
+    const s=rs(e.inputBuffer.getChannelData(0),captureCtx.sampleRate,24000);let sum=0,peak=0,cross=0,prev=s[0]||0;
+    for(let i=0;i<s.length;i++){const x=s[i],ax=Math.abs(x);sum+=x*x;if(ax>peak)peak=ax;if((x>=0)!=(prev>=0))cross++;prev=x}
+    const rms=Math.sqrt(sum/Math.max(1,s.length)),zcr=cross/Math.max(1,s.length);if(!gate.open)gate.noise=gate.noise*.99+Math.min(rms,.05)*.01;
+    const th=Math.max(.0065,gate.noise*1.7),voiceLike=!(peak>.995&&rms>th*3.8)&&!(zcr>.42&&rms>th*2.9)&&rms>th&&zcr>.002&&zcr<.38;
+    gate.pre.push(s.slice(0));if(gate.pre.length>10)gate.pre.shift();gate.voiced=voiceLike?Math.min(10,gate.voiced+1):Math.max(0,gate.voiced-1);
+    let opened=false;if(!gate.open&&gate.voiced>=2){gate.open=true;gate.quiet=0;opened=true;if(connected)gate.pre.forEach(x=>send({type:'input-audio-append',audio:enc(x)}));gate.pre=[]}
+    if(gate.open){
+      audioIn+=s.length/24000*2.5;budget();
+      if(!opened&&connected)send({type:'input-audio-append',audio:enc(s)});
+      if(voiceLike||rms>th*.82)gate.quiet=0;else gate.quiet++;
+      if(gate.quiet>46){gate.open=false;gate.voiced=0;gate.quiet=0;gate.pre=[]}
+    }
+  };
+}
+function releaseMic(){try{if(captureProcessor)captureProcessor.onaudioprocess=null;captureProcessor&&captureProcessor.disconnect();captureSource&&captureSource.disconnect();micStream&&micStream.getTracks().forEach(t=>t.stop())}catch{}captureProcessor=captureSource=micStream=null}
+async function connect(){
+  if(connecting||connected||locked)return;connecting=true;state('CONNECTING');
+  try{
+    const r=await fetch('/api/titan-token?t='+Date.now(),{cache:'no-store'}),setup=await r.json();if(!r.ok||!setup.token)throw new Error(setup.error||'Titan voice setup failed');
+    socket=new WebSocket(setup.url,setup.protocols||['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token]);let tr='';
+    socket.onopen=()=>send({type:'session-update',config:{instructions:setup.instructions,voice:'cedar',outputModalities:['audio'],inputAudioFormat:{type:'audio/pcm',rate:24000},outputAudioFormat:{type:'audio/pcm',rate:24000},turnDetection:{type:'server-vad',threshold:.52,prefixPaddingMs:300,silenceDurationMs:650},tools:setup.tools||[]}});
+    socket.onmessage=e=>{
+      let m;try{m=JSON.parse(e.data)}catch{return}const t=String(m.type||''),n=t.replace(/[._]/g,'-').toLowerCase();
+      if(t==='session-created'||t==='session-started'||t==='session-updated'){
+        connected=true;connecting=false;reconnects=0;state(ring?'RING MODE':'LISTENING');cap('TITAN',ring?'Ring Mode armed. I will wait for them to speak.':"I'm live. Let's make somebody smile.");
+        if(!ring){send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Start naturally as Titan, London's AI partner. Open with one short light joke, then listen."}});send({type:'response-create',options:{modalities:['audio']}})}
+      }else if(t==='speech-started'){stopPlay();send({type:'response-cancel'});state('LISTENING')}
+      else if(t==='speech-stopped')state('THINKING');
+      else if(t==='audio-delta'||t==='audio-chunk'){play(m.delta||'');state('TITAN SPEAKING')}
+      else if(t==='function-call-arguments-done')tool(m);
+      else if(n.includes('input')&&n.includes('transcription')&&(n.includes('completed')||n.includes('done'))){const h=m.transcript||m.text||'';if(h){transcriptIn+=wc(h);budget();cap('CUSTOMER',h)}}
+      else if(n.includes('transcript')&&n.includes('delta')&&!n.includes('input')){const x=m.delta||m.transcript||'';if(x){tr+=x;cap('TITAN',tr)}}
+      else if(n.includes('transcript')&&(n.includes('done')||n.includes('completed'))&&!n.includes('input')){const x=m.transcript||m.text||tr;if(x&&x!==lastOut){outWords+=wc(x);lastOut=x;budget();cap('TITAN',x)}tr=''}
+      else if(t==='error'){state('ERROR');cap('CONNECTION',m.message||'Realtime error')}
+    };
+    socket.onclose=()=>{
+      connected=false;connecting=false;
+      if(active&&!locked&&reconnects<2){reconnects++;state('RECONNECTING');setTimeout(connect,1400)}
+      else if(!locked){active=false;state('PAUSED');cap('TITAN','Connection paused. Tap Start Titan to try again.')}
+    };
+    socket.onerror=()=>state('CONNECTION ERROR');
+  }catch(e){connecting=false;state('ERROR');cap('TITAN',e.message||String(e))}
+}
+async function start(){if(locked)return;try{await mic();active=true;muted=false;render();await connect()}catch(e){state('MIC ERROR');cap('MIC',e.message||String(e))}}
+function stop(){active=false;connected=false;connecting=false;try{socket&&socket.close()}catch{}socket=null;releaseMic();stopPlay();if(!locked)state('PAUSED')}
+$('start').onclick=start;
+$('mute').onclick=()=>{muted=!muted;render();state(muted?'MUTED':'LISTENING')};
+$('ring').onclick=()=>{ring=!ring;render();if(connected)send({type:'context-append',content:ring?'Ring Mode is active. Stay quiet until the person at the doorbell speaks, then use one brief playful line and move to why London is there.':'Ring Mode is off. Return to normal conversation.',delegationId:null});state(ring?'RING MODE':'LISTENING')};
+$('remember').onclick=()=>{saveMem();stop();cap('MEMORY','Session saved on this iPhone. Tap New Person when you move on.');$('tag').textContent='REMEMBERED'};
+$('newPerson').onclick=reset;
+document.querySelectorAll('[data-fallback]').forEach(b=>b.onclick=()=>speakLocal(b.textContent));
+render();budget();
+})();
+</script>
+</body></html>
