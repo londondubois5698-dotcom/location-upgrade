@@ -37,6 +37,17 @@ const tools = {
       stage: z.enum(['rapport','contact','discovery','qualification','value','close'])
     })
   }),
+  saveDiscovery: tool({
+    description: 'Immediately save a non-sensitive fact the customer clearly states so Sterling Alpha can build the live NOW versus NEW visual. Do not use for SSN, ID, payment, PIN, password, or one-time-code data.',
+    inputSchema: z.object({
+      field: z.enum([
+        'carrier','lines','bill','phones','currentPlan','upgradeInterest',
+        'internetProvider','internetBill','internetUse','discountEligibility',
+        'work','commute','decisionMaker','tv','notes'
+      ]),
+      value: z.string().min(1).max(280)
+    })
+  }),
   commitContact: tool({
     description: 'Call exactly once after first name, last name, phone, and email have all been explicitly confirmed. This sends the confirmed contact packet to the paired iPad, which verifies the current Salesforce house before updating it.',
     inputSchema: z.object({})
@@ -82,7 +93,7 @@ export async function mintRealtimeSetup(){
     tools: toolDefs,
     instructions: STERLING_INSTRUCTIONS,
     teamScope: TEAM_SCOPE,
-    version: '13.0'
+    version: '14.0'
   };
 }
 
