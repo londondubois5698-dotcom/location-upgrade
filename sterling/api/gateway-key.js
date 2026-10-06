@@ -42,7 +42,13 @@ export async function loadStoredGatewayKey(){
 }
 
 export default async function handler(req,res){
+  const origin=String(req.headers.origin||'');
+  if(origin==='https://londondubois5698-dotcom.github.io'||origin.endsWith('.vercel.app')||origin.startsWith('http://localhost:'))res.setHeader('Access-Control-Allow-Origin',origin);
+  res.setHeader('Vary','Origin');
+  res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers','Content-Type');
   res.setHeader('Cache-Control','no-store, max-age=0');
+  if(req.method==='OPTIONS')return res.status(204).end();
   if(req.method==='GET'){
     const env=!!process.env.AI_GATEWAY_API_KEY;
     const cfg=env?null:await readConfig();
