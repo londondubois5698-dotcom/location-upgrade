@@ -21,7 +21,7 @@ input,select{width:100%;padding:13px;border-radius:10px;border:1px solid #315777
 </style></head>
 
 <body><main class="wrap">
-<header class="top"><div class="brand"><b>AT&T</b> PROMOTIONS WITH AI</div><div class="status" id="status" role="status">READY • V3</div></header>
+<header class="top"><div class="brand"><b>AT&T</b> PROMOTIONS WITH AI</div><div class="status" id="status" role="status">READY • V4</div></header>
 <section class="hero"><div class="orb" aria-hidden="true"></div><h1>Meet <span class="sterling">Sterling.</span></h1><div class="sub">A little conversation. A smoother start.</div><div class="micro">London’s digital assistant • live AI + natural voice • contact details stay in this tab until you share them</div><button class="start" id="start">Start Sterling</button></section>
 <section class="grid"><div class="card conversation"><h2>YOUR CONVERSATION</h2>
 <div class="bubble" id="bubble" aria-live="polite">Hi, I’m Sterling. Let’s get your details ready for London.</div>
@@ -40,7 +40,7 @@ input,select{width:100%;padding:13px;border-radius:10px;border:1px solid #315777
 <div id="sendbox" hidden><p class="confirmed">Contact packet ready</p><a class="action" id="send" href="#">Open text to London</a><p class="hint" id="delivery" role="status">Not sent. Opens Messages to 205-310-8645; tap Send there.</p><div class="controls"><button id="copy">Copy packet</button></div></div>
 <p class="hint warning">For privacy and iPhone security, the final SMS still requires you to tap Send in Messages. Sterling pre-fills the entire packet automatically.</p>
 <details><summary>London’s conversation controls</summary><div class="controls"><button id="qualify">Qualification handoff</button><button id="return">Continue phone choices</button><button id="reset">New customer</button></div><p class="hint">New customer clears this tab’s details. Nothing is saved to a public repository or a customer database.</p></details>
-</div></section><footer class="footer">Sterling V3 • Live AI assistant with AI-generated voice. Keep SSNs, ID numbers, payment details, PINs and passcodes in the approved AT&T process. Voice recognition may use your browser’s speech service.</footer>
+</div></section><footer class="footer">Sterling V4 • Live AI assistant with AI-generated voice and cloud speech fallback. Keep SSNs, ID numbers, payment details, PINs and passcodes in the approved AT&T process. Voice recognition may use your browser’s speech service.</footer>
 </main>
 <script>
 'use strict';
@@ -57,6 +57,7 @@ let data={},confirmed=new Set(),stage=0,pending=null,active=false,paused=false,s
 let recognition=null,listenTimer=0,listenWatch=0,speechToken=0,misses=0;
 let audioCtx=null,currentSource=null,currentAudio=null;
 let aiHistory=[];
+let cloudMic=false,recording=false;
 const Rec=window.SpeechRecognition||window.webkitSpeechRecognition;
 
 function status(t){$('status').textContent=t;}
@@ -209,13 +210,93 @@ async function say(text,thenListen=true){
   await cloudSpeak(text,thenListen,token);
 }
 
+
+function toBase64(buf){
+  let binary='',bytes=new Uint8Array(buf),chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk) binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
+  return btoa(binary);
+}
+
+async function recordOnce(){
+  if(recording)return;
+  if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){
+    status('TYPE YOUR ANSWER');
+    $('live').textContent='Microphone recording is unavailable here. Type your answer below.';
+    return;
+  }
+  recording=true;status('LISTENING');
+  $('live').textContent='Listening with cloud speech recognition — go ahead.';
+  let stream,rec,chunks=[],timer,raf,ctx,analyser,source,started=false,silentAt=0,finished=false;
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    const options={};
+    for(const m of ['audio/mp4','audio/webm;codecs=opus','audio/webm']){
+      if(MediaRecorder.isTypeSupported?.(m)){options.mimeType=m;break;}
+    }
+    rec=new MediaRecorder(stream,options);
+    rec.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};
+    const done=()=>new Promise(resolve=>rec.onstop=resolve);
+    rec.start(200);
+
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext;
+      if(AC){
+        ctx=new AC();source=ctx.createMediaStreamSource(stream);
+        analyser=ctx.createAnalyser();analyser.fftSize=1024;source.connect(analyser);
+        const arr=new Uint8Array(analyser.fftSize);
+        const monitor=()=>{
+          if(finished)return;
+          analyser.getByteTimeDomainData(arr);
+          let sum=0;
+          for(const v of arr){const x=(v-128)/128;sum+=x*x;}
+          const rms=Math.sqrt(sum/arr.length);
+          const now=Date.now();
+          if(rms>.025){started=true;silentAt=0;}
+          else if(started){
+            if(!silentAt)silentAt=now;
+            if(now-silentAt>900&&rec.state==='recording'){finished=true;rec.stop();return;}
+          }
+          raf=requestAnimationFrame(monitor);
+        };
+        monitor();
+      }
+    }catch{}
+
+    timer=setTimeout(()=>{if(rec.state==='recording'){finished=true;rec.stop();}},9000);
+    await done();
+    clearTimeout(timer);if(raf)cancelAnimationFrame(raf);
+    stream.getTracks().forEach(t=>t.stop());
+    if(ctx)try{await ctx.close();}catch{}
+
+    const blob=new Blob(chunks,{type:rec.mimeType||'audio/webm'});
+    if(blob.size<1000)throw new Error('No speech detected');
+    status('TRANSCRIBING');$('live').textContent='Got it — turning that into text…';
+    const b64=toBase64(await blob.arrayBuffer());
+    const r=await fetch('/api/transcribe',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({audio:b64,mime:blob.type})
+    });
+    const j=await r.json();
+    if(!r.ok||!j.text)throw new Error(j.error||'Transcription failed');
+    misses=0;
+    handle(j.text);
+  }catch(e){
+    if(stream)stream.getTracks().forEach(t=>t.stop());
+    status('TAP TO RETRY');
+    $('live').textContent='I couldn’t hear that clearly. Tap Talk and try again, or type below.';
+  }finally{
+    recording=false;
+  }
+}
+
 function listen(){
   clearTimeout(listenTimer);
-  if(!active||paused||speaking||recognition||document.hidden)return;
+  if(!active||paused||speaking||recognition||recording||document.hidden)return;
+  if(cloudMic)return recordOnce();
   if(!Rec){
-    status('TYPE YOUR ANSWER');
-    $('live').textContent='Voice input is unavailable here. Type below or fill the contact form.';
-    return;
+    cloudMic=true;
+    return recordOnce();
   }
   const r=new Rec();
   recognition=r;
@@ -247,7 +328,9 @@ function listen(){
   };
   r.onerror=e=>{
     if(recognition!==r)return;
-    failed=true;stopListening();status('MICROPHONE PAUSED');
+    failed=true;stopListening();
+    if(['service-not-allowed','network','audio-capture'].includes(e.error)) cloudMic=true;
+    status('MICROPHONE PAUSED');
     const messages={
       'not-allowed':'Microphone access is blocked. Allow access in Safari settings, then tap Talk, or type below.',
       'service-not-allowed':'Voice recognition is unavailable. Type below or use the contact form.',
