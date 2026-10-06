@@ -38,7 +38,7 @@ const tools = {
     })
   }),
   commitContact: tool({
-    description: 'Call exactly once after first name, last name, phone, and email have all been explicitly confirmed. This starts the same-page Salesforce update for the current house.',
+    description: 'Call exactly once after first name, last name, phone, and email have all been explicitly confirmed. This sends the confirmed contact packet to the paired iPad, which verifies the current Salesforce house before updating it.',
     inputSchema: z.object({})
   }),
   flagAddressMismatch: tool({
@@ -82,7 +82,7 @@ export async function mintRealtimeSetup(){
     tools: toolDefs,
     instructions: STERLING_INSTRUCTIONS,
     teamScope: TEAM_SCOPE,
-    version: '12.2'
+    version: '13.0'
   };
 }
 
