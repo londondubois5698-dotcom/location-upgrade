@@ -1,0 +1,11 @@
+{
+  "name":"Titan Max Field AI",
+  "short_name":"Titan Max",
+  "description":"London's adaptive standalone field AI assistant",
+  "start_url":"/location-upgrade/",
+  "scope":"/location-upgrade/",
+  "display":"standalone",
+  "background_color":"#030713",
+  "theme_color":"#040915",
+  "icons":[{"src":"/location-upgrade/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
