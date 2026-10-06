@@ -234,10 +234,11 @@ async function start(fromBoot=false){
   try{
     if(!fromBoot)localStorage.setItem('titan.autostart.v2','1');
     await ensurePlay();
+    if(playCtx&&playCtx.state!=='running'){const e=new Error('iPhone audio needs one tap to unlock.');e.name='NotAllowedError';throw e}
     active=true;muted=false;render();requestWake();
-    const tokenPromise=connect();
-    const micPromise=mic();
-    await Promise.all([tokenPromise,micPromise]);
+    /* Unlock microphone first. This prevents burning a short-lived brain token when iOS blocks autoplay/audio on page load. */
+    await mic();
+    await connect();
     btn.textContent='Titan Live';state(ring?'RING LIVE':'LISTENING');cap('TITAN','AI assistant ready. Listening now.');bootHide();
     return true;
   }catch(e){
