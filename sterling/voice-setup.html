@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sterling Voice Setup</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#06111f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.w{max-width:680px;margin:auto;padding:24px 18px 40px}.hero{font-size:38px;font-weight:900}.hero b{color:#58baff}.sub{color:#acc8df;line-height:1.5}.card{background:#0a1d31;border:1px solid #1d496f;border-radius:20px;padding:18px;margin:16px 0}.step{font-weight:900;font-size:19px;margin:10px 0}.btn{display:block;width:100%;border:0;border-radius:14px;padding:16px;background:#0786e2;color:#fff;font:inherit;font-weight:900;text-align:center;text-decoration:none}.secondary{background:#173a59}.field{width:100%;border:1px solid #2b5b83;background:#04101d;color:#fff;border-radius:13px;padding:14px;font:inherit;margin:8px 0}.ok{color:#78efb2;font-weight:800}.bad{color:#ff9f9f;font-weight:800}.muted{font-size:13px;color:#8eaac2;line-height:1.5}.row{display:grid;grid-template-columns:1fr;gap:10px}.status{padding:12px;border-radius:12px;background:#071725;color:#b7d7f0;margin-top:12px;line-height:1.45}.tiny{font-size:11px;color:#718ba3}
+</style></head>
+<body><main class="w">
+<div class="hero"><b>Sterling</b> Voice Connection</div>
+<p class="sub">This fixes the one failing piece: the Vercel AI Gateway credential used to mint the short-lived realtime voice token.</p>
+
+<div class="card">
+  <div class="step">1. Create one Vercel AI Gateway API key</div>
+  <p class="muted">Your credits and balance are separate from the credential. Realtime client secrets require an AI Gateway API key even when your balance is positive.</p>
+  <a class="btn" href="https://vercel.com/londondubois5698-dotcom/~/ai" target="_blank" rel="noopener">Open Vercel AI Gateway</a>
+  <p class="muted">In Vercel, open API Keys, create a key named <b>Sterling Realtime</b>, and copy the key. The key is shown only once.</p>
+</div>
+
+<div class="card">
+  <div class="step">2. Connect that key to Sterling</div>
+  <input class="field" id="key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste Vercel AI Gateway key">
+  <input class="field" id="code" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Sterling setup code from ChatGPT">
+  <button class="btn" id="save">Verify & Connect Voice</button>
+  <div id="status" class="status">Not connected yet.</div>
+</div>
+
+<div class="card">
+  <div class="step">3. Automatic live test</div>
+  <p class="muted">After the key is verified, this page immediately tests token minting, the realtime WebSocket, and native audio. Sterling stores the key only in the project's private server-side Blob store. It is never returned by the status API.</p>
+  <button class="btn secondary" id="test">Run Voice Test</button>
+  <div id="testStatus" class="status">Waiting.</div>
+</div>
+
+<p class="tiny">Once this page says VOICE READY, return to ICL, refresh once, and tap the Sterling ONE bookmark. No other Sterling functions are changed by this setup.</p>
+</main>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+async function status(){
+  try{
+    const r=await fetch('/api/gateway-key?t='+Date.now(),{cache:'no-store'});
+    const j=await r.json();
+    if(j.configured){
+      $('status').textContent='Gateway key is connected'+(j.verifiedAt?' and was verified '+j.verifiedAt:'')+'.';
+      $('status').className='status ok';
+    }
+  }catch{}
+}
+async function test(){
+  $('testStatus').textContent='Testing realtime voice path…';$('testStatus').className='status';
+  try{
+    const r=await fetch('/api/realtime-health?t='+Date.now(),{cache:'no-store'});
+    const j=await r.json();
+    if(r.ok&&j.ok&&j.tokenMint&&j.websocket&&j.nativeAudio){
+      $('testStatus').textContent='VOICE READY — token, WebSocket, and native audio all passed.';
+      $('testStatus').className='status ok';
+    }else{
+      $('testStatus').textContent='Voice test failed: '+(j.error||JSON.stringify(j));
+      $('testStatus').className='status bad';
+    }
+  }catch(e){
+    $('testStatus').textContent='Voice test failed: '+e.message;$('testStatus').className='status bad';
+  }
+}
+$('save').onclick=async()=>{
+  const apiKey=$('key').value.trim(),setupCode=$('code').value.trim();
+  if(!apiKey||!setupCode){$('status').textContent='Paste both the Gateway key and Sterling setup code.';$('status').className='status bad';return}
+  $('save').disabled=true;$('status').textContent='Verifying key against GPT-Realtime-2.1…';$('status').className='status';
+  try{
+    const r=await fetch('/api/gateway-key',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({apiKey,setupCode})});
+    const j=await r.json();
+    if(!r.ok||!j.ok)throw new Error(j.error||'Setup failed');
+    $('key').value='';$('code').value='';
+    $('status').textContent=j.alreadyConfigured?'Sterling voice is already connected.':'Gateway key verified and securely connected.';
+    $('status').className='status ok';
+    await test();
+  }catch(e){
+    $('status').textContent='Could not connect: '+e.message;$('status').className='status bad';
+  }finally{$('save').disabled=false}
+};
+$('test').onclick=test;
+status();
+})();
+</script></body></html>
