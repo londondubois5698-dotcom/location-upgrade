@@ -87,7 +87,7 @@ function currentStop(){
   var u=urlStop(),v=visibleCurrentAddress();
   if(v){
     var stale=u.street&&norm(u.street)!==norm(v.street);
-    u.street=v.street;u.city=v.city;u.state=v.state;u.postalcode=v.postalcode;
+    u.urlStreet=u.street||'';u.staleUrl=!!stale;u.street=v.street;u.city=v.city;u.state=v.state;u.postalcode=v.postalcode;u.addressSource='visible-current-record';
     if(stale){u.gpRouteStopId='';u.latitude='';u.longitude=''}
   }
   return u;
@@ -124,7 +124,7 @@ function $(id){return sh.getElementById(id)}
 function status(msg,kind){var e=$('status');e.textContent=msg;e.className='status '+(kind||'')}
 function renderStop(){
   stop=currentStop();
-  $('stop').textContent='Active house: '+(label(stop)||'address not detected');
+  $('stop').textContent='Active house: '+(label(stop)||'address not detected')+(stop.staleUrl?' • old URL ignored ('+stop.urlStreet+')':' • visible record verified');
   $('compactHouse').textContent=stop.street||'Route ready';
 }
 function renderPacket(){
