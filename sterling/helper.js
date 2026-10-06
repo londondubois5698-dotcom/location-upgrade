@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 try{
-  if(window.__sterlingONE&&window.__sterlingONE.version==='12.0'){
+  if(window.__sterlingONE&&window.__sterlingONE.version==='12.1'){
     window.__sterlingONE.open();
     return;
   }
@@ -12,7 +12,7 @@ try{
   if(existing)existing.remove();
   var s=document.createElement('script');
   s.id='sterling-one-v12-loader';
-  s.src='https://sterling-olive.vercel.app/one.js?v=12&t='+Date.now();
+  s.src='https://sterling-olive.vercel.app/one.js?v=12.1&t='+Date.now();
   s.async=false;
   s.onerror=function(){alert('Sterling V12 could not load. Refresh Salesforce and tap the Sterling bookmark again.');};
   (document.documentElement||document.body).appendChild(s);
