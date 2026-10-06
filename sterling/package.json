@@ -5,7 +5,7 @@
   "dependencies": {
     "ai": "^7.0.128",
     "zod": "^4.1.11",
-    "@vercel/blob": "^1.1.1",
+    "@vercel/blob": "^2.4.0",
     "qrcode": "^1.5.4",
     "ws": "^8.18.3"
   }
