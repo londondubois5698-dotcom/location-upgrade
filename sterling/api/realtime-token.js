@@ -1,5 +1,5 @@
 import {
-  gateway,
+  createGateway,
   experimental_getRealtimeToolDefinitions as getRealtimeToolDefinitions,
   tool
 } from 'ai';
@@ -7,6 +7,12 @@ import { z } from 'zod';
 import { STERLING_INSTRUCTIONS } from '../brain.js';
 
 const MODEL = 'openai/gpt-realtime-2.1';
+const TEAM_SCOPE = 'londondubois5698-dotcom';
+
+const realtimeGateway = createGateway({
+  teamIdOrSlug: TEAM_SCOPE
+});
+
 const ALLOWED_ORIGINS = new Set([
   'https://win.iclportal.com',
   'https://sterling-olive.vercel.app',
@@ -52,17 +58,27 @@ function applyCors(req,res){
 }
 
 export async function mintRealtimeSetup(){
-  const toolDefs = await getRealtimeToolDefinitions({ tools });
-  const setup = await gateway.experimental_realtime.getToken({
+  const toolDefs = await getRealtimeToolDefinitions({tools});
+  const setup = await realtimeGateway.experimental_realtime.getToken({
     model: MODEL,
     expiresAfterSeconds: 240
   });
+
+  const model = realtimeGateway.experimental_realtime(MODEL);
+  const socket = model.getWebSocketConfig({
+    token: setup.token,
+    url: setup.url
+  });
+
   return {
     ...setup,
+    url: socket.url,
+    protocols: socket.protocols || [],
     model: MODEL,
     tools: toolDefs,
     instructions: STERLING_INSTRUCTIONS,
-    version: '12.0'
+    teamScope: TEAM_SCOPE,
+    version: '12.1'
   };
 }
 
@@ -78,7 +94,14 @@ export default async function handler(req,res){
     const setup = await mintRealtimeSetup();
     return res.status(200).json(setup);
   }catch(e){
-    console.error('[sterling:realtime-token] failed', { message:e?.message, stack:e?.stack });
-    return res.status(500).json({error:e?.message||'Could not start realtime voice'});
+    console.error('[sterling:realtime-token] failed', {
+      message:e?.message,
+      name:e?.name,
+      stack:e?.stack
+    });
+    return res.status(500).json({
+      error:e?.message||'Could not start realtime voice',
+      code:e?.name||'REALTIME_TOKEN_ERROR'
+    });
   }
 }
