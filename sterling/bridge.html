@@ -1,32 +1,47 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sterling Bridge</title></head>
-<body style="font-family:-apple-system,sans-serif;background:#071424;color:#fff;padding:18px">
-<div id="s">Connecting Sterling to the active route…</div>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Sterling Bridge</title>
+<style>body{margin:0;background:#071424;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:24px}.card{max-width:620px;margin:8vh auto;background:#0a1c30;border:1px solid #1b456c;border-radius:20px;padding:22px}a{color:#69c2ff}.muted{color:#a8bfd4;line-height:1.5}</style></head>
+<body><div class="card"><h1>Sterling Bridge</h1><div id="s">Connecting Sterling to the active route…</div><p id="help" class="muted"></p></div>
 <script>
 (function(){
-  const out=document.getElementById('s');
+  const out=document.getElementById('s'),help=document.getElementById('help');
   const q=new URLSearchParams(location.search);
   const token=q.get('token')||'';
   const target=q.get('origin')||'';
   const allowed=target==='https://win.iclportal.com';
-  function send(){
-    try{
-      if(!allowed||!token){out.textContent='This bridge request is not valid.';return;}
-      const raw=localStorage.getItem('sterling.pending.v2')||localStorage.getItem('sterling.pending.v1');
-      if(!raw){out.textContent='No confirmed Sterling customer packet is saved on this device.';return;}
-      const packet=JSON.parse(raw); if(packet.expiresAt&&Date.now()>packet.expiresAt){localStorage.removeItem('sterling.pending.v2');out.textContent='That Sterling customer packet expired. Start Sterling again for the active stop.';return;}
-      if(packet.expiresAt&&Number(packet.expiresAt)<Date.now()){
-        localStorage.removeItem('sterling.pending.v2');
-        out.textContent='The saved Sterling packet expired. Reconfirm the customer in Sterling.';
-        return;
-      }
-      if(!window.opener){out.textContent='Open this bridge from Sterling Helper on the active Salesforce/ICL page.';return;}
-      window.opener.postMessage({type:'STERLING_ROUTE_PACKET_V2',token,packet},target);
-      localStorage.removeItem('sterling.pending.v2');
-      out.textContent='Customer packet transferred to the active route. You can close this window.';
-      setTimeout(()=>window.close(),650);
-    }catch(e){out.textContent='Sterling packet could not be transferred.';}
+
+  if(!allowed||!token){
+    out.textContent='Nothing is broken — this page is not meant to be opened by itself.';
+    help.innerHTML='Go back to your active ICL / Geopointe house and run the <b>Sterling Helper</b> bookmark there. If you have not installed it yet, <a href="/helper.html">open the simple installer</a>.';
+    return;
   }
-  send();
+
+  try{
+    const raw=localStorage.getItem('sterling.pending.v2')||localStorage.getItem('sterling.pending.v1');
+    if(!raw){
+      out.textContent='Helper linked. Sterling has not finished a customer packet yet.';
+      help.textContent='Keep talking with the customer in Sterling. When the four contact details are confirmed, Sterling will send them back to the active route helper.';
+      return;
+    }
+    const packet=JSON.parse(raw);
+    if(packet.expiresAt&&Number(packet.expiresAt)<Date.now()){
+      localStorage.removeItem('sterling.pending.v2');
+      out.textContent='The saved Sterling packet expired.';
+      help.textContent='Reopen Sterling from the active house and reconfirm the customer.';
+      return;
+    }
+    if(!window.opener){
+      out.textContent='The helper connection was lost.';
+      help.innerHTML='Return to the active ICL page and tap the <b>Sterling Helper</b> bookmark again.';
+      return;
+    }
+    window.opener.postMessage({type:'STERLING_ROUTE_PACKET_V2',token,packet},target);
+    out.textContent='Customer packet transferred to the active route.';
+    help.textContent='You can close this tab.';
+    setTimeout(()=>window.close(),700);
+  }catch{
+    out.textContent='Sterling could not transfer the packet.';
+    help.textContent='Return to the active ICL page and tap the Sterling Helper bookmark again.';
+  }
 })();
 </script></body></html>
