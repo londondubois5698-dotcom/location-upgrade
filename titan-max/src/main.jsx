@@ -368,5 +368,5 @@ function Fact({label,value}){return <div className="fact"><span>{label}</span><s
 createRoot(document.getElementById('root')).render(<App/>);
 
 if('serviceWorker'in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('/location-upgrade/sw.js').catch(()=>{}));
+  window.addEventListener('load',()=>navigator.serviceWorker.register('/location-upgrade/titan-live/sw.js').catch(()=>{}));
 }
