@@ -4,6 +4,7 @@
 var APP='https://sterling-olive.vercel.app';
 var VERSION='13.0';
 var POLL_MS=450;
+var FIELD_MODE=/iclportal\.com$/i.test(location.hostname);
 var state={
   active:false, connected:false, connecting:false, muted:false, updateBusy:false,
   socket:null, current:null, candidateKey:'', candidateCount:0,
@@ -282,7 +283,7 @@ try{
   state.tetherId=localStorage.getItem('sterling.tetherId.v1')||'';
   state.lastCommandId=localStorage.getItem('sterling.lastCommand.v1')||'';
 }catch(e){}
-if(state.tetherId){state.tetherActive=true;state.active=true;setTimeout(function(){publishHouse();tetherHeartbeat();pollTether()},450)}
+if(FIELD_MODE&&state.tetherId){state.tetherActive=true;state.active=true;setTimeout(function(){publishHouse();tetherHeartbeat();pollTether()},450)}
 
 var micStream=null,captureCtx=null,captureSource=null,captureProcessor=null,playCtx=null,playTime=0,playingSources=[];
 function ensurePlay(){
