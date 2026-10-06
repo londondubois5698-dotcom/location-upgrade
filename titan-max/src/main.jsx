@@ -114,7 +114,7 @@ function App(){
   const rafRef=useRef(null);
   const faceRef=useRef(null);
 
-  const model=useMemo(()=>gateway.experimental_realtime('openai/gpt-realtime-2'),[]);
+  const model=useMemo(()=>gateway.experimental_realtime('openai/gpt-realtime-2.1'),[]);
   const instructions=useMemo(()=>{
     const learned=lessons.length?'\nPERSISTENT FIELD LESSONS FROM PRIOR SESSIONS:\n'+lessons.slice(0,25).map((x,i)=>`${i+1}. ${x}`).join('\n'):'';
     return BASE_BRAIN+learned;
