@@ -58,7 +58,7 @@ export default async function handler(req,res){
 
     return res.status(200).json({
       ok:true,
-      version:'13.0',
+      version:'14.0',
       model:setup.model,
       tokenMint:true,
       websocket:true,
@@ -70,7 +70,7 @@ export default async function handler(req,res){
     console.error('[sterling:realtime-health] failed',{message:e?.message,stack:e?.stack});
     return res.status(500).json({
       ok:false,
-      version:'13.0',
+      version:'14.0',
       error:e?.message||String(e),
       latencyMs:Date.now()-started
     });
