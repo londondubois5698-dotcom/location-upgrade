@@ -1,3 +1,5 @@
+import { generateText } from 'ai';
+
 const SYSTEM = `You are Sterling, London's conversational AT&T field-sales digital assistant.
 
 Voice and style:
@@ -25,51 +27,33 @@ If the customer asks a question, answer it before continuing qualification.
 
 Return only the words Sterling should say aloud. No markdown, labels, or bullet points.`;
 
-function pickText(data){
-  if(!data) return "";
-  if(typeof data.output_text==="string") return data.output_text;
-  const c=data.choices?.[0]?.message?.content;
-  if(typeof c==="string") return c;
-  if(Array.isArray(c)) return c.map(x=>x?.text||"").join("");
-  if(Array.isArray(data.output)){
-    for(const item of data.output){
-      if(Array.isArray(item?.content)){
-        const t=item.content.map(x=>x?.text||x?.value||"").join("");
-        if(t) return t;
-      }
-    }
-  }
-  return "";
-}
-
 export default async function handler(req,res){
-  if(req.method!=="POST") return res.status(405).json({error:"POST only"});
-  const token=process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN;
-  if(!token) return res.status(503).json({error:"AI authentication unavailable"});
+  if(req.method!=='POST') return res.status(405).json({error:'POST only'});
   try{
-    const body=typeof req.body==="string"?JSON.parse(req.body):req.body||{};
-    const message=String(body.message||"").slice(0,3000);
+    const body=typeof req.body==='string'?JSON.parse(req.body):req.body||{};
+    const message=String(body.message||'').slice(0,3000);
     const history=Array.isArray(body.history)?body.history.slice(-10):[];
-    const context=String(body.context||"").slice(0,5000);
-    if(!message) return res.status(400).json({error:"message required"});
+    const context=String(body.context||'').slice(0,5000);
+    if(!message) return res.status(400).json({error:'message required'});
 
     const messages=[
-      {role:"system",content:SYSTEM+(context?"\n\nVERIFIED CONTEXT:\n"+context:"")},
-      ...history.map(m=>({role:m.role==="assistant"?"assistant":"user",content:String(m.content||"").slice(0,2000)})),
-      {role:"user",content:message}
+      {role:'system',content:SYSTEM+(context?'\n\nVERIFIED CONTEXT:\n'+context:'')},
+      ...history.map(m=>({role:m.role==='assistant'?'assistant':'user',content:String(m.content||'').slice(0,2000)})),
+      {role:'user',content:message}
     ];
-    const r=await fetch("https://ai-gateway.vercel.sh/v1/chat/completions",{
-      method:"POST",
-      headers:{"content-type":"application/json","authorization":"Bearer "+token},
-      body:JSON.stringify({model:"openai/gpt-5.6-luna",messages,temperature:0.45,max_tokens:220})
+
+    const result=await generateText({
+      model:'openai/gpt-5.6-luna',
+      messages,
+      temperature:0.45,
+      maxOutputTokens:220
     });
-    const data=await r.json();
-    if(!r.ok) return res.status(r.status).json({error:data?.error?.message||"AI request failed"});
-    const text=pickText(data).trim();
-    if(!text) return res.status(502).json({error:"Empty AI response"});
-    res.setHeader("Cache-Control","no-store");
+
+    const text=String(result.text||'').trim();
+    if(!text) return res.status(502).json({error:'Empty AI response'});
+    res.setHeader('Cache-Control','no-store');
     return res.status(200).json({text});
   }catch(e){
-    return res.status(500).json({error:e?.message||"AI request failed"});
+    return res.status(500).json({error:e?.message||'AI request failed'});
   }
 }
