@@ -151,42 +151,58 @@ async function mic(){
 }
 function releaseMic(){try{if(captureProcessor)captureProcessor.onaudioprocess=null;captureProcessor&&captureProcessor.disconnect();captureSource&&captureSource.disconnect();micStream&&micStream.getTracks().forEach(t=>t.stop())}catch{}captureProcessor=captureSource=micStream=null}
 async function connect(){
-  if(connecting||connected||locked)return true;
-  connecting=true;state('BRAIN LINK');cap('TITAN','Connecting…');
-  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),12000);
+  if(connected)return true;if(connecting)return false;if(locked)return false;
+  connecting=true;state('BRAIN LINK');cap('TITAN','Connecting voice…');
   try{
-    const r=await fetch('/api/titan-token?t='+Date.now(),{cache:'no-store',signal:controller.signal});clearTimeout(timer);const setup=await r.json();if(!r.ok||!setup.token)throw new Error(setup.error||'Titan voice setup failed');
+    const controller=new AbortController(),tokenTimer=setTimeout(()=>controller.abort(),12000);
+    const r=await fetch('/api/titan-token?t='+Date.now(),{cache:'no-store',signal:controller.signal});clearTimeout(tokenTimer);
+    const setup=await r.json();if(!r.ok||!setup.token||!setup.url)throw new Error(setup.error||'Titan voice setup failed');
     const protocols=(setup.protocols&&setup.protocols.length)?setup.protocols:['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token];
-    socket=new WebSocket(setup.url,protocols);let tr='';
-    const ready=new Promise((resolve,reject)=>{
-      const wsTimer=setTimeout(()=>reject(new Error('Titan brain socket did not become ready.')),12000);
-      socket.addEventListener('open',()=>{clearTimeout(wsTimer);resolve(true)},{once:true});
-      socket.addEventListener('error',()=>{clearTimeout(wsTimer);reject(new Error('Titan brain socket connection failed.'))},{once:true});
+    const ws=new WebSocket(setup.url,protocols);socket=ws;let tr='',greeted=false;
+    return await new Promise((resolve,reject)=>{
+      let settled=false;
+      const failTimer=setTimeout(()=>{if(!settled){settled=true;try{ws.close()}catch{}reject(new Error('Titan voice connection timed out.'))}},15000);
+      const ok=()=>{if(!settled){settled=true;clearTimeout(failTimer);resolve(true)}};
+      const fail=msg=>{if(!settled){settled=true;clearTimeout(failTimer);reject(new Error(msg))}};
+      ws.onopen=()=>{
+        connecting=false;
+        send({type:'session-update',config:{instructions:setup.instructions,voice:'cedar',outputModalities:['audio'],inputAudioFormat:{type:'audio/pcm',rate:24000},outputAudioFormat:{type:'audio/pcm',rate:24000},turnDetection:{type:'server-vad',threshold:.52,prefixPaddingMs:300,silenceDurationMs:600},tools:setup.tools||[]}});
+        /* A successfully opened authenticated realtime socket is ready enough to request speech.
+           Do not deadlock waiting for a particular SDK session acknowledgement event. */
+        connected=true;reconnects=0;state(ring?'RING LIVE':'LISTENING');$('start').textContent='Titan Live';
+        cap('TITAN',ring?'Ring camera mode live.':'Connected. I’m listening.');
+        setTimeout(()=>{
+          if(greeted||!connected)return;greeted=true;
+          const text=ring
+            ?"RING MODE. Speak first right now. Give one very short funny BFF-style doorbell-tech opener, identify yourself as Titan, London's AI partner, say London is right here, ask for 20 seconds, then listen."
+            :"Start speaking now as Titan, London's AI partner. One short playful opener, then listen.";
+          send({type:'conversation-item-create',item:{type:'text-message',role:'user',text}});
+          send({type:'response-create',options:{modalities:['audio']}});
+        },180);
+        ok();
+      };
+      ws.onmessage=e=>{
+        let m;try{m=JSON.parse(e.data)}catch{return}const t=String(m.type||''),n=t.replace(/[._]/g,'-').toLowerCase();
+        if(n==='session-created'||n==='session-started'||n==='session-updated'){
+          connected=true;connecting=false;state(ring?'RING LIVE':'LISTENING');
+        }else if(t==='speech-started'){stopPlay();send({type:'response-cancel'});state('LISTENING')}
+        else if(t==='speech-stopped')state('THINKING');
+        else if(t==='audio-delta'||t==='audio-chunk'){play(m.delta||'');state('TITAN SPEAKING')}
+        else if(t==='function-call-arguments-done')tool(m);
+        else if(n.includes('input')&&n.includes('transcription')&&(n.includes('completed')||n.includes('done'))){const h=m.transcript||m.text||'';if(h){transcriptIn+=wc(h);budget();cap('CUSTOMER',h);const am=h.match(/(?:i(?:'m| am) at|we(?:'re| are) at|address is)\s+([^,.!?]+)/i);if(am){currentAddress=am[1].trim();const old=nearestLog();if(old&&connected)send({type:'context-append',content:'London identified this stop as '+currentAddress+'. Earlier stop memory: '+JSON.stringify(old),delegationId:null})}}}
+        else if(n.includes('transcript')&&n.includes('delta')&&!n.includes('input')){const x=m.delta||m.transcript||'';if(x){tr+=x;cap('TITAN',tr)}}
+        else if(n.includes('transcript')&&(n.includes('done')||n.includes('completed'))&&!n.includes('input')){const x=m.transcript||m.text||tr;if(x&&x!==lastOut){outWords+=wc(x);lastOut=x;budget();cap('TITAN',x)}tr=''}
+        else if(t==='error'){const msg=m.message||m.error?.message||'Realtime error';state('VOICE ERROR');cap('CONNECTION',msg);fail(msg)}
+      };
+      ws.onerror=()=>{state('VOICE ERROR');fail('Titan realtime socket failed.')};
+      ws.onclose=()=>{
+        connected=false;connecting=false;
+        if(!settled)fail('Titan realtime socket closed before voice started.');
+        else if(active&&!locked&&reconnects<2){reconnects++;state('RECONNECTING');setTimeout(connect,1000)}
+        else if(!locked){active=false;state('PAUSED')}
+      };
     });
-    socket.onopen=()=>send({type:'session-update',config:{instructions:setup.instructions,voice:'cedar',outputModalities:['audio'],inputAudioFormat:{type:'audio/pcm',rate:24000},outputAudioFormat:{type:'audio/pcm',rate:24000},turnDetection:{type:'server-vad',threshold:.52,prefixPaddingMs:300,silenceDurationMs:600},tools:setup.tools||[]}});
-    await ready;return true;
-    socket.onmessage=e=>{
-      let m;try{m=JSON.parse(e.data)}catch{return}const t=String(m.type||''),n=t.replace(/[._]/g,'-').toLowerCase();
-      if(t==='session-created'||t==='session-started'||t==='session-updated'||n==='session-created'||n==='session-started'||n==='session-updated'){
-        connected=true;connecting=false;reconnects=0;$('start').textContent='Titan Live';state(ring?'RING MODE':'LISTENING');cap('TITAN',ring?'Ring Mode armed. I will wait for them to speak.':"I'm live. Let's make somebody smile.");
-        if(!ring){send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Start naturally as Titan, London's AI partner. Open with one short light joke, then listen."}});send({type:'response-create',options:{modalities:['audio']}})}
-        else{send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"RING MODE IS LIVE. Speak first now. You are talking through London's phone to a homeowner on their doorbell camera. Be funny, warm and instantly likable, like two familiar pieces of tech joking with each other. One quick doorbell/AI joke, then: I'm Titan, London's AI partner. London's right here with me. We just need 20 seconds to tell you why we're at your door. Keep it under 25 words, then stop and listen."}});send({type:'response-create',options:{modalities:['audio']}})}
-      }else if(t==='speech-started'){stopPlay();send({type:'response-cancel'});state('LISTENING')}
-      else if(t==='speech-stopped')state('THINKING');
-      else if(t==='audio-delta'||t==='audio-chunk'){play(m.delta||'');state('TITAN SPEAKING')}
-      else if(t==='function-call-arguments-done')tool(m);
-      else if(n.includes('input')&&n.includes('transcription')&&(n.includes('completed')||n.includes('done'))){const h=m.transcript||m.text||'';if(h){transcriptIn+=wc(h);budget();cap('CUSTOMER',h);const am=h.match(/(?:i(?:'m| am) at|we(?:'re| are) at|address is)\s+([^,.!?]+)/i);if(am){currentAddress=am[1].trim();const old=nearestLog();if(old&&connected)send({type:'context-append',content:'London identified this stop as '+currentAddress+'. Earlier stop memory: '+JSON.stringify(old),delegationId:null})}}}
-      else if(n.includes('transcript')&&n.includes('delta')&&!n.includes('input')){const x=m.delta||m.transcript||'';if(x){tr+=x;cap('TITAN',tr)}}
-      else if(n.includes('transcript')&&(n.includes('done')||n.includes('completed'))&&!n.includes('input')){const x=m.transcript||m.text||tr;if(x&&x!==lastOut){outWords+=wc(x);lastOut=x;budget();cap('TITAN',x)}tr=''}
-      else if(t==='error'){state('ERROR');cap('CONNECTION',m.message||'Realtime error')}
-    };
-    socket.onclose=()=>{
-      connected=false;connecting=false;
-      if(active&&!locked&&reconnects<2){reconnects++;state('RECONNECTING');setTimeout(connect,1400)}
-      else if(!locked){active=false;state('PAUSED');cap('TITAN','Connection paused. Tap Start Titan to try again.')}
-    };
-    socket.onerror=()=>state('CONNECTION ERROR');
-  }catch(e){clearTimeout(timer);connecting=false;state('ERROR');cap('TITAN',e.name==='AbortError'?'Titan took too long to connect. Tap Try Again.':(e.message||String(e)));throw e}
+  }catch(e){connecting=false;connected=false;state('START ERROR');cap('STARTUP',e.name==='AbortError'?'Titan token request timed out.':(e.message||String(e)));throw e}
 }
 async function start(){
   if(locked)return;
