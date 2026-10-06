@@ -2,13 +2,14 @@
 'use strict';
 
 var APP='https://sterling-olive.vercel.app';
-var VERSION='12.2';
+var VERSION='13.0';
 var POLL_MS=450;
 var state={
   active:false, connected:false, connecting:false, muted:false, updateBusy:false,
   socket:null, current:null, candidateKey:'', candidateCount:0,
   contact:{first:'',last:'',phone:'',email:''}, stage:'rapport',
-  orderId:'', mismatch:false, lastError:'', reconnects:0
+  orderId:'', mismatch:false, lastError:'', reconnects:0,
+  tetherId:'', pairCode:'', phoneSeen:false, tetherActive:false, lastCommandId:''
 };
 
 function clean(v){return String(v==null?'':v).trim()}
@@ -127,10 +128,8 @@ function resetForHouse(next){
   state.contact={first:'',last:'',phone:'',email:''};
   state.stage='rapport';state.orderId='';state.mismatch=false;
   render();
-  if(state.connected){
-    send({type:'context-append',content:'Salesforce current house changed. Reset all household assumptions. Current live house: '+next.label+'.',delegationId:null});
-  }
   setStatus('HOUSE UPDATED','good');
+  publishHouse();
 }
 
 function scanHouse(){
@@ -157,11 +156,11 @@ sh.innerHTML=
 '*{box-sizing:border-box}.pill{display:flex;align-items:center;gap:8px;background:#061425;color:white;border:1px solid #24567f;border-radius:999px;padding:8px 9px;box-shadow:0 12px 34px #0008;max-width:min(420px,calc(100vw - 20px))}.dot{width:10px;height:10px;border-radius:50%;background:#6c7d8f;flex:none}.dot.live{background:#26dc87;box-shadow:0 0 0 5px #26dc8724}.addr{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}.pill button,.panel button{border:0;border-radius:999px;background:#0b75ca;color:#fff;font:inherit;font-weight:850;min-height:36px;padding:8px 12px;touch-action:manipulation}.panel{display:none;width:min(380px,calc(100vw - 20px));background:#061425;color:#fff;border:1px solid #24567f;border-radius:18px;box-shadow:0 18px 50px #0009;overflow:hidden}.head{display:flex;justify-content:space-between;align-items:center;padding:12px 13px;background:#0b2845}.title{font-weight:900}.title b{color:#59baff}.ver{font-size:10px;color:#8cb0ce}.body{padding:13px}.route{font-size:13px;line-height:1.4;background:#0b2037;border-radius:12px;padding:10px;color:#d5ebff}.status{font-size:12px;margin:10px 0;color:#9ac9ef}.good{color:#77efb3}.bad{color:#ffabab}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.full{grid-column:1/-1}.secondary{background:#193a59!important}.danger{background:#7c2930!important}.contact{font-size:11px;line-height:1.45;color:#b6cee3;margin-top:10px}.code{display:none;font-size:22px;font-weight:900;text-align:center;color:#79efb6;background:#0a2036;border-radius:12px;padding:11px;margin-top:10px}.mini{font-size:10px;color:#7792aa;line-height:1.4;margin-top:10px}@media(max-width:600px){.panel{width:calc(100vw - 16px)}.addr{max-width:155px}}</style>'+
 '<div class="pill" id="pill"><span class="dot" id="dot"></span><span class="addr" id="pillAddr">Detecting house…</span><button id="pillStart">Start</button><button id="open" class="secondary">Open</button></div>'+
 '<div class="panel" id="panel">'+
-'<div class="head"><div><div class="title"><b>Sterling</b> ONE</div><div class="ver">V12 • one page • native realtime audio</div></div><button id="close" class="secondary">Minimize</button></div>'+
+'<div class="head"><div><div class="title"><b>Sterling</b> ONE</div><div class="ver">V13 • iPad Salesforce tether</div></div><button id="close" class="secondary">Minimize</button></div>'+
 '<div class="body"><div class="route" id="route">Detecting current Salesforce house…</div><div class="status" id="status">READY</div>'+
-'<div class="grid"><button class="full" id="start">Start Sterling</button><button class="secondary" id="mute" style="display:none">Mute</button><button class="danger" id="stop" style="display:none">Stop</button><button class="secondary full" id="voiceSetup" style="display:none">Fix Voice Connection</button></div>'+
+'<div class="grid"><button class="full" id="start">Start iPad Tether</button><button class="secondary full" id="pairPhone">Pair Phone</button><button class="danger full" id="stop" style="display:none">Stop Tether</button><button class="secondary full" id="voiceSetup" style="display:none">Voice setup belongs on phone</button></div>'+
 '<div class="contact" id="contact">No confirmed customer details yet.</div><div class="code" id="code"></div>'+
-'<div class="mini">No QR. No second tab. Sterling stays inside this Salesforce page, watches the current record, and resets automatically when the house changes.</div>'+
+'<div class="mini">Keep this Salesforce page open on the iPad. Your phone handles the live Sterling conversation. This tether watches the current house, receives confirmed customer details from the phone, verifies the house again, updates Salesforce, and returns the Partner Order ID.</div>'+
 '</div></div>';
 
 function $(id){return sh.getElementById(id)}
@@ -177,24 +176,113 @@ function renderAddress(){
 }
 function render(){
   renderAddress();
-  $('dot').className='dot'+(state.connected?' live':'');
-  $('pillStart').textContent=state.active?'Live':'Start';
-  $('start').style.display=state.active?'none':'block';
-  $('mute').style.display=state.active?'block':'none';
-  $('stop').style.display=state.active?'block':'none';
-  $('mute').textContent=state.muted?'Unmute':'Mute';
+  $('dot').className='dot'+(state.phoneSeen?' live':'');
+  $('pillStart').textContent=state.phoneSeen?'PHONE LINKED':(state.tetherActive?'TETHER':'START');
+  $('start').style.display=state.tetherActive?'none':'block';
+  $('pairPhone').style.display='block';
+  $('stop').style.display=state.tetherActive?'block':'none';
   var c=state.contact;
   var bits=[];
   if(c.first)bits.push(c.first);
   if(c.last)bits.push(c.last);
   if(c.phone)bits.push(c.phone);
   if(c.email)bits.push(c.email);
-  $('contact').textContent=bits.length?('Confirmed: '+bits.join(' • ')):'No confirmed customer details yet.';
-  if(state.orderId){$('code').style.display='block';$('code').textContent='Partner Order ID: '+state.orderId}else{$('code').style.display='none';$('code').textContent=''}
+  $('contact').textContent=bits.length?('Confirmed from phone: '+bits.join(' • ')):(state.phoneSeen?'Phone connected. Waiting for customer details.':'Phone not linked yet.');
+  if(state.pairCode){$('code').style.display='block';$('code').textContent='PAIR CODE: '+state.pairCode}
+  else if(state.orderId){$('code').style.display='block';$('code').textContent='Partner Order ID: '+state.orderId}
+  else{$('code').style.display='none';$('code').textContent=''}
 }
 function openPanel(){$('pill').style.display='none';$('panel').style.display='block'}
 function closePanel(){$('panel').style.display='none';$('pill').style.display='flex'}
-$('open').onclick=openPanel;$('close').onclick=closePanel;$('pillStart').onclick=function(){if(state.active)openPanel();else startSterling()};$('start').onclick=startSterling;$('voiceSetup').onclick=function(){window.open(APP+'/voice-setup.html?v=12.2','sterling-voice-setup')};
+$('open').onclick=openPanel;$('close').onclick=closePanel;$('pillStart').onclick=function(){openPanel();if(!state.tetherActive)startTether()};$('start').onclick=startTether;$('pairPhone').onclick=pairNewPhone;$('stop').onclick=stopTether;$('voiceSetup').onclick=function(){window.open(APP+'/phone.html?v=13','sterling-phone')};
+
+
+function housePacket(){
+  if(!state.current)return null;
+  return {street:state.current.street,city:state.current.city,state:state.current.state,postalcode:state.current.postalcode,key:state.current.key,label:state.current.label};
+}
+async function tetherPost(body){
+  var r=await fetch(APP+'/api/tether',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  var j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Tether request failed');return j;
+}
+async function tetherGet(part){
+  var r=await fetch(APP+'/api/tether?tetherId='+encodeURIComponent(state.tetherId)+'&part='+encodeURIComponent(part)+'&t='+Date.now(),{cache:'no-store'});
+  var j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Tether request failed');return j;
+}
+async function pairNewPhone(){
+  openPanel();setStatus('CREATING PHONE PAIR CODE…');
+  try{
+    var j=await tetherPost({action:'pair-create'});
+    state.tetherId=j.tetherId;state.pairCode=j.code;state.phoneSeen=false;state.lastCommandId='';
+    try{localStorage.setItem('sterling.tetherId.v1',state.tetherId);localStorage.removeItem('sterling.lastCommand.v1')}catch(e){}
+    state.tetherActive=true;state.active=true;render();setStatus('ENTER THIS CODE ON YOUR PHONE: '+j.code,'good');
+    await publishHouse();await tetherHeartbeat();
+  }catch(e){setStatus(e.message||String(e),'bad')}
+}
+async function startTether(){
+  openPanel();
+  if(!state.tetherId){await pairNewPhone();return}
+  state.tetherActive=true;state.active=true;render();setStatus('IPAD TETHER ACTIVE','good');
+  await publishHouse();await tetherHeartbeat();pollTether();
+}
+function stopTether(){state.tetherActive=false;state.active=false;state.phoneSeen=false;render();setStatus('TETHER STOPPED')}
+async function publishHouse(){
+  if(!state.tetherId||!state.tetherActive||!state.current)return;
+  try{await tetherPost({action:'ipad-heartbeat',tetherId:state.tetherId,house:housePacket(),version:VERSION})}catch(e){}
+}
+async function tetherHeartbeat(){
+  if(!state.tetherId||!state.tetherActive)return;
+  try{await tetherPost({action:'ipad-heartbeat',tetherId:state.tetherId,house:housePacket(),version:VERSION})}catch(e){}
+}
+async function sendTetherResult(id,result){
+  try{await tetherPost({action:'result',tetherId:state.tetherId,id:id,result:result})}catch(e){}
+}
+async function processTetherCommand(packet){
+  if(!packet||!packet.id||packet.id===state.lastCommandId)return;
+  state.lastCommandId=packet.id;
+  try{localStorage.setItem('sterling.lastCommand.v1',packet.id)}catch(e){}
+  var cmd=packet.command||{};
+  if(cmd.type!=='commitContact'){await sendTetherResult(packet.id,{ok:false,error:'Unknown tether command'});return}
+  if(state.updateBusy){await sendTetherResult(packet.id,{ok:false,error:'Salesforce update already in progress'});return}
+  if(!state.current){await sendTetherResult(packet.id,{ok:false,error:'Current Salesforce house is not detected'});return}
+  if(cmd.expectedHouseKey!==state.current.key){
+    setStatus('HOUSE MISMATCH — UPDATE BLOCKED','bad');
+    await sendTetherResult(packet.id,{ok:false,error:'Phone expected '+clean(cmd.expectedHouseLabel)+' but iPad is on '+state.current.label});
+    return;
+  }
+  var c=cmd.contact||{};
+  if(!(c.first&&c.last&&c.phone&&c.email)){await sendTetherResult(packet.id,{ok:false,error:'Confirmed contact packet is incomplete'});return}
+  state.contact={first:clean(c.first),last:clean(c.last),phone:clean(c.phone),email:clean(c.email)};
+  state.updateBusy=true;render();setStatus('PHONE CONFIRMED CUSTOMER • UPDATING SALESFORCE…','good');
+  try{
+    var result=await updateSalesforce();
+    state.updateBusy=false;
+    state.orderId=result&&result.orderId?result.orderId:'';
+    state.pairCode='';
+    render();setStatus('ORDER ID CAPTURED • SENT BACK TO PHONE','good');
+    await sendTetherResult(packet.id,{ok:true,orderId:state.orderId,houseKey:state.current.key,houseLabel:state.current.label});
+  }catch(e){
+    state.updateBusy=false;render();setStatus(e.message||String(e),'bad');
+    await sendTetherResult(packet.id,{ok:false,error:e.message||String(e),houseKey:state.current&&state.current.key,houseLabel:state.current&&state.current.label});
+  }
+}
+async function pollTether(){
+  if(!state.tetherId||!state.tetherActive)return;
+  try{
+    var j=await tetherGet('status'),server=j.serverTime||Date.now();
+    state.phoneSeen=!!(j.phone&&server-j.phone.lastSeen<7000);
+    render();
+    if(state.phoneSeen&&state.pairCode){state.pairCode='';render();setStatus('PHONE LINKED • READY','good')}
+    if(j.command)await processTetherCommand(j.command);
+  }catch(e){}
+}
+setInterval(tetherHeartbeat,2200);
+setInterval(pollTether,650);
+try{
+  state.tetherId=localStorage.getItem('sterling.tetherId.v1')||'';
+  state.lastCommandId=localStorage.getItem('sterling.lastCommand.v1')||'';
+}catch(e){}
+if(state.tetherId){state.tetherActive=true;state.active=true;setTimeout(function(){publishHouse();tetherHeartbeat();pollTether()},450)}
 
 var micStream=null,captureCtx=null,captureSource=null,captureProcessor=null,playCtx=null,playTime=0,playingSources=[];
 function ensurePlay(){
@@ -268,7 +356,7 @@ function releaseMic(){
 function send(obj){try{if(state.socket&&state.socket.readyState===WebSocket.OPEN)state.socket.send(JSON.stringify(obj))}catch(e){}}
 
 function isGatewaySetupError(msg){return /client secrets can only be minted with a Gateway API key|needs a Vercel AI Gateway API key|AI Gateway API key/i.test(String(msg||''))}
-function showVoiceSetup(msg){state.active=false;state.connected=false;state.connecting=false;releaseMic();stopPlayback();render();$('voiceSetup').style.display='block';setStatus(msg||'Sterling voice needs one Gateway API key setup.','bad')}
+function showVoiceSetup(msg){setStatus(msg||'Voice runs on the paired phone in V13.','bad')}
 
 function routeContext(){
   return 'Current live Salesforce house: '+(state.current?state.current.label:'not detected')+'. Treat this as the only active household. If not detected, confirm the area before any CRM update.';
@@ -356,7 +444,7 @@ function stopSterling(){
   state.socket=null;releaseMic();stopPlayback();render();setStatus('STOPPED');
 }
 function toggleMute(){state.muted=!state.muted;render();setStatus(state.muted?'MIC MUTED':'LIVE • LISTENING',state.muted?'':'good')}
-$('stop').onclick=stopSterling;$('mute').onclick=toggleMute;
+
 
 function toolReply(callId,name,obj){
   send({type:'conversation-item-create',item:{type:'function-call-output',callId:callId,name:name,output:JSON.stringify(obj)}});
@@ -576,8 +664,8 @@ render();
 window.__sterlingONE={
   version:VERSION,
   open:openPanel,
-  start:startSterling,
-  stop:stopSterling,
+  start:startTether,
+  stop:stopTether,
   state:function(){return {version:VERSION,current:state.current,contact:state.contact,stage:state.stage,connected:state.connected,orderId:state.orderId,lastError:state.lastError}}
 };
 })();
