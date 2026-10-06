@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#071528">
+<title>Sterling Field Voice</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#071528;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:680px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 18px calc(30px + env(safe-area-inset-bottom))}
+.brand{font-size:42px;font-weight:950;letter-spacing:-1.5px}.brand b{color:#59baff}.sub{color:#abc8df;line-height:1.5;margin:6px 0 18px}
+.card{background:#0a1d31;border:1px solid #1e4b73;border-radius:22px;padding:18px;margin:14px 0;box-shadow:0 18px 50px #0004}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #173956}.row:last-child{border:0}
+.label{color:#9bb8d0}.value{text-align:right;font-weight:850;max-width:70%}.status{font-weight:900}.good{color:#78efb2}.bad{color:#ff9f9f}.warn{color:#ffd083}
+.btn{width:100%;border:0;border-radius:16px;min-height:58px;padding:14px 16px;background:#0b8be8;color:#fff;font:inherit;font-size:20px;font-weight:950;touch-action:manipulation}
+.btn.secondary{background:#173b5b}.btn.danger{background:#782d35}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}
+.field{width:100%;padding:14px;border-radius:14px;border:1px solid #28577f;background:#04101d;color:#fff;font:inherit;font-size:18px;letter-spacing:2px;text-align:center}
+.pair{display:none}.liveOnly{display:none}.contact{font-size:13px;line-height:1.55;color:#c2d8ea}.mini{font-size:11px;color:#7893aa;line-height:1.45}
+.wave{height:62px;border-radius:18px;background:#06182a;display:flex;align-items:center;justify-content:center;margin:12px 0;font-weight:900;color:#90b6d5}.wave.live{color:#79efb2;box-shadow:inset 0 0 0 1px #2a6}
+@media(max-width:430px){.brand{font-size:36px}.card{padding:15px}.value{max-width:65%}}
+</style>
+</head>
+<body><main class="wrap">
+<div class="brand"><b>Sterling</b> Field Voice</div>
+<p class="sub">Phone = the conversation. iPad = Salesforce. Sterling keeps both synchronized.</p>
+
+<section class="card pair" id="pairCard">
+  <div style="font-size:22px;font-weight:900;margin-bottom:10px">Pair this phone to your iPad</div>
+  <p class="mini">On the iPad, open Salesforce, tap the Sterling ONE bookmark, then tap Pair Phone. Enter the six-digit code here once. This phone remembers the tether after pairing.</p>
+  <input id="pairCode" class="field" inputmode="numeric" maxlength="6" placeholder="000000">
+  <button id="claim" class="btn" style="margin-top:10px">Pair Phone</button>
+  <div id="pairStatus" class="mini" style="margin-top:10px"></div>
+</section>
+
+<section class="card liveOnly" id="mainCard">
+  <div class="row"><span class="label">iPad tether</span><span class="value status" id="ipad">Waiting…</span></div>
+  <div class="row"><span class="label">Current house</span><span class="value" id="house">Waiting for Salesforce…</span></div>
+  <div class="row"><span class="label">Sterling voice</span><span class="value status" id="voice">Ready</span></div>
+  <div class="wave" id="wave">Tap Start when the customer has your phone</div>
+  <div class="grid">
+    <button id="start" class="btn full">Start Sterling</button>
+    <button id="mute" class="btn secondary" style="display:none">Mute</button>
+    <button id="stop" class="btn danger" style="display:none">Stop</button>
+  </div>
+  <div class="contact" id="contact" style="margin-top:13px">No confirmed customer details yet.</div>
+  <div id="order" class="good" style="display:none;margin-top:12px;font-weight:900"></div>
+  <button id="voiceSetup" class="btn secondary" style="display:none;margin-top:10px">Fix Voice Connection</button>
+</section>
+
+<section class="card liveOnly">
+  <div style="font-weight:900;margin-bottom:7px">Field behavior</div>
+  <div class="mini">Sterling hears the customer on this phone. Confirmed contact information is sent only to your paired iPad. The iPad verifies the currently open Salesforce house before it edits anything, then returns the Partner Order ID to this phone. SSN, ID numbers, card data, account PINs, passwords, and one-time codes never go through Sterling.</div>
+</section>
+</main>
+
+<script>
+(function(){
+'use strict';
+var APP='https://sterling-olive.vercel.app';
+var VERSION='13.0';
+var tetherId='';
+var currentHouse=null,lastHouseKey='',lastResultId='';
+var contact={first:'',last:'',phone:'',email:''},stage='rapport',mismatch=false;
+var active=false,connected=false,connecting=false,muted=false,reconnects=0,socket=null;
+var micStream=null,captureCtx=null,captureSource=null,captureProcessor=null,playCtx=null,playTime=0,playingSources=[];
+
+function $(id){return document.getElementById(id)}
+function clean(v){return String(v==null?'':v).trim()}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function showPaired(){
+  $('pairCard').style.display=tetherId?'none':'block';
+  document.querySelectorAll('.liveOnly').forEach(el=>el.style.display=tetherId?'block':'none');
+}
+function setVoice(msg,kind){$('voice').textContent=msg;$('voice').className='value status '+(kind||'');$('wave').textContent=msg}
+function render(){
+  showPaired();
+  $('house').textContent=currentHouse?currentHouse.label:'Waiting for Salesforce…';
+  var bits=[];if(contact.first)bits.push(contact.first);if(contact.last)bits.push(contact.last);if(contact.phone)bits.push(contact.phone);if(contact.email)bits.push(contact.email);
+  $('contact').textContent=bits.length?'Confirmed: '+bits.join(' • '):'No confirmed customer details yet.';
+  $('start').style.display=active?'none':'block';$('mute').style.display=active?'block':'none';$('stop').style.display=active?'block':'none';
+  $('mute').textContent=muted?'Unmute':'Mute';$('wave').className='wave'+(connected?' live':'');
+}
+async function apiGet(part){
+  var r=await fetch(APP+'/api/tether?tetherId='+encodeURIComponent(tetherId)+'&part='+encodeURIComponent(part)+'&t='+Date.now(),{cache:'no-store'});
+  var j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Tether request failed');return j;
+}
+async function apiPost(body){
+  var r=await fetch(APP+'/api/tether',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  var j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Tether request failed');return j;
+}
+$('claim').onclick=async function(){
+  var code=$('pairCode').value.replace(/\D/g,'').slice(0,6);
+  if(code.length!==6){$('pairStatus').textContent='Enter the six-digit code from the iPad.';return}
+  $('claim').disabled=true;$('pairStatus').textContent='Pairing…';
+  try{
+    var j=await apiPost({action:'pair-claim',code:code});
+    tetherId=j.tetherId;localStorage.setItem('sterling.tetherId.v1',tetherId);$('pairCode').value='';$('pairStatus').textContent='Paired.';
+    render();await heartbeat();await pollStatus();
+  }catch(e){$('pairStatus').textContent=e.message||String(e)}
+  finally{$('claim').disabled=false}
+};
+
+async function heartbeat(){if(!tetherId)return;try{await apiPost({action:'phone-heartbeat',tetherId:tetherId,active:active,version:VERSION})}catch(e){}}
+async function pollStatus(){
+  if(!tetherId)return;
+  try{
+    var j=await apiGet('status'),server=j.serverTime||Date.now();
+    var ipadFresh=j.ipad&&server-j.ipad.lastSeen<7000;
+    $('ipad').textContent=ipadFresh?'CONNECTED':'Waiting for iPad';
+    $('ipad').className='value status '+(ipadFresh?'good':'warn');
+    if(j.house&&j.house.key&&j.house.key!==lastHouseKey){
+      currentHouse=j.house;lastHouseKey=j.house.key;render();
+      if(connected)send({type:'context-append',content:'The iPad Salesforce record changed. Current live house is now '+j.house.label+'. Reset all assumptions about the prior household.',delegationId:null});
+    }else if(j.house){currentHouse=j.house;render()}
+    if(j.result&&j.result.id&&j.result.id!==lastResultId){
+      lastResultId=j.result.id;
+      var rr=j.result.result||{};
+      if(rr.ok&&rr.orderId){
+        $('order').style.display='block';$('order').textContent='Partner Order ID: '+rr.orderId;
+        if(connected)send({type:'context-append',content:'The iPad completed the Salesforce update successfully for '+(rr.houseLabel||'the current house')+'. The Partner Order ID is ready for London. Do not read the ID aloud unless London asks for it.',delegationId:null});
+      }else if(rr.error&&connected){
+        send({type:'context-append',content:'The iPad safely stopped the Salesforce update. Reason: '+rr.error+'. Do not claim that Salesforce was updated.',delegationId:null});
+      }
+    }
+  }catch(e){$('ipad').textContent='Tether error';$('ipad').className='value status bad'}
+}
+setInterval(heartbeat,2500);setInterval(pollStatus,700);
+
+function ensurePlay(){if(!playCtx){var AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw new Error('This browser does not support realtime audio.');try{playCtx=new AC({sampleRate:24000})}catch(e){playCtx=new AC()}}return playCtx.resume()}
+function encodePCM(samples){var b=new ArrayBuffer(samples.length*2),v=new DataView(b);for(var i=0;i<samples.length;i++){var s=Math.max(-1,Math.min(1,samples[i]));v.setInt16(i*2,s<0?s*32768:s*32767,true)}var bytes=new Uint8Array(b),bin='',chunk=0x8000;for(var j=0;j<bytes.length;j+=chunk)bin+=String.fromCharCode.apply(null,bytes.subarray(j,j+chunk));return btoa(bin)}
+function decodePCM(b64){var bin=atob(b64),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);var i16=new Int16Array(u.buffer),out=new Float32Array(i16.length);for(var j=0;j<i16.length;j++)out[j]=i16[j]/32768;return out}
+function resample(input,inRate,outRate){if(inRate===outRate)return new Float32Array(input);var ratio=inRate/outRate,len=Math.round(input.length/ratio),out=new Float32Array(len);for(var i=0;i<len;i++){var x=i*ratio,a=Math.floor(x),b=Math.min(a+1,input.length-1),f=x-a;out[i]=input[a]*(1-f)+input[b]*f}return out}
+function stopPlayback(){for(var i=0;i<playingSources.length;i++)try{playingSources[i].stop()}catch(e){}playingSources=[];if(playCtx)playTime=playCtx.currentTime}
+function playAudio(b64){try{var samples=decodePCM(b64);if(!samples.length)return;var ctx=playCtx;if(!ctx)return;var buf=ctx.createBuffer(1,samples.length,24000);buf.getChannelData(0).set(samples);var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);var st=Math.max(playTime,ctx.currentTime);src.start(st);playTime=st+buf.duration;playingSources.push(src);src.onended=function(){playingSources=playingSources.filter(x=>x!==src)}}catch(e){setVoice('Audio playback error','bad')}}
+async function prepareMic(){await ensurePlay();if(micStream)return;if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Microphone access is unavailable.');micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});var AC=window.AudioContext||window.webkitAudioContext;captureCtx=new AC();await captureCtx.resume();captureSource=captureCtx.createMediaStreamSource(micStream);captureProcessor=captureCtx.createScriptProcessor(1024,1,1);captureProcessor.onaudioprocess=function(ev){if(!connected||muted||!socket||socket.readyState!==WebSocket.OPEN)return;var samples=resample(ev.inputBuffer.getChannelData(0),captureCtx.sampleRate,24000);send({type:'input-audio-append',audio:encodePCM(samples)})};captureSource.connect(captureProcessor);captureProcessor.connect(captureCtx.destination)}
+function releaseMic(){try{if(captureProcessor)captureProcessor.onaudioprocess=null}catch(e){}try{if(captureProcessor)captureProcessor.disconnect()}catch(e){}try{if(captureSource)captureSource.disconnect()}catch(e){}try{if(captureCtx)captureCtx.close()}catch(e){}try{if(micStream)micStream.getTracks().forEach(t=>t.stop())}catch(e){}captureProcessor=captureSource=captureCtx=micStream=null}
+function send(obj){try{if(socket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify(obj))}catch(e){}}
+function toolReply(callId,name,obj){send({type:'conversation-item-create',item:{type:'function-call-output',callId:callId,name:name,output:JSON.stringify(obj)}});send({type:'response-create',options:{modalities:['audio']}})}
+function normalizeContact(field,value){var v=clean(value);if(field==='phone'){var d=v.replace(/\D/g,'');if(d.length===11&&d[0]==='1')d=d.slice(1);if(d.length!==10)throw new Error('Phone must have ten digits');return d}if(field==='email'){v=v.replace(/\s+/g,'').toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))throw new Error('Email is incomplete');return v}if(!/[A-Za-zÀ-ÿ]/.test(v))throw new Error('Name is incomplete');return v.slice(0,80)}
+async function handleTool(m){
+  var a={};try{a=JSON.parse(m.arguments||'{}')}catch(e){}
+  try{
+    if(m.name==='saveContact'){if(a.confirmed!==true)throw new Error('Customer has not confirmed that field yet');var f=a.field;if(['first','last','phone','email'].indexOf(f)<0)throw new Error('Unknown contact field');contact[f]=normalizeContact(f,a.value);render();toolReply(m.callId,m.name,{ok:true,saved:f});return}
+    if(m.name==='setStage'){stage=a.stage||stage;toolReply(m.callId,m.name,{ok:true,stage:stage});return}
+    if(m.name==='flagAddressMismatch'){mismatch=true;toolReply(m.callId,m.name,{ok:true,blocked:true,current:currentHouse?currentHouse.label:null});return}
+    if(m.name==='commitContact'){
+      if(!(contact.first&&contact.last&&contact.phone&&contact.email))throw new Error('All four confirmed contact fields are required');
+      if(!currentHouse||!currentHouse.key)throw new Error('The iPad has not supplied a current Salesforce house yet');
+      if(mismatch)throw new Error('Address mismatch is blocking the Salesforce update');
+      var id=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random());
+      await apiPost({action:'command',tetherId:tetherId,id:id,command:{type:'commitContact',contact:contact,expectedHouseKey:currentHouse.key,expectedHouseLabel:currentHouse.label}});
+      toolReply(m.callId,m.name,{ok:true,started:true,currentHouse:currentHouse.label});
+      return;
+    }
+    toolReply(m.callId,m.name,{ok:false,error:'Unknown tool'});
+  }catch(e){toolReply(m.callId,m.name,{ok:false,error:e.message||String(e)})}
+}
+async function connect(){
+  if(!active||connecting)return;connecting=true;connected=false;setVoice('CONNECTING…');
+  try{
+    var r=await fetch(APP+'/api/realtime-token?v=13&t='+Date.now(),{cache:'no-store'});
+    var setup=await r.json();
+    if(!r.ok||!setup.token||!setup.url)throw new Error(setup.error||'Realtime setup failed');
+    var protocols=(setup.protocols&&setup.protocols.length)?setup.protocols:['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token];
+    var ws=new WebSocket(setup.url,protocols);socket=ws;var greeted=false;
+    ws.onopen=function(){connecting=false;send({type:'session-update',config:{instructions:setup.instructions,voice:'marin',outputModalities:['audio'],inputAudioFormat:{type:'audio/pcm',rate:24000},outputAudioFormat:{type:'audio/pcm',rate:24000},turnDetection:{type:'server-vad',threshold:0.45,prefixPaddingMs:300,silenceDurationMs:550},tools:setup.tools||[]}})};
+    ws.onmessage=function(ev){var m;try{m=JSON.parse(ev.data)}catch(e){return}
+      if(m.type==='session-created'||m.type==='session-started'||m.type==='session-updated'){connected=true;connecting=false;reconnects=0;render();setVoice('LIVE • LISTENING','good');if(currentHouse)send({type:'context-append',content:'The paired iPad is currently on Salesforce house '+currentHouse.label+'. Treat that as the only active household.',delegationId:null});if(!greeted){greeted=true;send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Start the live doorway conversation now. Introduce yourself briefly as Sterling, London's assistant, then naturally begin with the customer's first name."}});send({type:'response-create',options:{modalities:['audio']}})}}
+      else if(m.type==='speech-started'){stopPlayback();send({type:'response-cancel'});setVoice('LISTENING','good')}
+      else if(m.type==='speech-stopped'){setVoice('THINKING…')}
+      else if(m.type==='audio-delta'||m.type==='audio-chunk'){playAudio(m.delta||'');setVoice('STERLING SPEAKING','good')}
+      else if(m.type==='function-call-arguments-done'){handleTool(m)}
+      else if(m.type==='error'){setVoice(m.message||'Realtime error','bad')}
+    };
+    ws.onerror=function(){setVoice('Realtime connection error','bad')};
+    ws.onclose=function(){connected=false;connecting=false;render();if(active){reconnects++;setVoice('RECONNECTING…','warn');setTimeout(connect,Math.min(6000,1000*reconnects))}else setVoice('STOPPED')};
+  }catch(e){
+    connecting=false;connected=false;render();var msg=e.message||String(e);setVoice(msg,'bad');
+    if(/AI Gateway API key|Client secrets can only/i.test(msg))$('voiceSetup').style.display='block';
+    if(active&&!/AI Gateway API key|Client secrets can only/i.test(msg)){reconnects++;setTimeout(connect,Math.min(6000,1000*reconnects))}
+  }
+}
+async function start(){if(active)return;try{await prepareMic();active=true;muted=false;render();await heartbeat();await connect()}catch(e){active=false;render();setVoice(e.message||String(e),'bad');releaseMic()}}
+function stop(){active=false;connected=false;connecting=false;try{if(socket)socket.close()}catch(e){}socket=null;releaseMic();stopPlayback();render();setVoice('STOPPED')}
+$('start').onclick=start;$('stop').onclick=stop;$('mute').onclick=function(){muted=!muted;render();setVoice(muted?'MIC MUTED':'LIVE • LISTENING',muted?'warn':'good')};
+$('voiceSetup').onclick=function(){location.href=APP+'/voice-setup.html?v=13'};
+
+tetherId=localStorage.getItem('sterling.tetherId.v1')||'';
+render();if(tetherId){heartbeat();pollStatus()}
+})();
+</script>
+</body></html>
