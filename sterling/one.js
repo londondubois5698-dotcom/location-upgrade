@@ -2,7 +2,7 @@
 'use strict';
 
 var APP='https://sterling-olive.vercel.app';
-var VERSION='13.0';
+var VERSION='14.0';
 var POLL_MS=450;
 var FIELD_MODE=/iclportal\.com$/i.test(location.hostname);
 var state={
@@ -157,7 +157,7 @@ sh.innerHTML=
 '*{box-sizing:border-box}.pill{display:flex;align-items:center;gap:8px;background:#061425;color:white;border:1px solid #24567f;border-radius:999px;padding:8px 9px;box-shadow:0 12px 34px #0008;max-width:min(420px,calc(100vw - 20px))}.dot{width:10px;height:10px;border-radius:50%;background:#6c7d8f;flex:none}.dot.live{background:#26dc87;box-shadow:0 0 0 5px #26dc8724}.addr{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}.pill button,.panel button{border:0;border-radius:999px;background:#0b75ca;color:#fff;font:inherit;font-weight:850;min-height:36px;padding:8px 12px;touch-action:manipulation}.panel{display:none;width:min(380px,calc(100vw - 20px));background:#061425;color:#fff;border:1px solid #24567f;border-radius:18px;box-shadow:0 18px 50px #0009;overflow:hidden}.head{display:flex;justify-content:space-between;align-items:center;padding:12px 13px;background:#0b2845}.title{font-weight:900}.title b{color:#59baff}.ver{font-size:10px;color:#8cb0ce}.body{padding:13px}.route{font-size:13px;line-height:1.4;background:#0b2037;border-radius:12px;padding:10px;color:#d5ebff}.status{font-size:12px;margin:10px 0;color:#9ac9ef}.good{color:#77efb3}.bad{color:#ffabab}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.full{grid-column:1/-1}.secondary{background:#193a59!important}.danger{background:#7c2930!important}.contact{font-size:11px;line-height:1.45;color:#b6cee3;margin-top:10px}.code{display:none;font-size:22px;font-weight:900;text-align:center;color:#79efb6;background:#0a2036;border-radius:12px;padding:11px;margin-top:10px}.mini{font-size:10px;color:#7792aa;line-height:1.4;margin-top:10px}@media(max-width:600px){.panel{width:calc(100vw - 16px)}.addr{max-width:155px}}</style>'+
 '<div class="pill" id="pill"><span class="dot" id="dot"></span><span class="addr" id="pillAddr">Detecting house…</span><button id="pillStart">Start</button><button id="open" class="secondary">Open</button></div>'+
 '<div class="panel" id="panel">'+
-'<div class="head"><div><div class="title"><b>Sterling</b> ONE</div><div class="ver">V13 • iPad Salesforce tether</div></div><button id="close" class="secondary">Minimize</button></div>'+
+'<div class="head"><div><div class="title"><b>Sterling</b> ONE</div><div class="ver">V14 Alpha • iPad Salesforce tether</div></div><button id="close" class="secondary">Minimize</button></div>'+
 '<div class="body"><div class="route" id="route">Detecting current Salesforce house…</div><div class="status" id="status">READY</div>'+
 '<div class="grid"><button class="full" id="start">Start iPad Tether</button><button class="secondary full" id="pairPhone">Pair Phone</button><button class="danger full" id="stop" style="display:none">Stop Tether</button><button class="secondary full" id="voiceSetup" style="display:none">Voice setup belongs on phone</button></div>'+
 '<div class="contact" id="contact">No confirmed customer details yet.</div><div class="code" id="code"></div>'+
@@ -195,7 +195,7 @@ function render(){
 }
 function openPanel(){$('pill').style.display='none';$('panel').style.display='block'}
 function closePanel(){$('panel').style.display='none';$('pill').style.display='flex'}
-$('open').onclick=openPanel;$('close').onclick=closePanel;$('pillStart').onclick=function(){openPanel();if(!state.tetherActive)startTether()};$('start').onclick=startTether;$('pairPhone').onclick=pairNewPhone;$('stop').onclick=stopTether;$('voiceSetup').onclick=function(){window.open(APP+'/phone.html?v=13','sterling-phone')};
+$('open').onclick=openPanel;$('close').onclick=closePanel;$('pillStart').onclick=function(){openPanel();if(!state.tetherActive)startTether()};$('start').onclick=startTether;$('pairPhone').onclick=pairNewPhone;$('stop').onclick=stopTether;$('voiceSetup').onclick=function(){window.open(APP+'/phone.html?v=14','sterling-phone')};
 
 
 function housePacket(){
@@ -357,7 +357,7 @@ function releaseMic(){
 function send(obj){try{if(state.socket&&state.socket.readyState===WebSocket.OPEN)state.socket.send(JSON.stringify(obj))}catch(e){}}
 
 function isGatewaySetupError(msg){return /client secrets can only be minted with a Gateway API key|needs a Vercel AI Gateway API key|AI Gateway API key/i.test(String(msg||''))}
-function showVoiceSetup(msg){setStatus(msg||'Voice runs on the paired phone in V13.','bad')}
+function showVoiceSetup(msg){setStatus(msg||'Voice runs on the paired phone in V14 Alpha.','bad')}
 
 function routeContext(){
   return 'Current live Salesforce house: '+(state.current?state.current.label:'not detected')+'. Treat this as the only active household. If not detected, confirm the area before any CRM update.';
@@ -367,7 +367,7 @@ async function connectSocket(){
   if(!state.active||state.connecting)return;
   state.connecting=true;state.connected=false;render();setStatus('CONNECTING…');
   try{
-    var r=await fetch(APP+'/api/realtime-token?v=12.2&t='+Date.now(),{method:'GET',mode:'cors',cache:'no-store'});
+    var r=await fetch(APP+'/api/realtime-token?v=14&t='+Date.now(),{method:'GET',mode:'cors',cache:'no-store'});
     var setup=await r.json();
     if(!r.ok||!setup.token||!setup.url)throw new Error(setup.error||'Realtime setup failed');
     var protocols=(setup.protocols&&setup.protocols.length)?setup.protocols:['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token];
