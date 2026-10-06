@@ -1,0 +1,21 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sterling Bridge</title></head>
+<body style="font-family:-apple-system,sans-serif;background:#071424;color:#fff;padding:18px">
+<div id="s">Connecting Sterling to the active route…</div>
+<script>
+(function(){
+  const out=document.getElementById('s');
+  function send(){
+    try{
+      const raw=localStorage.getItem('sterling.pending.v2')||localStorage.getItem('sterling.pending.v1');
+      if(!raw){out.textContent='No confirmed Sterling customer packet is saved on this device.';return;}
+      const packet=JSON.parse(raw);
+      if(!window.opener){out.textContent='Open Sterling Helper from the active Salesforce/ICL page so this window has a return path.';return;}
+      window.opener.postMessage({type:'STERLING_ROUTE_PACKET_V2',packet},'*');
+      out.textContent='Packet transferred. You can close this window.';
+      setTimeout(()=>window.close(),450);
+    }catch(e){out.textContent='Sterling packet could not be transferred.';}
+  }
+  send();
+})();
+</script></body></html>
