@@ -21,15 +21,15 @@ input,select{width:100%;padding:13px;border-radius:10px;border:1px solid #315777
 </style></head>
 
 <body><main class="wrap">
-<header class="top"><div class="brand"><b>AT&T</b> PROMOTIONS WITH AI</div><div class="status" id="status" role="status">READY • V2</div></header>
-<section class="hero"><div class="orb" aria-hidden="true"></div><h1>Meet <span class="sterling">Sterling.</span></h1><div class="sub">A little conversation. A smoother start.</div><div class="micro">London’s digital assistant • contact details stay in this tab until you share them</div><button class="start" id="start">Start Sterling</button></section>
+<header class="top"><div class="brand"><b>AT&T</b> PROMOTIONS WITH AI</div><div class="status" id="status" role="status">READY • V3</div></header>
+<section class="hero"><div class="orb" aria-hidden="true"></div><h1>Meet <span class="sterling">Sterling.</span></h1><div class="sub">A little conversation. A smoother start.</div><div class="micro">London’s digital assistant • live AI + natural voice • contact details stay in this tab until you share them</div><button class="start" id="start">Start Sterling</button></section>
 <section class="grid"><div class="card conversation"><h2>YOUR CONVERSATION</h2>
 <div class="bubble" id="bubble" aria-live="polite">Hi, I’m Sterling. Let’s get your details ready for London.</div>
 <div class="live" id="live" role="status">Tap Start, allow microphone access, then wait for “Listening.”</div>
 <div class="controls"><button id="talk" class="primary">Talk / try microphone</button><button id="pause" class="quiet">Pause</button><button id="repeat" class="quiet">Repeat</button></div>
 <div class="controls" id="confirmbar" hidden><button id="yes" class="primary">Yes, correct</button><button id="no">Change that</button></div>
 <form id="answerform"><label for="answer" style="margin-top:18px">Or type your answer</label><input id="answer" autocomplete="off" placeholder="Type here…"><div class="controls"><button type="submit">Use this answer</button></div></form>
-<details><summary>Voice & sound</summary><p class="hint">Device voice is active. Natural cloud voice is not connected. Choose the clearest voice available on this phone.</p><label for="voice">Voice</label><select id="voice"></select><label for="rate">Speaking pace</label><input id="rate" type="range" min="0.85" max="1.1" step="0.05" value="1"><label><input id="mute" type="checkbox">Text only</label><div class="controls"><button id="testvoice">Test sound</button></div><p class="hint">Voice output is at 100%. Turn up your phone’s media volume while Sterling speaks and check whether audio is going to Bluetooth.</p></details>
+<details><summary>Voice & sound</summary><p class="hint">Natural cloud voice is active. If the cloud voice is temporarily unavailable, Sterling automatically falls back to a voice on this phone.</p><label for="voice">Voice</label><select id="voice"></select><label for="rate">Fallback speaking pace</label><input id="rate" type="range" min="0.85" max="1.1" step="0.05" value="1"><label for="boost">Voice boost</label><input id="boost" type="range" min="1" max="1.8" step="0.05" value="1.35"><label><input id="mute" type="checkbox">Text only</label><div class="controls"><button id="testvoice">Test sound</button></div><p class="hint">Cloud audio includes a volume boost. Your iPhone media volume still controls the final output, so turn it up and check Bluetooth if Sterling sounds quiet.</p></details>
 </div><div class="card"><h2>LONDON’S CONTACT PACKET</h2><p class="hint" id="progress">0 of 4 contact details confirmed</p>
 <form id="contactform"><div class="formgrid">
 <label>First name<input id="first" name="given-name" autocomplete="given-name" maxlength="80" required></label>
@@ -38,86 +38,519 @@ input,select{width:100%;padding:13px;border-radius:10px;border:1px solid #315777
 <label class="wide">Email<input id="email" type="email" name="email" autocomplete="email" autocapitalize="none" spellcheck="false" required></label></div>
 <div class="controls"><button type="submit">Confirm these four details</button></div></form>
 <div id="sendbox" hidden><p class="confirmed">Contact packet ready</p><a class="action" id="send" href="#">Open text to London</a><p class="hint" id="delivery" role="status">Not sent. Opens Messages to 205-310-8645; tap Send there.</p><div class="controls"><button id="copy">Copy packet</button></div></div>
-<p class="hint warning">Automatic texting is not connected. Sterling cannot confirm delivery from this page.</p>
+<p class="hint warning">For privacy and iPhone security, the final SMS still requires you to tap Send in Messages. Sterling pre-fills the entire packet automatically.</p>
 <details><summary>London’s conversation controls</summary><div class="controls"><button id="qualify">Qualification handoff</button><button id="return">Continue phone choices</button><button id="reset">New customer</button></div><p class="hint">New customer clears this tab’s details. Nothing is saved to a public repository or a customer database.</p></details>
-</div></section><footer class="footer">Sterling V2 • Guided assistant, not a live AI service. Keep SSNs, ID numbers, payment details and passcodes in the approved AT&T process. Your browser may use its speech provider to process audio.</footer>
+</div></section><footer class="footer">Sterling V3 • Live AI assistant with AI-generated voice. Keep SSNs, ID numbers, payment details, PINs and passcodes in the approved AT&T process. Voice recognition may use your browser’s speech service.</footer>
 </main>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
 const fields=['first','last','phone','email'];
 const labels={first:'first name',last:'last name',phone:'phone number',email:'email address'};
-const questions=['What’s your first name?','And your last name?','What’s the best phone number for London to reach you?','What’s your email address?'];
+const questions=[
+  'What’s your first name?',
+  'And your last name?',
+  'What’s the best phone number for London to reach you?',
+  'What’s your email address?'
+];
 let data={},confirmed=new Set(),stage=0,pending=null,active=false,paused=false,speaking=false;
-let recognition=null,listenTimer=0,listenWatch=0,speechWatch=0,speechToken=0,misses=0,utterance=null;
+let recognition=null,listenTimer=0,listenWatch=0,speechToken=0,misses=0;
+let audioCtx=null,currentSource=null,currentAudio=null;
+let aiHistory=[];
 const Rec=window.SpeechRecognition||window.webkitSpeechRecognition;
-function status(t){$('status').textContent=t;}
-function stopListening(){clearTimeout(listenTimer);clearTimeout(listenWatch);const r=recognition;recognition=null;if(r){r.onend=r.onresult=r.onerror=r.onstart=null;try{r.abort();}catch{}}}
-function stopSpeech(){speechToken++;clearTimeout(speechWatch);speaking=false;if(window.speechSynthesis)window.speechSynthesis.cancel();utterance=null;}
-function halt(){stopListening();stopSpeech();}
-function voices(){if(!window.speechSynthesis)return [];
- return window.speechSynthesis.getVoices().filter(v=>/^en[-_]/i.test(v.lang)).sort((a,b)=>score(b)-score(a));}
-function score(v){return (/premium|enhanced|natural|neural/i.test(v.name)?100:0)+(/en-US/i.test(v.lang)?20:0)+(/Evan|Nathan|Aaron|Samantha|Alex/i.test(v.name)?10:0);}
-function loadVoices(){const old=$('voice').value;$('voice').replaceChildren();for(const v of voices()){const o=document.createElement('option');o.value=v.voiceURI;o.textContent=v.name+' · '+v.lang;$('voice').appendChild(o);}if(old&&voices().some(v=>v.voiceURI===old))$('voice').value=old;}
-if(window.speechSynthesis){loadVoices();window.speechSynthesis.addEventListener('voiceschanged',loadVoices);}
-function scheduleListen(){clearTimeout(listenTimer);if(active&&!paused)listenTimer=setTimeout(listen,400);}
-function say(text,thenListen=true){halt();$('bubble').textContent=text;const token=speechToken;
- if($('mute').checked||!window.speechSynthesis){status('READY FOR ANSWER');if(thenListen)scheduleListen();return;}
- speaking=true;status('SPEAKING');$('live').textContent='Sterling is speaking. Your turn comes next.';
- const u=new SpeechSynthesisUtterance(text);utterance=u;u.voice=voices().find(v=>v.voiceURI===$('voice').value)||voices()[0]||null;u.lang=u.voice?.lang||'en-US';u.rate=Number($('rate').value);u.pitch=1;u.volume=1;
- function finish(error){if(token!==speechToken)return;clearTimeout(speechWatch);speaking=false;utterance=null;
-  if(error){status('TAP TO CONTINUE');$('live').textContent='Audio stopped. Read the prompt, then tap Talk or type your answer.';}else if(thenListen)scheduleListen();else status('READY');}
- u.onend=()=>finish(false);u.onerror=()=>finish(true);
- speechWatch=setTimeout(()=>{if(token!==speechToken)return;stopSpeech();status('TAP TO CONTINUE');$('live').textContent='Audio did not finish. Tap Talk or type your answer.';},Math.max(12000,text.length*110));
- try{window.speechSynthesis.speak(u);}catch{finish(true);}
-}
-function listen(){clearTimeout(listenTimer);if(!active||paused||speaking||recognition||document.hidden)return;
- if(!Rec){status('TYPE YOUR ANSWER');$('live').textContent='Voice input is unavailable here. Type below or fill the contact form.';return;}
- const r=new Rec();recognition=r;r.lang='en-US';r.continuous=false;r.interimResults=true;r.maxAlternatives=1;let got=false,failed=false;
- r.onstart=()=>{if(recognition!==r)return;status('LISTENING');$('live').textContent='Listening — go ahead.';};
- r.onresult=e=>{if(recognition!==r)return;let final='',interim='';for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)final+=e.results[i][0].transcript+' ';else interim+=e.results[i][0].transcript;}
-  if(final.trim()){got=true;misses=0;stopListening();handle(final.trim());}else $('live').textContent='Hearing: '+interim;};
- r.onerror=e=>{if(recognition!==r)return;failed=true;stopListening();status('MICROPHONE PAUSED');const messages={'not-allowed':'Microphone access is blocked. Allow access in your browser settings, then tap Talk, or type below.','service-not-allowed':'Voice recognition is unavailable. Type below or use the contact form.','audio-capture':'No microphone is available. Check your microphone, then tap Talk.','network':'Speech service could not connect. Tap Talk to retry, or type below.','no-speech':'I didn’t catch that. Tap Talk and try again, or type below.'};$('live').textContent=messages[e.error]||'Microphone stopped. Tap Talk to retry, or type below.';};
- r.onend=()=>{if(recognition!==r)return;recognition=null;clearTimeout(listenWatch);if(!got&&!failed&&active&&!paused){if(++misses<2){$('live').textContent='I didn’t catch that — listening again.';scheduleListen();}else{status('TAP TO RETRY');$('live').textContent='No answer heard. Tap Talk or type below.';}}};
- listenWatch=setTimeout(()=>{if(recognition!==r)return;stopListening();status('TAP TO RETRY');$('live').textContent='No response received. Tap Talk or type below.';},22000);
- try{r.start();}catch{stopListening();status('TAP TO RETRY');$('live').textContent='Tap Talk to enable the microphone, or type below.';}
-}
-function normalize(field,text){let s=text.trim();if(field==='first'||field==='last')return s.replace(/^(?:my (?:first |last )?name is|my (?:first|last) name['’]s|i am|i['’]m|it['’]s|this is)\s+/i,'').replace(/[.,!?]+$/,'').trim();
- if(field==='phone'){const digits={zero:'0',oh:'0',one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9'};let p=s.toLowerCase().replace(/\b(zero|oh|one|two|three|four|five|six|seven|eight|nine)\b/g,w=>digits[w]).replace(/\D/g,'');if(p.length===11&&p[0]==='1')p=p.slice(1);return p;}
- return s.replace(/^(?:my email(?: address)? is|it['’]s)\s+/i,'').replace(/\s+(?:at|at sign)\s+/ig,'@').replace(/\s+dot\s+/ig,'.').replace(/\s+underscore\s+/ig,'_').replace(/\s+(?:dash|hyphen)\s+/ig,'-').replace(/\s+/g,'').replace(/[.,;]+$/,'').toLowerCase();}
-function valid(field,s){if(field==='phone')return /^\d{10}$/.test(s);if(field==='email')return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)&&s.length<=254;return s.length>0&&s.length<=80&&/\p{L}/u.test(s);}
-function packet(){return `Sterling contact packet\nFirst name: ${data.first}\nLast name: ${data.last}\nPhone: ${data.phone}\nEmail: ${data.email}`;}
-function render(){const ready=fields.every(f=>confirmed.has(f));$('progress').textContent=`${confirmed.size} of 4 contact details confirmed`;$('sendbox').hidden=!ready;$('confirmbar').hidden=!pending;
- if(ready){const sep=/iPhone|iPad|iPod/.test(navigator.userAgent)?'&':'?';$('send').href='sms:+12053108645'+sep+'body='+encodeURIComponent(packet());}}
-function next(){stage=fields.findIndex(f=>!confirmed.has(f));if(stage<0){stage=4;render();say('Thanks, your contact packet is ready for London. Now, what phone are you interested in?');}else{render();say(questions[stage]);}}
-function handle(text){text=text.trim();if(!text)return;active=true;paused=false;$('pause').textContent='Pause';halt();$('live').textContent='Heard: '+text;
- if(pending){if(/\b(no|nope|wrong|incorrect|not correct|not right)\b/i.test(text)){pending=null;render();say('No problem. '+questions[stage]);return;}
- if(/^(yes|yeah|yep|correct|right|that['’]?s (right|correct)|it is|sure|okay|ok)[.!\s]*$/i.test(text)){data[pending.field]=pending.value;$(pending.field).value=pending.value;confirmed.add(pending.field);pending=null;next();return;}
- pending=null;}
- if(stage<4){const field=fields[stage];const value=normalize(field,text);if(!valid(field,value)){say(field==='phone'?'Please say all ten digits, or type the number below.':field==='email'?'Please say the email again, including at and dot, or type it below.':questions[stage]);return;}
- pending={field,value};$(field).value=value;render();const spoken=field==='phone'?value.split('').join(' '):value;say(`I heard ${spoken}. Is that ${labels[field]} correct?`);return;}
- if(stage===4){data.device=text;stage=5;say('Nice. What storage size would you like?');return;}
- if(stage===5){data.storage=text;stage=6;say('Got it. What color do you have in mind?');return;}
- if(stage===6){data.color=text;stage=7;say('And what do you use your phone for most — photos, work, games, or streaming?');return;}
- if(stage===7){data.use=text;stage=8;say('Thanks. London can help check availability and the current offer for your choices. What else would you like him to know?');return;}
- data.note=text;say('I have that in this session. London can help with the next step.');}
-function start(){active=true;paused=false;misses=0;$('pause').textContent='Pause';$('start').textContent='Resume Sterling';stage=fields.findIndex(f=>!confirmed.has(f));if(stage<0)stage=4;pending=null;render();say(stage<4?'Hi, I’m Sterling, London’s digital assistant. '+questions[stage]:'Welcome back. What phone are you interested in?');}
-$('start').onclick=start;
-$('talk').onclick=()=>{active=true;paused=false;misses=0;$('pause').textContent='Pause';halt();listen();};
-$('pause').onclick=()=>{paused=!paused;if(paused){halt();status('PAUSED');$('live').textContent='Microphone paused.';}else{active=true;listen();}$('pause').textContent=paused?'Resume':'Pause';};
-$('repeat').onclick=()=>{active=true;paused=false;$('pause').textContent='Pause';say($('bubble').textContent);};
-$('yes').onclick=()=>handle('yes');$('no').onclick=()=>handle('no');
-$('answerform').onsubmit=e=>{e.preventDefault();const text=$('answer').value;$('answer').value='';handle(text);};
-for(const f of fields)$(f).addEventListener('input',()=>{confirmed.delete(f);pending=null;stage=fields.indexOf(f);halt();paused=true;$('pause').textContent='Resume';$('delivery').textContent='Not sent. Opens Messages to 205-310-8645; tap Send there.';render();});
-$('contactform').onsubmit=e=>{e.preventDefault();const candidate={};for(const f of fields){candidate[f]=normalize(f,$(f).value);if(!valid(f,candidate[f])){$(f).focus();$('live').textContent='Please check your '+labels[f]+'.';return;}}for(const f of fields){data[f]=candidate[f];$(f).value=candidate[f];confirmed.add(f);}pending=null;active=true;paused=false;$('pause').textContent='Pause';next();};
-$('send').onclick=()=>{halt();paused=true;$('pause').textContent='Resume';status('MESSAGES HANDOFF');$('delivery').textContent='Messages requested. Tap Send in Messages. Delivery is not verified here.';};
-$('copy').onclick=async()=>{try{await navigator.clipboard.writeText(packet());$('delivery').textContent='Copied. Not sent — paste it into your message to London.';}catch{$('delivery').textContent='Copy unavailable. Use Open text to London, or copy the fields above.';}};
-$('testvoice').onclick=()=>say('Hi London. I’m Sterling. This is my current voice at full output volume.',false);
-$('mute').onchange=()=>{halt();status('READY');$('live').textContent='Tap Talk or type your answer.';};
-$('qualify').onclick=()=>{paused=true;$('pause').textContent='Resume';say('London will take you through qualification in the secure AT&T process. I’ll pause here.',false);};
-$('return').onclick=()=>{active=true;paused=false;$('pause').textContent='Pause';if(confirmed.size<4){next();return;}stage=4;say('Welcome back. What phone are you interested in?');};
-$('reset').onclick=()=>{if((confirmed.size||Object.values(data).length)&&!window.confirm('Clear this customer’s details and start a new session?'))return;halt();data={};confirmed.clear();pending=null;stage=0;active=false;paused=false;for(const f of fields)$(f).value='';$('answer').value='';$('delivery').textContent='Not sent. Opens Messages to 205-310-8645; tap Send there.';$('start').textContent='Start Sterling';$('pause').textContent='Pause';$('bubble').textContent='Ready for the next customer.';$('live').textContent='Tap Start to begin.';status('READY • V2');render();};
-document.addEventListener('visibilitychange',()=>{if(document.hidden){halt();paused=true;$('pause').textContent='Resume';status('PAUSED');$('live').textContent='Tap Resume when you return.';}});
-render();
 
+function status(t){$('status').textContent=t;}
+function stopListening(){
+  clearTimeout(listenTimer);clearTimeout(listenWatch);
+  const r=recognition;recognition=null;
+  if(r){
+    r.onend=r.onresult=r.onerror=r.onstart=null;
+    try{r.abort();}catch{}
+  }
+}
+function stopSpeech(){
+  speechToken++;
+  speaking=false;
+  if(currentSource){try{currentSource.stop();}catch{} currentSource=null;}
+  if(currentAudio){try{currentAudio.pause();}catch{} currentAudio=null;}
+  if(window.speechSynthesis)window.speechSynthesis.cancel();
+}
+function halt(){stopListening();stopSpeech();}
+
+function voices(){
+  if(!window.speechSynthesis)return [];
+  return window.speechSynthesis.getVoices()
+    .filter(v=>/^en[-_]/i.test(v.lang))
+    .sort((a,b)=>score(b)-score(a));
+}
+function score(v){
+  return (/premium|enhanced|natural|neural/i.test(v.name)?100:0)+
+         (/en-US/i.test(v.lang)?20:0)+
+         (/Evan|Nathan|Aaron|Samantha|Alex/i.test(v.name)?10:0);
+}
+function loadVoices(){
+  const old=$('voice').value;
+  $('voice').replaceChildren();
+  for(const v of voices()){
+    const o=document.createElement('option');
+    o.value=v.voiceURI;o.textContent=v.name+' · '+v.lang;
+    $('voice').appendChild(o);
+  }
+  if(old&&voices().some(v=>v.voiceURI===old))$('voice').value=old;
+}
+if(window.speechSynthesis){
+  loadVoices();
+  window.speechSynthesis.addEventListener('voiceschanged',loadVoices);
+}
+
+async function ensureAudio(){
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC)return null;
+  if(!audioCtx)audioCtx=new AC();
+  if(audioCtx.state==='suspended'){
+    try{await audioCtx.resume();}catch{}
+  }
+  return audioCtx;
+}
+
+function deviceSpeak(text,thenListen,token){
+  if($('mute').checked||!window.speechSynthesis){
+    speaking=false;
+    status('READY FOR ANSWER');
+    if(thenListen)scheduleListen();
+    return;
+  }
+  const u=new SpeechSynthesisUtterance(text);
+  u.voice=voices().find(v=>v.voiceURI===$('voice').value)||voices()[0]||null;
+  u.lang=u.voice?.lang||'en-US';
+  u.rate=Number($('rate').value);
+  u.pitch=1;u.volume=1;
+  u.onend=()=>{
+    if(token!==speechToken)return;
+    speaking=false;
+    if(thenListen)scheduleListen(); else status('READY');
+  };
+  u.onerror=()=>{
+    if(token!==speechToken)return;
+    speaking=false;status('TAP TO CONTINUE');
+    $('live').textContent='Voice stopped. Tap Talk or type your answer.';
+  };
+  try{window.speechSynthesis.speak(u);}
+  catch{
+    speaking=false;
+    if(thenListen)scheduleListen();
+  }
+}
+
+async function cloudSpeak(text,thenListen,token){
+  status('VOICE LOADING');
+  $('live').textContent='Sterling is getting his voice ready…';
+  try{
+    const r=await fetch('/api/tts',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({text})
+    });
+    if(!r.ok)throw new Error('cloud voice unavailable');
+    const buf=await r.arrayBuffer();
+    if(token!==speechToken)return;
+    const ctx=await ensureAudio();
+    if(ctx){
+      const decoded=await ctx.decodeAudioData(buf.slice(0));
+      if(token!==speechToken)return;
+      const src=ctx.createBufferSource();
+      const gain=ctx.createGain();
+      gain.gain.value=Number($('boost')?.value||1.35);
+      src.buffer=decoded;
+      src.connect(gain);gain.connect(ctx.destination);
+      currentSource=src;
+      src.onended=()=>{
+        if(token!==speechToken)return;
+        currentSource=null;speaking=false;
+        if(thenListen)scheduleListen(); else status('READY');
+      };
+      status('SPEAKING');
+      $('live').textContent='Sterling is speaking. Your turn comes next.';
+      src.start(0);
+      return;
+    }
+    const blob=new Blob([buf],{type:r.headers.get('content-type')||'audio/mpeg'});
+    const a=new Audio(URL.createObjectURL(blob));
+    currentAudio=a;a.volume=1;
+    a.onended=()=>{
+      if(token!==speechToken)return;
+      currentAudio=null;speaking=false;
+      if(thenListen)scheduleListen(); else status('READY');
+    };
+    a.onerror=()=>deviceSpeak(text,thenListen,token);
+    status('SPEAKING');
+    $('live').textContent='Sterling is speaking. Your turn comes next.';
+    await a.play();
+  }catch{
+    if(token!==speechToken)return;
+    deviceSpeak(text,thenListen,token);
+  }
+}
+
+function scheduleListen(){
+  clearTimeout(listenTimer);
+  if(active&&!paused)listenTimer=setTimeout(listen,300);
+}
+async function say(text,thenListen=true){
+  halt();
+  $('bubble').textContent=text;
+  const token=speechToken;
+  speaking=true;
+  if($('mute').checked){
+    speaking=false;status('READY FOR ANSWER');
+    if(thenListen)scheduleListen();
+    return;
+  }
+  await cloudSpeak(text,thenListen,token);
+}
+
+function listen(){
+  clearTimeout(listenTimer);
+  if(!active||paused||speaking||recognition||document.hidden)return;
+  if(!Rec){
+    status('TYPE YOUR ANSWER');
+    $('live').textContent='Voice input is unavailable here. Type below or fill the contact form.';
+    return;
+  }
+  const r=new Rec();
+  recognition=r;
+  r.lang='en-US';
+  r.continuous=false;
+  r.interimResults=true;
+  r.maxAlternatives=3;
+  let got=false,failed=false,heard='';
+  r.onstart=()=>{
+    if(recognition!==r)return;
+    status('LISTENING');
+    $('live').textContent='Listening — go ahead.';
+  };
+  r.onresult=e=>{
+    if(recognition!==r)return;
+    let final='',interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const best=e.results[i][0]?.transcript||'';
+      if(e.results[i].isFinal)final+=best+' ';
+      else interim+=best;
+    }
+    heard=(final||interim).trim();
+    if(heard)$('live').textContent='Hearing: '+heard;
+    if(final.trim()){
+      got=true;misses=0;
+      stopListening();
+      handle(final.trim());
+    }
+  };
+  r.onerror=e=>{
+    if(recognition!==r)return;
+    failed=true;stopListening();status('MICROPHONE PAUSED');
+    const messages={
+      'not-allowed':'Microphone access is blocked. Allow access in Safari settings, then tap Talk, or type below.',
+      'service-not-allowed':'Voice recognition is unavailable. Type below or use the contact form.',
+      'audio-capture':'No microphone is available. Check your microphone, then tap Talk.',
+      'network':'Speech recognition could not connect. Tap Talk to retry, or type below.',
+      'no-speech':'I didn’t catch that. Tap Talk and try again, or type below.'
+    };
+    $('live').textContent=messages[e.error]||'Microphone stopped. Tap Talk to retry, or type below.';
+  };
+  r.onend=()=>{
+    if(recognition!==r)return;
+    recognition=null;clearTimeout(listenWatch);
+    if(!got&&!failed&&active&&!paused){
+      if(heard){
+        misses=0;handle(heard);
+      }else if(++misses<2){
+        $('live').textContent='I didn’t catch that — listening again.';
+        scheduleListen();
+      }else{
+        status('TAP TO RETRY');
+        $('live').textContent='No answer heard. Tap Talk or type below.';
+      }
+    }
+  };
+  listenWatch=setTimeout(()=>{
+    if(recognition!==r)return;
+    stopListening();status('TAP TO RETRY');
+    $('live').textContent='No response received. Tap Talk or type below.';
+  },26000);
+  try{r.start();}
+  catch{
+    stopListening();status('TAP TO RETRY');
+    $('live').textContent='Tap Talk to enable the microphone, or type below.';
+  }
+}
+
+function normalize(field,text){
+  let s=String(text||'').trim();
+  if(field==='first'||field==='last'){
+    return s
+      .replace(/^(?:my (?:first |last )?name is|my (?:first|last) name['’]s|i am|i['’]m|it['’]s|this is)\s+/i,'')
+      .replace(/[.,!?]+$/,'').trim();
+  }
+  if(field==='phone'){
+    const digits={zero:'0',oh:'0',one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9'};
+    let p=s.toLowerCase()
+      .replace(/\b(zero|oh|one|two|three|four|five|six|seven|eight|nine)\b/g,w=>digits[w])
+      .replace(/\D/g,'');
+    if(p.length===11&&p[0]==='1')p=p.slice(1);
+    return p;
+  }
+  return s
+    .replace(/^(?:my email(?: address)? is|it['’]s)\s+/i,'')
+    .replace(/\s+(?:at|at sign)\s+/ig,'@')
+    .replace(/\s+dot\s+/ig,'.')
+    .replace(/\s+underscore\s+/ig,'_')
+    .replace(/\s+(?:dash|hyphen)\s+/ig,'-')
+    .replace(/\s+/g,'')
+    .replace(/[.,;]+$/,'').toLowerCase();
+}
+function valid(field,s){
+  if(field==='phone')return /^\d{10}$/.test(s);
+  if(field==='email')return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)&&s.length<=254;
+  return s.length>0&&s.length<=80&&/\p{L}/u.test(s);
+}
+function prettyPhone(s){
+  return s&&s.length===10?'('+s.slice(0,3)+') '+s.slice(3,6)+'-'+s.slice(6):s;
+}
+function packet(){
+  return 'Sterling contact packet\n'+
+    'First name: '+(data.first||'')+'\n'+
+    'Last name: '+(data.last||'')+'\n'+
+    'Phone: '+prettyPhone(data.phone||'')+'\n'+
+    'Email: '+(data.email||'');
+}
+function render(){
+  const ready=fields.every(f=>confirmed.has(f));
+  $('progress').textContent=confirmed.size+' of 4 contact details confirmed';
+  $('sendbox').hidden=!ready;
+  $('confirmbar').hidden=!pending;
+  if(ready){
+    const sep=/iPhone|iPad|iPod/.test(navigator.userAgent)?'&':'?';
+    $('send').href='sms:+12053108645'+sep+'body='+encodeURIComponent(packet());
+  }
+}
+function next(){
+  stage=fields.findIndex(f=>!confirmed.has(f));
+  if(stage<0){
+    stage=4;render();
+    say('Perfect. I have all four details. Tap Send to London below, then tap Send in Messages. While we’re here, who do you currently have for wireless service?');
+  }else{
+    render();say(questions[stage]);
+  }
+}
+
+function safeContext(){
+  const parts=[];
+  if(data.first)parts.push('Customer first name: '+data.first);
+  if(data.currentCarrier)parts.push('Current carrier: '+data.currentCarrier);
+  if(data.lines)parts.push('Lines: '+data.lines);
+  if(data.bill)parts.push('Approximate monthly wireless bill: '+data.bill);
+  if(data.device)parts.push('Device interest: '+data.device);
+  return parts.join('\n');
+}
+
+async function aiReply(message){
+  halt();
+  status('THINKING');
+  $('live').textContent='Sterling is thinking…';
+  try{
+    const r=await fetch('/api/chat',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({message,history:aiHistory,context:safeContext()})
+    });
+    const j=await r.json();
+    if(!r.ok||!j.text)throw new Error(j.error||'AI unavailable');
+    aiHistory.push({role:'user',content:message},{role:'assistant',content:j.text});
+    aiHistory=aiHistory.slice(-10);
+    await say(j.text);
+  }catch{
+    await say('I can still keep us moving. London can verify the live offer for you. Who do you currently have for wireless service?');
+  }
+}
+
+function captureQualification(text){
+  if(!data.currentCarrier){
+    data.currentCarrier=text;
+    say('Got it. About how many phone lines are on the account?');
+    return true;
+  }
+  if(!data.lines){
+    data.lines=text;
+    say('Thanks. Roughly what are you paying each month for wireless before any device payoff amounts?');
+    return true;
+  }
+  if(!data.bill){
+    data.bill=text;
+    say('Got it. Are you mainly looking to lower the bill, upgrade phones, improve service, or some combination of those?');
+    return true;
+  }
+  if(!data.device){
+    data.device=text;
+    say('That helps. Is there a specific phone or upgrade you already have in mind?');
+    return true;
+  }
+  return false;
+}
+
+async function handle(text){
+  text=String(text||'').trim();
+  if(!text)return;
+  active=true;paused=false;$('pause').textContent='Pause';
+  halt();$('live').textContent='Heard: '+text;
+
+  if(pending){
+    if(/\b(no|nope|wrong|incorrect|not correct|not right)\b/i.test(text)){
+      pending=null;render();say('No problem. '+questions[stage]);return;
+    }
+    if(/^(yes|yeah|yep|correct|right|that['’]?s (right|correct)|it is|sure|okay|ok)[.!\s]*$/i.test(text)){
+      data[pending.field]=pending.value;
+      $(pending.field).value=pending.value;
+      confirmed.add(pending.field);
+      pending=null;next();return;
+    }
+    pending=null;
+  }
+
+  if(stage<4){
+    const field=fields[stage];
+    const value=normalize(field,text);
+    if(!valid(field,value)){
+      if(field==='phone')return say('Please say all ten digits, or type the number below.');
+      if(field==='email')return say('Please say the email again, including at and dot, or type it below.');
+      return say(questions[stage]);
+    }
+    pending={field,value};
+    $(field).value=value;render();
+    let spoken=value;
+    if(field==='phone')spoken=value.split('').join(' ');
+    if(field==='email')spoken=value.replace('@',' at ').replace(/\./g,' dot ');
+    say('I heard '+spoken+'. Is that '+labels[field]+' correct?');
+    return;
+  }
+
+  if(/^(help|what can you do|who are you)$/i.test(text)){
+    return aiReply(text);
+  }
+
+  if(captureQualification(text))return;
+  return aiReply(text);
+}
+
+async function startSterling(){
+  await ensureAudio();
+  active=true;paused=false;misses=0;$('pause').textContent='Pause';
+  $('start').textContent='Resume Sterling';
+  stage=fields.findIndex(f=>!confirmed.has(f));
+  if(stage<0)stage=4;
+  pending=null;render();
+  if(stage<4){
+    say('Hi, I’m Sterling, London’s AI assistant. I’ll make this quick. '+questions[stage]);
+  }else{
+    say('Welcome back. Who do you currently have for wireless service?');
+  }
+}
+
+$('start').onclick=startSterling;
+$('talk').onclick=async()=>{
+  await ensureAudio();
+  active=true;paused=false;misses=0;$('pause').textContent='Pause';
+  halt();listen();
+};
+$('pause').onclick=()=>{
+  paused=!paused;
+  if(paused){
+    halt();status('PAUSED');$('live').textContent='Microphone paused.';
+  }else{
+    active=true;listen();
+  }
+  $('pause').textContent=paused?'Resume':'Pause';
+};
+$('repeat').onclick=async()=>{
+  await ensureAudio();
+  active=true;paused=false;$('pause').textContent='Pause';
+  say($('bubble').textContent);
+};
+$('yes').onclick=()=>handle('yes');
+$('no').onclick=()=>handle('no');
+$('answerform').onsubmit=e=>{
+  e.preventDefault();
+  const text=$('answer').value;$('answer').value='';
+  handle(text);
+};
+
+for(const f of fields){
+  $(f).addEventListener('input',()=>{
+    confirmed.delete(f);pending=null;stage=fields.indexOf(f);
+    halt();paused=true;$('pause').textContent='Resume';
+    $('delivery').textContent='Not sent. Opens Messages to 205-310-8645; tap Send there.';
+    render();
+  });
+}
+$('contactform').onsubmit=e=>{
+  e.preventDefault();
+  const candidate={};
+  for(const f of fields){
+    candidate[f]=normalize(f,$(f).value);
+    if(!valid(f,candidate[f])){
+      $(f).focus();$('live').textContent='Please check your '+labels[f]+'.';return;
+    }
+  }
+  for(const f of fields){
+    data[f]=candidate[f];$(f).value=candidate[f];confirmed.add(f);
+  }
+  pending=null;active=true;paused=false;$('pause').textContent='Pause';
+  next();
+};
+$('send').onclick=()=>{
+  halt();paused=true;$('pause').textContent='Resume';
+  status('MESSAGES HANDOFF');
+  $('delivery').textContent='Packet filled in. Tap Send in Messages to deliver it to London.';
+};
+$('copy').onclick=async()=>{
+  try{
+    await navigator.clipboard.writeText(packet());
+    $('delivery').textContent='Copied. You can paste the packet into a message to London.';
+  }catch{
+    $('delivery').textContent='Copy unavailable. Use Open text to London.';
+  }
+};
+$('testvoice').onclick=async()=>{
+  await ensureAudio();
+  say('Hi London. I’m Sterling. This is my natural cloud voice with the volume boost turned on.',false);
+};
+$('mute').onchange=()=>{
+  halt();status('READY');$('live').textContent='Tap Talk or type your answer.';
+};
+$('qualify').onclick=()=>{
+  paused=true;$('pause').textContent='Resume';
+  say('London will take you through qualification in the secure AT&T process. I’ll pause here.',false);
+};
+$('return').onclick=()=>{
+  active=true;paused=false;$('pause').textContent='Pause';
+  if(confirmed.size<4){next();return;}
+  stage=4;say('Welcome back. Who do you currently have for wireless service?');
+};
+$('reset').onclick=()=>{
+  if((confirmed.size||Object.values(data).length)&&!window.confirm('Clear this customer’s details and start a new session?'))return;
+  halt();data={};confirmed.clear();pending=null;stage=0;active=false;paused=false;aiHistory=[];
+  for(const f of fields)$(f).value='';
+  $('answer').value='';
+  $('delivery').textContent='Not sent. Opens Messages to 205-310-8645; tap Send there.';
+  $('start').textContent='Start Sterling';$('pause').textContent='Pause';
+  $('bubble').textContent='Ready for the next customer.';
+  $('live').textContent='Tap Start to begin.';
+  status('READY • V3');render();
+};
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){
+    halt();paused=true;$('pause').textContent='Resume';
+    status('PAUSED');$('live').textContent='Tap Resume when you return.';
+  }
+});
+render();
 </script></body></html>
