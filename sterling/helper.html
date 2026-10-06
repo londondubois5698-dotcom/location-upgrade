@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sterling Route Helper</title>
+<meta name="theme-color" content="#07182c">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 30% 10%,#143f73,#07182c 38%,#030914 80%);color:white;min-height:100vh}.wrap{max-width:780px;margin:auto;padding:28px 18px 60px}.brand{font-weight:900;letter-spacing:.3px}.brand b{color:#45b2ff}h1{font-size:clamp(34px,8vw,58px);margin:38px 0 8px}.sub{color:#a7c7e4;font-size:18px;line-height:1.45}.card{margin-top:22px;background:#08192bbb;border:1px solid #1e4467;border-radius:20px;padding:20px}.card h2{margin:0 0 12px;font-size:19px}.steps{line-height:1.6;color:#c6def1}.steps b{color:white}button{width:100%;padding:15px;border:0;border-radius:12px;background:#0788e8;color:white;font:inherit;font-weight:800;margin-top:12px;touch-action:manipulation}.status{min-height:28px;margin-top:12px;color:#79d8ff}.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#04111f;border:1px solid #183853;padding:12px;border-radius:10px;overflow:auto;font-size:12px;white-space:pre-wrap;word-break:break-all}.note{font-size:13px;color:#8eabc4;line-height:1.5}.good{color:#69e5a8}@media(max-width:520px){.wrap{padding:18px 14px 45px}.card{padding:16px}}
+</style></head>
+<body><main class="wrap">
+<div class="brand"><b>Sterling</b> Route Helper</div>
+<h1>One helper. Desktop + iPad.</h1>
+<div class="sub">The helper runs inside your authorized ICL/Salesforce route page, so it works with the desktop record view and the iPad/Lightning layout without relying on screen coordinates.</div>
+
+<section class="card">
+<h2>Install once</h2>
+<div class="steps">
+<b>Desktop Safari/Chrome:</b> create a bookmark named <b>Sterling Helper</b>, then replace its URL with the copied bookmarklet below.<br><br>
+<b>iPad Safari:</b> bookmark this page first. Open Safari’s bookmarks, tap <b>Edit</b>, select that bookmark, rename it <b>Sterling Helper</b>, and replace its address with the copied bookmarklet.
+</div>
+<button id="copy">Copy Sterling Helper bookmarklet</button>
+<div class="status" id="status"></div>
+<details><summary>Show bookmarklet text</summary><div class="code" id="code">Loading…</div></details>
+</section>
+
+<section class="card">
+<h2>Field workflow</h2>
+<div class="steps">1. Open the active house in ICL/Salesforce.<br>2. Tap your <b>Sterling Helper</b> bookmark.<br>3. Tap <b>Open Sterling for this stop</b>.<br>4. After Sterling confirms the customer, tap <b>Copy for Salesforce Helper</b>.<br>5. Return to the ICL/Salesforce tab and tap the helper bookmark again.<br>6. Tap <b>Run full sequence</b>. It verifies the stop, fills name/phone/email, saves, opens Order, and captures the Partner Order ID.</div>
+<p class="note">The helper does not touch SSNs, IDs, PINs, payment information or verification codes. It only works on the customer contact fields and the existing Save/Order controls.</p>
+</section>
+</main>
+<script>
+(async()=>{
+ const status=document.getElementById('status'),code=document.getElementById('code');
+ try{
+   const js=await (await fetch('/helper.js',{cache:'no-store'})).text();
+   const bookmarklet='javascript:(()=>{'+js+'})();void 0';
+   code.textContent=bookmarklet;
+   document.getElementById('copy').onclick=async()=>{
+     try{await navigator.clipboard.writeText(bookmarklet);status.textContent='Copied. Paste it into the bookmark Address/URL field.';status.className='status good';}
+     catch{status.textContent='Clipboard blocked. Open “Show bookmarklet text,” select all, and copy it.';}
+   };
+ }catch(e){code.textContent='Could not load helper. Refresh this page.';}
+})();
+</script></body></html>
