@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "ai": "^7.0.0"
+    "ai": "^7.0.123",
+    "@ai-sdk/gateway": "^4.0.78"
   }
 }
