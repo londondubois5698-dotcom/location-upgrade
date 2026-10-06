@@ -20,8 +20,8 @@ export default async function handler(req,res){
     const got=await readText(path);
     try{await del(path,{storeId:STORE_ID})}catch{}
     if(got!==id)throw new Error('Private store round-trip mismatch');
-    return res.status(200).json({ok:true,privateStore:true,version:'13.0'});
+    return res.status(200).json({ok:true,privateStore:true,version:'14.0'});
   }catch(e){
-    return res.status(500).json({ok:false,privateStore:false,error:e?.message||String(e),version:'13.0'});
+    return res.status(500).json({ok:false,privateStore:false,error:e?.message||String(e),version:'14.0'});
   }
 }
