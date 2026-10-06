@@ -5,13 +5,16 @@ import {
 } from 'ai';
 import { z } from 'zod';
 import { STERLING_INSTRUCTIONS } from '../brain.js';
+import { loadStoredGatewayKey } from './gateway-key.js';
 
 const MODEL = 'openai/gpt-realtime-2.1';
 const TEAM_SCOPE = 'londondubois5698-dotcom';
 
-const realtimeGateway = createGateway({
-  teamIdOrSlug: TEAM_SCOPE
-});
+async function getRealtimeGateway(){
+  const apiKey=await loadStoredGatewayKey();
+  if(!apiKey)throw new Error('Sterling voice needs a Vercel AI Gateway API key. Open /voice-setup.html once to finish voice setup.');
+  return createGateway({apiKey,teamIdOrSlug:TEAM_SCOPE});
+}
 
 const ALLOWED_ORIGINS = new Set([
   'https://win.iclportal.com',
@@ -59,6 +62,7 @@ function applyCors(req,res){
 
 export async function mintRealtimeSetup(){
   const toolDefs = await getRealtimeToolDefinitions({tools});
+  const realtimeGateway=await getRealtimeGateway();
   const setup = await realtimeGateway.experimental_realtime.getToken({
     model: MODEL,
     expiresAfterSeconds: 240
@@ -78,7 +82,7 @@ export async function mintRealtimeSetup(){
     tools: toolDefs,
     instructions: STERLING_INSTRUCTIONS,
     teamScope: TEAM_SCOPE,
-    version: '12.1'
+    version: '12.2'
   };
 }
 
