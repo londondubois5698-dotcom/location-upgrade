@@ -152,10 +152,18 @@
 (function(){
 'use strict';
 var APP='https://sterling-olive.vercel.app';
-var VERSION='13.0';
+var VERSION='14.0';
 var tetherId='';
 var currentHouse=null,lastHouseKey='',lastResultId='';
 var contact={first:'',last:'',phone:'',email:''},stage='rapport',mismatch=false;
+var discovery={
+  carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',
+  internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',
+  work:'',commute:'',decisionMaker:'',tv:'',notes:''
+};
+var alphaState='idle',alphaReturnState='idle',alphaTimer=null;
+var gate={noise:.006,open:false,voiced:0,quiet:0,pre:[]};
+var captureHighpass=null,captureLowpass=null,micAnalyser=null;
 var active=false,connected=false,connecting=false,muted=false,reconnects=0,socket=null;
 var micStream=null,captureCtx=null,captureSource=null,captureProcessor=null,playCtx=null,playTime=0,playingSources=[];
 
@@ -166,7 +174,476 @@ function showPaired(){
   $('pairCard').style.display=tetherId?'none':'block';
   document.querySelectorAll('.liveOnly').forEach(el=>el.style.display=tetherId?'block':'none');
 }
-function setVoice(msg,kind){$('voice').textContent=msg;$('voice').className='value status '+(kind||'');$('wave').textContent=msg}
+
+function alphaEl(){return $('alphaStage')}
+function setAlphaState(next,hold){
+  alphaState=next||'idle';
+  var a=alphaEl();if(a)a.setAttribute('data-state',alphaState);
+  var labels={idle:'READY',listening:'LISTENING',thinking:'THINKING',speaking:'STERLING SPEAKING',typing:'UPDATING YOUR QUOTE',boot:'PAIRING SYNC'};
+  if($('alphaState')){$('alphaState').textContent=labels[alphaState]||String(alphaState).toUpperCase();$('alphaState').className='alpha-state'+((alphaState==='listening'||alphaState==='speaking')?' live':'')}
+  if(alphaTimer){clearTimeout(alphaTimer);alphaTimer=null}
+  if(hold){alphaTimer=setTimeout(function(){setAlphaState(connected?'listening':'idle')},hold)}
+}
+function bootAlpha(showToast){
+  setAlphaState('boot');
+  if(showToast&&$('pairToast')){$('pairToast').classList.remove('show');void $('pairToast').offsetWidth;$('pairToast').classList.add('show')}
+  setTimeout(function(){setAlphaState(active?'listening':'idle')},1550);
+}
+function setCaption(label,text,append){
+  if($('captionLabel')&&label)$('captionLabel').textContent=label;
+  if(!$('liveCaption')||!text)return;
+  var next=append?(($('liveCaption').dataset.raw||'')+text):text;
+  if(next.length>240)next=next.slice(-240);
+  $('liveCaption').dataset.raw=next;
+  $('liveCaption').textContent=next;
+}
+function typeValue(id,value){
+  var el=$(id);if(!el)return;
+  var text=(value===undefined||value===null||String(value).trim()==='')?'—':String(value);
+  if(el.dataset.value===text)return;
+  el.dataset.value=text;
+  if(el._typingTimer)clearInterval(el._typingTimer);
+  el.textContent='';
+  var i=0;
+  el.classList.add('pulse');
+  el._typingTimer=setInterval(function(){
+    i++;el.textContent=text.slice(0,i);
+    if(i>=text.length){clearInterval(el._typingTimer);el._typingTimer=null;setTimeout(function(){el.classList.remove('pulse')},500)}
+  },Math.max(18,Math.min(42,360/Math.max(1,text.length))));
+}
+function spawnTypingParticles(){
+  var box=$('typingParticles');if(!box)return;
+  for(var i=0;i<12;i++){
+    var p=document.createElement('b');
+    p.style.left=(25+Math.random()*65)+'px';p.style.top=(32+Math.random()*20)+'px';
+    p.style.setProperty('--x',(-35+Math.random()*80)+'px');p.style.setProperty('--y',(-20-Math.random()*50)+'px');
+    box.appendChild(p);setTimeout((function(x){return function(){x.remove()}})(p),900);
+  }
+}
+function numberFromWords(v){
+  var t=clean(v).toLowerCase().replace(/[^a-z0-9.]/g,'');
+  var m=t.match(/\d+/);if(m)return parseInt(m[0],10);
+  var map={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10};
+  return map[t]||0;
+}
+function moneyFromText(v){
+  var m=clean(v).replace(/,/g,'').match(/\d+(?:\.\d{1,2})?/);return m?Number(m[0]):0;
+}
+function extraEstimate(lines){
+  var n=numberFromWords(lines);if(!n)return 0;
+  var base={1:80,2:140,3:180,4:200,5:250,6:300};
+  return n<=6?base[n]:300+(n-6)*50;
+}
+function discountLabel(){
+  var d=clean(discovery.discountEligibility).toLowerCase();
+  if(!d)return 'Check fit';
+  if(/55|senior/.test(d))return '55+ fit';
+  if(/teacher|military|veteran|first responder|nurse|doctor|health/.test(d))return 'Appreciation';
+  if(/student|union|employer|employee/.test(d))return 'Signature';
+  return discovery.discountEligibility;
+}
+function internetFitText(){
+  var u=clean(discovery.internetUse).toLowerCase();
+  if(!u)return '<strong>Wireless first.</strong> Sterling will only surface Internet Air after learning how the household actually uses home internet.';
+  if(/gamer|gaming|heavy|4k|stream|many device|work from home|creator|upload/.test(u))return '<strong>Home internet:</strong> usage sounds heavy. Keep Internet Air off the lead offer and compare a stronger home-internet option.';
+  return '<strong>Internet Air may fit:</strong> field sheet shows $55 standalone or $35 with AT&T wireless, 90–300 Mbps, aimed at 1–2 people with limited devices/usage. Verify availability and final price.';
+}
+function renderDiscovery(){
+  typeValue('dCarrier',discovery.carrier);
+  typeValue('dLines',discovery.lines);
+  typeValue('dBill',discovery.bill?(/\$/.test(discovery.bill)?discovery.bill:'$('voice').textContent=msg;$('voice').className='value status '+(kind||'');$('wave').textContent=msg}
+function render(){
+  showPaired();
+  $('house').textContent=currentHouse?currentHouse.label:'Waiting for Salesforce…';if($('alphaHouse'))$('alphaHouse').textContent=currentHouse?currentHouse.label:'Waiting for Salesforce…';
+  var bits=[];if(contact.first)bits.push(contact.first);if(contact.last)bits.push(contact.last);if(contact.phone)bits.push(contact.phone);if(contact.email)bits.push(contact.email);
+  $('contact').textContent=bits.length?'Confirmed: '+bits.join(' • '):'No confirmed customer details yet.';
+  $('start').style.display=active?'none':'block';$('mute').style.display=active?'block':'none';$('stop').style.display=active?'block':'none';
+  $('mute').textContent=muted?'Unmute':'Mute';$('wave').className='wave'+(connected?' live':'');renderDiscovery();
+}
+async function apiGet(part){
+  var r=await fetch(APP+'/api/tether?tetherId='+encodeURIComponent(tetherId)+'&part='+encodeURIComponent(part)+'&t='+Date.now(),{cache:'no-store'});
+  var j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Tether request failed');return j;
+}
+async function apiPost(body){
+  var r=await fetch(APP+'/api/tether',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  var j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Tether request failed');return j;
+}
+$('claim').onclick=async function(){
+  var code=$('pairCode').value.replace(/\D/g,'').slice(0,6);
+  if(code.length!==6){$('pairStatus').textContent='Enter the six-digit code from the iPad.';return}
+  $('claim').disabled=true;$('pairStatus').textContent='Pairing…';
+  try{
+    var j=await apiPost({action:'pair-claim',code:code});
+    tetherId=j.tetherId;localStorage.setItem('sterling.tetherId.v1',tetherId);$('pairCode').value='';$('pairStatus').textContent='Paired.';
+    render();bootAlpha(true);await heartbeat();await pollStatus();
+  }catch(e){$('pairStatus').textContent=e.message||String(e)}
+  finally{$('claim').disabled=false}
+};
+
+async function heartbeat(){if(!tetherId)return;try{await apiPost({action:'phone-heartbeat',tetherId:tetherId,active:active,version:VERSION})}catch(e){}}
+async function pollStatus(){
+  if(!tetherId)return;
+  try{
+    var j=await apiGet('status'),server=j.serverTime||Date.now();
+    var ipadFresh=j.ipad&&server-j.ipad.lastSeen<7000;
+    $('ipad').textContent=ipadFresh?'CONNECTED':'Waiting for iPad';
+    $('ipad').className='value status '+(ipadFresh?'good':'warn');
+    if(j.house&&j.house.key&&j.house.key!==lastHouseKey){
+      var hadHouse=!!lastHouseKey;
+      currentHouse=j.house;lastHouseKey=j.house.key;
+      if(hadHouse){contact={first:'',last:'',phone:'',email:''};discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',notes:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';setCaption('Sterling','New house detected. Starting fresh.');}
+      render();
+      if(connected)send({type:'context-append',content:'The iPad Salesforce record changed. Current live house is now '+j.house.label+'. Reset all assumptions and contact details from the prior household.',delegationId:null});
+    }else if(j.house){currentHouse=j.house;render()}
+    if(j.result&&j.result.id&&j.result.id!==lastResultId){
+      lastResultId=j.result.id;
+      var rr=j.result.result||{};
+      if(rr.ok&&rr.orderId&&(!rr.houseKey||!currentHouse||rr.houseKey===currentHouse.key)){
+        $('order').style.display='block';$('order').textContent='Salesforce is ready. Partner Order ID sent to London on the iPad.';
+        if(connected)send({type:'context-append',content:'The iPad completed the Salesforce update successfully for '+(rr.houseLabel||'the current house')+'. The Partner Order ID is ready for London. Do not read the ID aloud unless London asks for it.',delegationId:null});
+      }else if(rr.error&&connected){
+        send({type:'context-append',content:'The iPad safely stopped the Salesforce update. Reason: '+rr.error+'. Do not claim that Salesforce was updated.',delegationId:null});
+      }
+    }
+  }catch(e){$('ipad').textContent='Tether error';$('ipad').className='value status bad'}
+}
+setInterval(heartbeat,2500);setInterval(pollStatus,700);
+
+function ensurePlay(){if(!playCtx){var AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw new Error('This browser does not support realtime audio.');try{playCtx=new AC({sampleRate:24000})}catch(e){playCtx=new AC()}}return playCtx.resume()}
+function encodePCM(samples){var b=new ArrayBuffer(samples.length*2),v=new DataView(b);for(var i=0;i<samples.length;i++){var s=Math.max(-1,Math.min(1,samples[i]));v.setInt16(i*2,s<0?s*32768:s*32767,true)}var bytes=new Uint8Array(b),bin='',chunk=0x8000;for(var j=0;j<bytes.length;j+=chunk)bin+=String.fromCharCode.apply(null,bytes.subarray(j,j+chunk));return btoa(bin)}
+function decodePCM(b64){var bin=atob(b64),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);var i16=new Int16Array(u.buffer),out=new Float32Array(i16.length);for(var j=0;j<i16.length;j++)out[j]=i16[j]/32768;return out}
+function resample(input,inRate,outRate){if(inRate===outRate)return new Float32Array(input);var ratio=inRate/outRate,len=Math.round(input.length/ratio),out=new Float32Array(len);for(var i=0;i<len;i++){var x=i*ratio,a=Math.floor(x),b=Math.min(a+1,input.length-1),f=x-a;out[i]=input[a]*(1-f)+input[b]*f}return out}
+function stopPlayback(){for(var i=0;i<playingSources.length;i++)try{playingSources[i].stop()}catch(e){}playingSources=[];if(playCtx)playTime=playCtx.currentTime}
+function playAudio(b64){try{var samples=decodePCM(b64);if(!samples.length)return;var ctx=playCtx;if(!ctx)return;var buf=ctx.createBuffer(1,samples.length,24000);buf.getChannelData(0).set(samples);var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);var st=Math.max(playTime,ctx.currentTime);src.start(st);playTime=st+buf.duration;playingSources.push(src);src.onended=function(){playingSources=playingSources.filter(x=>x!==src)}}catch(e){setVoice('Audio playback error','bad')}}
+async function prepareMic(){await ensurePlay();if(micStream)return;if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Microphone access is unavailable.');micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});var AC=window.AudioContext||window.webkitAudioContext;captureCtx=new AC();await captureCtx.resume();captureSource=captureCtx.createMediaStreamSource(micStream);captureProcessor=captureCtx.createScriptProcessor(1024,1,1);captureProcessor.onaudioprocess=function(ev){if(!connected||muted||!socket||socket.readyState!==WebSocket.OPEN)return;var samples=resample(ev.inputBuffer.getChannelData(0),captureCtx.sampleRate,24000);send({type:'input-audio-append',audio:encodePCM(samples)})};captureSource.connect(captureProcessor);captureProcessor.connect(captureCtx.destination)}
+function releaseMic(){try{if(captureProcessor)captureProcessor.onaudioprocess=null}catch(e){}try{if(captureProcessor)captureProcessor.disconnect()}catch(e){}try{if(captureSource)captureSource.disconnect()}catch(e){}try{if(captureCtx)captureCtx.close()}catch(e){}try{if(micStream)micStream.getTracks().forEach(t=>t.stop())}catch(e){}captureProcessor=captureSource=captureCtx=micStream=null}
+function send(obj){try{if(socket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify(obj))}catch(e){}}
+function toolReply(callId,name,obj){send({type:'conversation-item-create',item:{type:'function-call-output',callId:callId,name:name,output:JSON.stringify(obj)}});send({type:'response-create',options:{modalities:['audio']}})}
+function normalizeContact(field,value){var v=clean(value);if(field==='phone'){var d=v.replace(/\D/g,'');if(d.length===11&&d[0]==='1')d=d.slice(1);if(d.length!==10)throw new Error('Phone must have ten digits');return d}if(field==='email'){v=v.replace(/\s+/g,'').toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))throw new Error('Email is incomplete');return v}if(!/[A-Za-zÀ-ÿ]/.test(v))throw new Error('Name is incomplete');return v.slice(0,80)}
+async function handleTool(m){
+  var a={};try{a=JSON.parse(m.arguments||'{}')}catch(e){}
+  try{
+    if(m.name==='saveContact'){if(a.confirmed!==true)throw new Error('Customer has not confirmed that field yet');var f=a.field;if(['first','last','phone','email'].indexOf(f)<0)throw new Error('Unknown contact field');contact[f]=normalizeContact(f,a.value);render();toolReply(m.callId,m.name,{ok:true,saved:f});return}
+    if(m.name==='setStage'){stage=a.stage||stage;toolReply(m.callId,m.name,{ok:true,stage:stage});return}
+    if(m.name==='flagAddressMismatch'){mismatch=true;toolReply(m.callId,m.name,{ok:true,blocked:true,current:currentHouse?currentHouse.label:null});return}
+    if(m.name==='commitContact'){
+      if(!(contact.first&&contact.last&&contact.phone&&contact.email))throw new Error('All four confirmed contact fields are required');
+      if(!currentHouse||!currentHouse.key)throw new Error('The iPad has not supplied a current Salesforce house yet');
+      if(mismatch)throw new Error('Address mismatch is blocking the Salesforce update');
+      var id=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random());
+      await apiPost({action:'command',tetherId:tetherId,id:id,command:{type:'commitContact',contact:contact,expectedHouseKey:currentHouse.key,expectedHouseLabel:currentHouse.label}});
+      toolReply(m.callId,m.name,{ok:true,started:true,currentHouse:currentHouse.label});
+      return;
+    }
+    toolReply(m.callId,m.name,{ok:false,error:'Unknown tool'});
+  }catch(e){toolReply(m.callId,m.name,{ok:false,error:e.message||String(e)})}
+}
+async function connect(){
+  if(!active||connecting)return;connecting=true;connected=false;setVoice('CONNECTING…');
+  try{
+    var r=await fetch(APP+'/api/realtime-token?v=13&t='+Date.now(),{cache:'no-store'});
+    var setup=await r.json();
+    if(!r.ok||!setup.token||!setup.url)throw new Error(setup.error||'Realtime setup failed');
+    var protocols=(setup.protocols&&setup.protocols.length)?setup.protocols:['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token];
+    var ws=new WebSocket(setup.url,protocols);socket=ws;var greeted=false;
+    ws.onopen=function(){connecting=false;send({type:'session-update',config:{instructions:setup.instructions,voice:'marin',outputModalities:['audio'],inputAudioFormat:{type:'audio/pcm',rate:24000},outputAudioFormat:{type:'audio/pcm',rate:24000},turnDetection:{type:'server-vad',threshold:0.45,prefixPaddingMs:300,silenceDurationMs:550},tools:setup.tools||[]}})};
+    ws.onmessage=function(ev){var m;try{m=JSON.parse(ev.data)}catch(e){return}
+      if(m.type==='session-created'||m.type==='session-started'||m.type==='session-updated'){connected=true;connecting=false;reconnects=0;render();setVoice('LIVE • LISTENING','good');if(currentHouse)send({type:'context-append',content:'The paired iPad is currently on Salesforce house '+currentHouse.label+'. Treat that as the only active household.',delegationId:null});if(!greeted){greeted=true;send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Start the live doorway conversation now. Introduce yourself briefly as Sterling, London's assistant, then naturally begin with the customer's first name."}});send({type:'response-create',options:{modalities:['audio']}})}}
+      else if(m.type==='speech-started'){stopPlayback();send({type:'response-cancel'});setVoice('LISTENING','good')}
+      else if(m.type==='speech-stopped'){setVoice('THINKING…')}
+      else if(m.type==='audio-delta'||m.type==='audio-chunk'){playAudio(m.delta||'');setVoice('STERLING SPEAKING','good')}
+      else if(m.type==='function-call-arguments-done'){handleTool(m)}
+      else if(m.type==='error'){setVoice(m.message||'Realtime error','bad')}
+    };
+    ws.onerror=function(){setVoice('Realtime connection error','bad')};
+    ws.onclose=function(){connected=false;connecting=false;render();if(active){reconnects++;setVoice('RECONNECTING…','warn');setTimeout(connect,Math.min(6000,1000*reconnects))}else setVoice('STOPPED')};
+  }catch(e){
+    connecting=false;connected=false;render();var msg=e.message||String(e);setVoice(msg,'bad');
+    if(/AI Gateway API key|Client secrets can only/i.test(msg))$('voiceSetup').style.display='block';
+    if(active&&!/AI Gateway API key|Client secrets can only/i.test(msg)){reconnects++;setTimeout(connect,Math.min(6000,1000*reconnects))}
+  }
+}
+async function start(){if(active)return;try{await prepareMic();active=true;muted=false;render();await heartbeat();await connect()}catch(e){active=false;render();setVoice(e.message||String(e),'bad');releaseMic()}}
+function stop(){active=false;connected=false;connecting=false;try{if(socket)socket.close()}catch(e){}socket=null;releaseMic();stopPlayback();render();setVoice('STOPPED')}
+$('start').onclick=start;$('stop').onclick=stop;$('mute').onclick=function(){muted=!muted;render();setVoice(muted?'MIC MUTED':'LIVE • LISTENING',muted?'warn':'good')};
+$('voiceSetup').onclick=function(){location.href=APP+'/voice-setup.html?v=13'};
+$('repair').onclick=function(){stop();localStorage.removeItem('sterling.tetherId.v1');tetherId='';currentHouse=null;lastHouseKey='';lastResultId='';contact={first:'',last:'',phone:'',email:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';render();$('pairStatus').textContent='Enter the new six-digit code from the iPad.'};
+
+tetherId=localStorage.getItem('sterling.tetherId.v1')||'';
+render();if(tetherId){heartbeat();pollStatus()}
+})();
+</script>
+</body></html>+discovery.bill):'');
+  typeValue('dPhones',discovery.phones);
+  typeValue('dPlan',discovery.currentPlan);
+  typeValue('nUpgrade',discovery.upgradeInterest||'Discovering…');
+  typeValue('nDiscount',discountLabel());
+  var est=extraEstimate(discovery.lines),bill=moneyFromText(discovery.bill);
+  typeValue('nPrice',est?'$('voice').textContent=msg;$('voice').className='value status '+(kind||'');$('wave').textContent=msg}
+function render(){
+  showPaired();
+  $('house').textContent=currentHouse?currentHouse.label:'Waiting for Salesforce…';
+  var bits=[];if(contact.first)bits.push(contact.first);if(contact.last)bits.push(contact.last);if(contact.phone)bits.push(contact.phone);if(contact.email)bits.push(contact.email);
+  $('contact').textContent=bits.length?'Confirmed: '+bits.join(' • '):'No confirmed customer details yet.';
+  $('start').style.display=active?'none':'block';$('mute').style.display=active?'block':'none';$('stop').style.display=active?'block':'none';
+  $('mute').textContent=muted?'Unmute':'Mute';$('wave').className='wave'+(connected?' live':'');
+}
+async function apiGet(part){
+  var r=await fetch(APP+'/api/tether?tetherId='+encodeURIComponent(tetherId)+'&part='+encodeURIComponent(part)+'&t='+Date.now(),{cache:'no-store'});
+  var j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Tether request failed');return j;
+}
+async function apiPost(body){
+  var r=await fetch(APP+'/api/tether',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  var j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Tether request failed');return j;
+}
+$('claim').onclick=async function(){
+  var code=$('pairCode').value.replace(/\D/g,'').slice(0,6);
+  if(code.length!==6){$('pairStatus').textContent='Enter the six-digit code from the iPad.';return}
+  $('claim').disabled=true;$('pairStatus').textContent='Pairing…';
+  try{
+    var j=await apiPost({action:'pair-claim',code:code});
+    tetherId=j.tetherId;localStorage.setItem('sterling.tetherId.v1',tetherId);$('pairCode').value='';$('pairStatus').textContent='Paired.';
+    render();await heartbeat();await pollStatus();
+  }catch(e){$('pairStatus').textContent=e.message||String(e)}
+  finally{$('claim').disabled=false}
+};
+
+async function heartbeat(){if(!tetherId)return;try{await apiPost({action:'phone-heartbeat',tetherId:tetherId,active:active,version:VERSION})}catch(e){}}
+async function pollStatus(){
+  if(!tetherId)return;
+  try{
+    var j=await apiGet('status'),server=j.serverTime||Date.now();
+    var ipadFresh=j.ipad&&server-j.ipad.lastSeen<7000;
+    $('ipad').textContent=ipadFresh?'CONNECTED':'Waiting for iPad';
+    $('ipad').className='value status '+(ipadFresh?'good':'warn');
+    if(j.house&&j.house.key&&j.house.key!==lastHouseKey){
+      var hadHouse=!!lastHouseKey;
+      currentHouse=j.house;lastHouseKey=j.house.key;
+      if(hadHouse){contact={first:'',last:'',phone:'',email:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent=''}
+      render();
+      if(connected)send({type:'context-append',content:'The iPad Salesforce record changed. Current live house is now '+j.house.label+'. Reset all assumptions and contact details from the prior household.',delegationId:null});
+    }else if(j.house){currentHouse=j.house;render()}
+    if(j.result&&j.result.id&&j.result.id!==lastResultId){
+      lastResultId=j.result.id;
+      var rr=j.result.result||{};
+      if(rr.ok&&rr.orderId&&(!rr.houseKey||!currentHouse||rr.houseKey===currentHouse.key)){
+        $('order').style.display='block';$('order').textContent='Salesforce is ready. Partner Order ID sent to London on the iPad.';
+        if(connected)send({type:'context-append',content:'The iPad completed the Salesforce update successfully for '+(rr.houseLabel||'the current house')+'. The Partner Order ID is ready for London. Do not read the ID aloud unless London asks for it.',delegationId:null});
+      }else if(rr.error&&connected){
+        send({type:'context-append',content:'The iPad safely stopped the Salesforce update. Reason: '+rr.error+'. Do not claim that Salesforce was updated.',delegationId:null});
+      }
+    }
+  }catch(e){$('ipad').textContent='Tether error';$('ipad').className='value status bad'}
+}
+setInterval(heartbeat,2500);setInterval(pollStatus,700);
+
+function ensurePlay(){if(!playCtx){var AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw new Error('This browser does not support realtime audio.');try{playCtx=new AC({sampleRate:24000})}catch(e){playCtx=new AC()}}return playCtx.resume()}
+function encodePCM(samples){var b=new ArrayBuffer(samples.length*2),v=new DataView(b);for(var i=0;i<samples.length;i++){var s=Math.max(-1,Math.min(1,samples[i]));v.setInt16(i*2,s<0?s*32768:s*32767,true)}var bytes=new Uint8Array(b),bin='',chunk=0x8000;for(var j=0;j<bytes.length;j+=chunk)bin+=String.fromCharCode.apply(null,bytes.subarray(j,j+chunk));return btoa(bin)}
+function decodePCM(b64){var bin=atob(b64),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);var i16=new Int16Array(u.buffer),out=new Float32Array(i16.length);for(var j=0;j<i16.length;j++)out[j]=i16[j]/32768;return out}
+function resample(input,inRate,outRate){if(inRate===outRate)return new Float32Array(input);var ratio=inRate/outRate,len=Math.round(input.length/ratio),out=new Float32Array(len);for(var i=0;i<len;i++){var x=i*ratio,a=Math.floor(x),b=Math.min(a+1,input.length-1),f=x-a;out[i]=input[a]*(1-f)+input[b]*f}return out}
+function stopPlayback(){for(var i=0;i<playingSources.length;i++)try{playingSources[i].stop()}catch(e){}playingSources=[];if(playCtx)playTime=playCtx.currentTime}
+function playAudio(b64){try{var samples=decodePCM(b64);if(!samples.length)return;var ctx=playCtx;if(!ctx)return;var buf=ctx.createBuffer(1,samples.length,24000);buf.getChannelData(0).set(samples);var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);var st=Math.max(playTime,ctx.currentTime);src.start(st);playTime=st+buf.duration;playingSources.push(src);src.onended=function(){playingSources=playingSources.filter(x=>x!==src)}}catch(e){setVoice('Audio playback error','bad')}}
+async function prepareMic(){await ensurePlay();if(micStream)return;if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Microphone access is unavailable.');micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});var AC=window.AudioContext||window.webkitAudioContext;captureCtx=new AC();await captureCtx.resume();captureSource=captureCtx.createMediaStreamSource(micStream);captureProcessor=captureCtx.createScriptProcessor(1024,1,1);captureProcessor.onaudioprocess=function(ev){if(!connected||muted||!socket||socket.readyState!==WebSocket.OPEN)return;var samples=resample(ev.inputBuffer.getChannelData(0),captureCtx.sampleRate,24000);send({type:'input-audio-append',audio:encodePCM(samples)})};captureSource.connect(captureProcessor);captureProcessor.connect(captureCtx.destination)}
+function releaseMic(){try{if(captureProcessor)captureProcessor.onaudioprocess=null}catch(e){}try{if(captureProcessor)captureProcessor.disconnect()}catch(e){}try{if(captureSource)captureSource.disconnect()}catch(e){}try{if(captureCtx)captureCtx.close()}catch(e){}try{if(micStream)micStream.getTracks().forEach(t=>t.stop())}catch(e){}captureProcessor=captureSource=captureCtx=micStream=null}
+function send(obj){try{if(socket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify(obj))}catch(e){}}
+function toolReply(callId,name,obj){send({type:'conversation-item-create',item:{type:'function-call-output',callId:callId,name:name,output:JSON.stringify(obj)}});send({type:'response-create',options:{modalities:['audio']}})}
+function normalizeContact(field,value){var v=clean(value);if(field==='phone'){var d=v.replace(/\D/g,'');if(d.length===11&&d[0]==='1')d=d.slice(1);if(d.length!==10)throw new Error('Phone must have ten digits');return d}if(field==='email'){v=v.replace(/\s+/g,'').toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))throw new Error('Email is incomplete');return v}if(!/[A-Za-zÀ-ÿ]/.test(v))throw new Error('Name is incomplete');return v.slice(0,80)}
+async function handleTool(m){
+  var a={};try{a=JSON.parse(m.arguments||'{}')}catch(e){}
+  try{
+    if(m.name==='saveContact'){if(a.confirmed!==true)throw new Error('Customer has not confirmed that field yet');var f=a.field;if(['first','last','phone','email'].indexOf(f)<0)throw new Error('Unknown contact field');contact[f]=normalizeContact(f,a.value);render();toolReply(m.callId,m.name,{ok:true,saved:f});return}
+    if(m.name==='setStage'){stage=a.stage||stage;toolReply(m.callId,m.name,{ok:true,stage:stage});return}
+    if(m.name==='flagAddressMismatch'){mismatch=true;toolReply(m.callId,m.name,{ok:true,blocked:true,current:currentHouse?currentHouse.label:null});return}
+    if(m.name==='commitContact'){
+      if(!(contact.first&&contact.last&&contact.phone&&contact.email))throw new Error('All four confirmed contact fields are required');
+      if(!currentHouse||!currentHouse.key)throw new Error('The iPad has not supplied a current Salesforce house yet');
+      if(mismatch)throw new Error('Address mismatch is blocking the Salesforce update');
+      var id=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random());
+      await apiPost({action:'command',tetherId:tetherId,id:id,command:{type:'commitContact',contact:contact,expectedHouseKey:currentHouse.key,expectedHouseLabel:currentHouse.label}});
+      toolReply(m.callId,m.name,{ok:true,started:true,currentHouse:currentHouse.label});
+      return;
+    }
+    toolReply(m.callId,m.name,{ok:false,error:'Unknown tool'});
+  }catch(e){toolReply(m.callId,m.name,{ok:false,error:e.message||String(e)})}
+}
+async function connect(){
+  if(!active||connecting)return;connecting=true;connected=false;setVoice('CONNECTING…');
+  try{
+    var r=await fetch(APP+'/api/realtime-token?v=13&t='+Date.now(),{cache:'no-store'});
+    var setup=await r.json();
+    if(!r.ok||!setup.token||!setup.url)throw new Error(setup.error||'Realtime setup failed');
+    var protocols=(setup.protocols&&setup.protocols.length)?setup.protocols:['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token];
+    var ws=new WebSocket(setup.url,protocols);socket=ws;var greeted=false;
+    ws.onopen=function(){connecting=false;send({type:'session-update',config:{instructions:setup.instructions,voice:'marin',outputModalities:['audio'],inputAudioFormat:{type:'audio/pcm',rate:24000},outputAudioFormat:{type:'audio/pcm',rate:24000},turnDetection:{type:'server-vad',threshold:0.45,prefixPaddingMs:300,silenceDurationMs:550},tools:setup.tools||[]}})};
+    ws.onmessage=function(ev){var m;try{m=JSON.parse(ev.data)}catch(e){return}
+      if(m.type==='session-created'||m.type==='session-started'||m.type==='session-updated'){connected=true;connecting=false;reconnects=0;render();setVoice('LIVE • LISTENING','good');if(currentHouse)send({type:'context-append',content:'The paired iPad is currently on Salesforce house '+currentHouse.label+'. Treat that as the only active household.',delegationId:null});if(!greeted){greeted=true;send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Start the live doorway conversation now. Introduce yourself briefly as Sterling, London's assistant, then naturally begin with the customer's first name."}});send({type:'response-create',options:{modalities:['audio']}})}}
+      else if(m.type==='speech-started'){stopPlayback();send({type:'response-cancel'});setVoice('LISTENING','good')}
+      else if(m.type==='speech-stopped'){setVoice('THINKING…')}
+      else if(m.type==='audio-delta'||m.type==='audio-chunk'){playAudio(m.delta||'');setVoice('STERLING SPEAKING','good')}
+      else if(m.type==='function-call-arguments-done'){handleTool(m)}
+      else if(m.type==='error'){setVoice(m.message||'Realtime error','bad')}
+    };
+    ws.onerror=function(){setVoice('Realtime connection error','bad')};
+    ws.onclose=function(){connected=false;connecting=false;render();if(active){reconnects++;setVoice('RECONNECTING…','warn');setTimeout(connect,Math.min(6000,1000*reconnects))}else setVoice('STOPPED')};
+  }catch(e){
+    connecting=false;connected=false;render();var msg=e.message||String(e);setVoice(msg,'bad');
+    if(/AI Gateway API key|Client secrets can only/i.test(msg))$('voiceSetup').style.display='block';
+    if(active&&!/AI Gateway API key|Client secrets can only/i.test(msg)){reconnects++;setTimeout(connect,Math.min(6000,1000*reconnects))}
+  }
+}
+async function start(){if(active)return;try{await prepareMic();active=true;muted=false;render();await heartbeat();await connect()}catch(e){active=false;render();setVoice(e.message||String(e),'bad');releaseMic()}}
+function stop(){active=false;connected=false;connecting=false;try{if(socket)socket.close()}catch(e){}socket=null;releaseMic();stopPlayback();render();setVoice('STOPPED')}
+$('start').onclick=start;$('stop').onclick=stop;$('mute').onclick=function(){muted=!muted;render();setVoice(muted?'MIC MUTED':'LIVE • LISTENING',muted?'warn':'good')};
+$('voiceSetup').onclick=function(){location.href=APP+'/voice-setup.html?v=13'};
+$('repair').onclick=function(){stop();localStorage.removeItem('sterling.tetherId.v1');tetherId='';currentHouse=null;lastHouseKey='';lastResultId='';contact={first:'',last:'',phone:'',email:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';render();$('pairStatus').textContent='Enter the new six-digit code from the iPad.'};
+
+tetherId=localStorage.getItem('sterling.tetherId.v1')||'';
+render();if(tetherId){heartbeat();pollStatus()}
+})();
+</script>
+</body></html>+est+'/mo*':'');
+  typeValue('nSavings',(est&&bill)?((bill-est)>0?'$('voice').textContent=msg;$('voice').className='value status '+(kind||'');$('wave').textContent=msg}
+function render(){
+  showPaired();
+  $('house').textContent=currentHouse?currentHouse.label:'Waiting for Salesforce…';
+  var bits=[];if(contact.first)bits.push(contact.first);if(contact.last)bits.push(contact.last);if(contact.phone)bits.push(contact.phone);if(contact.email)bits.push(contact.email);
+  $('contact').textContent=bits.length?'Confirmed: '+bits.join(' • '):'No confirmed customer details yet.';
+  $('start').style.display=active?'none':'block';$('mute').style.display=active?'block':'none';$('stop').style.display=active?'block':'none';
+  $('mute').textContent=muted?'Unmute':'Mute';$('wave').className='wave'+(connected?' live':'');
+}
+async function apiGet(part){
+  var r=await fetch(APP+'/api/tether?tetherId='+encodeURIComponent(tetherId)+'&part='+encodeURIComponent(part)+'&t='+Date.now(),{cache:'no-store'});
+  var j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Tether request failed');return j;
+}
+async function apiPost(body){
+  var r=await fetch(APP+'/api/tether',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  var j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Tether request failed');return j;
+}
+$('claim').onclick=async function(){
+  var code=$('pairCode').value.replace(/\D/g,'').slice(0,6);
+  if(code.length!==6){$('pairStatus').textContent='Enter the six-digit code from the iPad.';return}
+  $('claim').disabled=true;$('pairStatus').textContent='Pairing…';
+  try{
+    var j=await apiPost({action:'pair-claim',code:code});
+    tetherId=j.tetherId;localStorage.setItem('sterling.tetherId.v1',tetherId);$('pairCode').value='';$('pairStatus').textContent='Paired.';
+    render();await heartbeat();await pollStatus();
+  }catch(e){$('pairStatus').textContent=e.message||String(e)}
+  finally{$('claim').disabled=false}
+};
+
+async function heartbeat(){if(!tetherId)return;try{await apiPost({action:'phone-heartbeat',tetherId:tetherId,active:active,version:VERSION})}catch(e){}}
+async function pollStatus(){
+  if(!tetherId)return;
+  try{
+    var j=await apiGet('status'),server=j.serverTime||Date.now();
+    var ipadFresh=j.ipad&&server-j.ipad.lastSeen<7000;
+    $('ipad').textContent=ipadFresh?'CONNECTED':'Waiting for iPad';
+    $('ipad').className='value status '+(ipadFresh?'good':'warn');
+    if(j.house&&j.house.key&&j.house.key!==lastHouseKey){
+      var hadHouse=!!lastHouseKey;
+      currentHouse=j.house;lastHouseKey=j.house.key;
+      if(hadHouse){contact={first:'',last:'',phone:'',email:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent=''}
+      render();
+      if(connected)send({type:'context-append',content:'The iPad Salesforce record changed. Current live house is now '+j.house.label+'. Reset all assumptions and contact details from the prior household.',delegationId:null});
+    }else if(j.house){currentHouse=j.house;render()}
+    if(j.result&&j.result.id&&j.result.id!==lastResultId){
+      lastResultId=j.result.id;
+      var rr=j.result.result||{};
+      if(rr.ok&&rr.orderId&&(!rr.houseKey||!currentHouse||rr.houseKey===currentHouse.key)){
+        $('order').style.display='block';$('order').textContent='Salesforce is ready. Partner Order ID sent to London on the iPad.';
+        if(connected)send({type:'context-append',content:'The iPad completed the Salesforce update successfully for '+(rr.houseLabel||'the current house')+'. The Partner Order ID is ready for London. Do not read the ID aloud unless London asks for it.',delegationId:null});
+      }else if(rr.error&&connected){
+        send({type:'context-append',content:'The iPad safely stopped the Salesforce update. Reason: '+rr.error+'. Do not claim that Salesforce was updated.',delegationId:null});
+      }
+    }
+  }catch(e){$('ipad').textContent='Tether error';$('ipad').className='value status bad'}
+}
+setInterval(heartbeat,2500);setInterval(pollStatus,700);
+
+function ensurePlay(){if(!playCtx){var AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw new Error('This browser does not support realtime audio.');try{playCtx=new AC({sampleRate:24000})}catch(e){playCtx=new AC()}}return playCtx.resume()}
+function encodePCM(samples){var b=new ArrayBuffer(samples.length*2),v=new DataView(b);for(var i=0;i<samples.length;i++){var s=Math.max(-1,Math.min(1,samples[i]));v.setInt16(i*2,s<0?s*32768:s*32767,true)}var bytes=new Uint8Array(b),bin='',chunk=0x8000;for(var j=0;j<bytes.length;j+=chunk)bin+=String.fromCharCode.apply(null,bytes.subarray(j,j+chunk));return btoa(bin)}
+function decodePCM(b64){var bin=atob(b64),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);var i16=new Int16Array(u.buffer),out=new Float32Array(i16.length);for(var j=0;j<i16.length;j++)out[j]=i16[j]/32768;return out}
+function resample(input,inRate,outRate){if(inRate===outRate)return new Float32Array(input);var ratio=inRate/outRate,len=Math.round(input.length/ratio),out=new Float32Array(len);for(var i=0;i<len;i++){var x=i*ratio,a=Math.floor(x),b=Math.min(a+1,input.length-1),f=x-a;out[i]=input[a]*(1-f)+input[b]*f}return out}
+function stopPlayback(){for(var i=0;i<playingSources.length;i++)try{playingSources[i].stop()}catch(e){}playingSources=[];if(playCtx)playTime=playCtx.currentTime}
+function playAudio(b64){try{var samples=decodePCM(b64);if(!samples.length)return;var ctx=playCtx;if(!ctx)return;var buf=ctx.createBuffer(1,samples.length,24000);buf.getChannelData(0).set(samples);var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);var st=Math.max(playTime,ctx.currentTime);src.start(st);playTime=st+buf.duration;playingSources.push(src);src.onended=function(){playingSources=playingSources.filter(x=>x!==src)}}catch(e){setVoice('Audio playback error','bad')}}
+async function prepareMic(){await ensurePlay();if(micStream)return;if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Microphone access is unavailable.');micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});var AC=window.AudioContext||window.webkitAudioContext;captureCtx=new AC();await captureCtx.resume();captureSource=captureCtx.createMediaStreamSource(micStream);captureProcessor=captureCtx.createScriptProcessor(1024,1,1);captureProcessor.onaudioprocess=function(ev){if(!connected||muted||!socket||socket.readyState!==WebSocket.OPEN)return;var samples=resample(ev.inputBuffer.getChannelData(0),captureCtx.sampleRate,24000);send({type:'input-audio-append',audio:encodePCM(samples)})};captureSource.connect(captureProcessor);captureProcessor.connect(captureCtx.destination)}
+function releaseMic(){try{if(captureProcessor)captureProcessor.onaudioprocess=null}catch(e){}try{if(captureProcessor)captureProcessor.disconnect()}catch(e){}try{if(captureSource)captureSource.disconnect()}catch(e){}try{if(captureCtx)captureCtx.close()}catch(e){}try{if(micStream)micStream.getTracks().forEach(t=>t.stop())}catch(e){}captureProcessor=captureSource=captureCtx=micStream=null}
+function send(obj){try{if(socket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify(obj))}catch(e){}}
+function toolReply(callId,name,obj){send({type:'conversation-item-create',item:{type:'function-call-output',callId:callId,name:name,output:JSON.stringify(obj)}});send({type:'response-create',options:{modalities:['audio']}})}
+function normalizeContact(field,value){var v=clean(value);if(field==='phone'){var d=v.replace(/\D/g,'');if(d.length===11&&d[0]==='1')d=d.slice(1);if(d.length!==10)throw new Error('Phone must have ten digits');return d}if(field==='email'){v=v.replace(/\s+/g,'').toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))throw new Error('Email is incomplete');return v}if(!/[A-Za-zÀ-ÿ]/.test(v))throw new Error('Name is incomplete');return v.slice(0,80)}
+async function handleTool(m){
+  var a={};try{a=JSON.parse(m.arguments||'{}')}catch(e){}
+  try{
+    if(m.name==='saveContact'){if(a.confirmed!==true)throw new Error('Customer has not confirmed that field yet');var f=a.field;if(['first','last','phone','email'].indexOf(f)<0)throw new Error('Unknown contact field');contact[f]=normalizeContact(f,a.value);render();toolReply(m.callId,m.name,{ok:true,saved:f});return}
+    if(m.name==='setStage'){stage=a.stage||stage;toolReply(m.callId,m.name,{ok:true,stage:stage});return}
+    if(m.name==='flagAddressMismatch'){mismatch=true;toolReply(m.callId,m.name,{ok:true,blocked:true,current:currentHouse?currentHouse.label:null});return}
+    if(m.name==='commitContact'){
+      if(!(contact.first&&contact.last&&contact.phone&&contact.email))throw new Error('All four confirmed contact fields are required');
+      if(!currentHouse||!currentHouse.key)throw new Error('The iPad has not supplied a current Salesforce house yet');
+      if(mismatch)throw new Error('Address mismatch is blocking the Salesforce update');
+      var id=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random());
+      await apiPost({action:'command',tetherId:tetherId,id:id,command:{type:'commitContact',contact:contact,expectedHouseKey:currentHouse.key,expectedHouseLabel:currentHouse.label}});
+      toolReply(m.callId,m.name,{ok:true,started:true,currentHouse:currentHouse.label});
+      return;
+    }
+    toolReply(m.callId,m.name,{ok:false,error:'Unknown tool'});
+  }catch(e){toolReply(m.callId,m.name,{ok:false,error:e.message||String(e)})}
+}
+async function connect(){
+  if(!active||connecting)return;connecting=true;connected=false;setVoice('CONNECTING…');
+  try{
+    var r=await fetch(APP+'/api/realtime-token?v=13&t='+Date.now(),{cache:'no-store'});
+    var setup=await r.json();
+    if(!r.ok||!setup.token||!setup.url)throw new Error(setup.error||'Realtime setup failed');
+    var protocols=(setup.protocols&&setup.protocols.length)?setup.protocols:['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token];
+    var ws=new WebSocket(setup.url,protocols);socket=ws;var greeted=false;
+    ws.onopen=function(){connecting=false;send({type:'session-update',config:{instructions:setup.instructions,voice:'marin',outputModalities:['audio'],inputAudioFormat:{type:'audio/pcm',rate:24000},outputAudioFormat:{type:'audio/pcm',rate:24000},turnDetection:{type:'server-vad',threshold:0.45,prefixPaddingMs:300,silenceDurationMs:550},tools:setup.tools||[]}})};
+    ws.onmessage=function(ev){var m;try{m=JSON.parse(ev.data)}catch(e){return}
+      if(m.type==='session-created'||m.type==='session-started'||m.type==='session-updated'){connected=true;connecting=false;reconnects=0;render();setVoice('LIVE • LISTENING','good');if(currentHouse)send({type:'context-append',content:'The paired iPad is currently on Salesforce house '+currentHouse.label+'. Treat that as the only active household.',delegationId:null});if(!greeted){greeted=true;send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Start the live doorway conversation now. Introduce yourself briefly as Sterling, London's assistant, then naturally begin with the customer's first name."}});send({type:'response-create',options:{modalities:['audio']}})}}
+      else if(m.type==='speech-started'){stopPlayback();send({type:'response-cancel'});setVoice('LISTENING','good')}
+      else if(m.type==='speech-stopped'){setVoice('THINKING…')}
+      else if(m.type==='audio-delta'||m.type==='audio-chunk'){playAudio(m.delta||'');setVoice('STERLING SPEAKING','good')}
+      else if(m.type==='function-call-arguments-done'){handleTool(m)}
+      else if(m.type==='error'){setVoice(m.message||'Realtime error','bad')}
+    };
+    ws.onerror=function(){setVoice('Realtime connection error','bad')};
+    ws.onclose=function(){connected=false;connecting=false;render();if(active){reconnects++;setVoice('RECONNECTING…','warn');setTimeout(connect,Math.min(6000,1000*reconnects))}else setVoice('STOPPED')};
+  }catch(e){
+    connecting=false;connected=false;render();var msg=e.message||String(e);setVoice(msg,'bad');
+    if(/AI Gateway API key|Client secrets can only/i.test(msg))$('voiceSetup').style.display='block';
+    if(active&&!/AI Gateway API key|Client secrets can only/i.test(msg)){reconnects++;setTimeout(connect,Math.min(6000,1000*reconnects))}
+  }
+}
+async function start(){if(active)return;try{await prepareMic();active=true;muted=false;render();await heartbeat();await connect()}catch(e){active=false;render();setVoice(e.message||String(e),'bad');releaseMic()}}
+function stop(){active=false;connected=false;connecting=false;try{if(socket)socket.close()}catch(e){}socket=null;releaseMic();stopPlayback();render();setVoice('STOPPED')}
+$('start').onclick=start;$('stop').onclick=stop;$('mute').onclick=function(){muted=!muted;render();setVoice(muted?'MIC MUTED':'LIVE • LISTENING',muted?'warn':'good')};
+$('voiceSetup').onclick=function(){location.href=APP+'/voice-setup.html?v=13'};
+$('repair').onclick=function(){stop();localStorage.removeItem('sterling.tetherId.v1');tetherId='';currentHouse=null;lastHouseKey='';lastResultId='';contact={first:'',last:'',phone:'',email:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';render();$('pairStatus').textContent='Enter the new six-digit code from the iPad.'};
+
+tetherId=localStorage.getItem('sterling.tetherId.v1')||'';
+render();if(tetherId){heartbeat();pollStatus()}
+})();
+</script>
+</body></html>+Math.round(bill-est)+'/mo less*':'Compare total*'):'');
+  if($('internetFit'))$('internetFit').innerHTML=internetFitText();
+}
+function noteDiscovery(field,value){
+  if(!Object.prototype.hasOwnProperty.call(discovery,field))return;
+  discovery[field]=clean(value);
+  renderDiscovery();spawnTypingParticles();setAlphaState('typing',900);
+  var labels={carrier:'Carrier',lines:'Lines',bill:'Current bill',phones:'Phones',currentPlan:'Current plan',upgradeInterest:'Upgrade interest',discountEligibility:'Discount fit',internetUse:'Internet use',internetProvider:'Internet provider',internetBill:'Internet bill',decisionMaker:'Decision maker',work:'Work',commute:'Commute',tv:'TV',notes:'Note'};
+  setCaption('Live capture',(labels[field]||field)+': '+discovery[field]);
+}
+
+function setVoice(msg,kind){
+  $('voice').textContent=msg;$('voice').className='value status '+(kind||'');$('wave').textContent=msg;
+  var t=String(msg||'').toUpperCase();
+  if(t.indexOf('LISTEN')>=0)setAlphaState('listening');
+  else if(t.indexOf('THINK')>=0)setAlphaState('thinking');
+  else if(t.indexOf('SPEAK')>=0)setAlphaState('speaking');
+  else if(t.indexOf('CONNECT')>=0)setAlphaState('boot');
+  else if(t.indexOf('STOP')>=0)setAlphaState('idle');
+}
 function render(){
   showPaired();
   $('house').textContent=currentHouse?currentHouse.label:'Waiting for Salesforce…';
