@@ -4,267 +4,266 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#06111f">
-<title>Sterling Live</title>
+<title>Sterling Live V11</title>
 <style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% 0,#123c76 0,#07182e 34%,#030813 78%);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{max-width:760px;margin:auto;padding:18px 16px calc(30px + env(safe-area-inset-bottom))}.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.brand{font-weight:900}.brand b{color:#55baff}.pill{font-size:12px;border:1px solid #2a527f;border-radius:999px;padding:8px 11px;background:#07192e;color:#b2dcff}.hero{text-align:center;padding:25px 0 14px}.orb{width:94px;height:94px;margin:0 auto 18px;border-radius:50%;background:radial-gradient(circle at 36% 28%,#d8f5ff 0,#5bbcff 17%,#0a72d8 46%,#07192e 72%);box-shadow:0 0 52px #168cff8c;position:relative;animation:breathe 2.2s ease-in-out infinite}.orb:after{content:"S";position:absolute;inset:0;display:grid;place-items:center;font-size:43px;font-weight:900}.orb.listen{animation:pulse .78s ease-in-out infinite}.orb.speak{animation:pulse .42s ease-in-out infinite}@keyframes breathe{50%{transform:scale(1.035)}}@keyframes pulse{50%{transform:scale(1.09);box-shadow:0 0 76px #55baffc7}}h1{font-size:38px;margin:0}.sub{color:#b5d0ea;line-height:1.45;margin:10px auto 0}.card{background:#071424e8;border:1px solid #173a5b;border-radius:20px;padding:18px;margin:14px 0}.primary,.secondary{width:100%;border:0;border-radius:15px;padding:17px;font:inherit;font-weight:850;color:#fff;touch-action:manipulation}.primary{background:linear-gradient(135deg,#0878e5,#12a6ff)}.secondary{background:#173550}.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1}.muted{color:#9fbad4;font-size:13px;line-height:1.5}.warn{color:#ffd38f}.good{color:#7aefb2}.field{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid #15304a;color:#9fb7cf}.field:last-child{border:0}.field strong{color:#fff;text-align:right;overflow-wrap:anywhere}.tiny{font-size:11px;color:#748fa8}.transcript{max-height:260px;overflow:auto}.msg{padding:9px 11px;border-radius:12px;background:#0b233a;margin:7px 0;line-height:1.4}.msg.you{background:#102d44}.link{color:#7bc9ff;text-decoration:none}.loading{padding-top:30vh;text-align:center;color:#b9d7f2}.fatal{max-width:620px;margin:14vh auto;padding:22px;background:#2a1014;border:1px solid #7b3039;border-radius:18px;color:#fff}.fatal a{color:#8fd4ff}.order{font-size:24px;font-weight:900;letter-spacing:1px;color:#7aefb2;text-align:center}@media(max-width:520px){h1{font-size:34px}.row{display:grid;grid-template-columns:1fr}.hero{padding-top:18px}}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% 0,#153e79 0,#07182e 35%,#030813 80%);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{max-width:760px;margin:auto;padding:18px 16px calc(28px + env(safe-area-inset-bottom))}.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.brand{font-weight:900}.brand b{color:#58baff}.pill{font-size:12px;border:1px solid #2a527f;border-radius:999px;padding:8px 11px;background:#07192e;color:#b4ddff}.hero{text-align:center;padding:25px 0 14px}.orb{width:98px;height:98px;margin:0 auto 18px;border-radius:50%;background:radial-gradient(circle at 36% 28%,#dbf6ff 0,#5cbcff 17%,#0875dd 47%,#07192e 73%);box-shadow:0 0 54px #168cff8c;position:relative;animation:breathe 2.2s ease-in-out infinite}.orb:after{content:"S";position:absolute;inset:0;display:grid;place-items:center;font-size:44px;font-weight:900}.orb.listen{animation:pulse .75s ease-in-out infinite}.orb.speak{animation:pulse .42s ease-in-out infinite}@keyframes breathe{50%{transform:scale(1.035)}}@keyframes pulse{50%{transform:scale(1.09);box-shadow:0 0 78px #55baffd0}}h1{font-size:38px;margin:0}.sub{color:#b6d1ea;line-height:1.45;margin:10px auto 0}.card{background:#071424e8;border:1px solid #173a5b;border-radius:20px;padding:18px;margin:14px 0}.btn{width:100%;border:0;border-radius:15px;padding:17px;font:inherit;font-weight:900;color:#fff;background:linear-gradient(135deg,#0878e5,#12a6ff);touch-action:manipulation}.secondary{background:#173550}.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1}.muted{color:#9fbad4;font-size:13px;line-height:1.5}.warn{color:#ffd28d}.good{color:#78efb1}.field{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid #15304a;color:#9fb7cf}.field:last-child{border:0}.field strong{color:#fff;text-align:right;overflow-wrap:anywhere}.transcript{max-height:260px;overflow:auto}.msg{padding:9px 11px;border-radius:12px;background:#0b233a;margin:7px 0;line-height:1.4}.msg.you{background:#102d44}.tiny{font-size:11px;color:#728da6}.order{font-size:26px;font-weight:900;letter-spacing:1px;text-align:center;color:#7aefb2}.fatal{max-width:620px;margin:14vh auto;padding:22px;background:#2b1014;border:1px solid #7d3039;border-radius:18px}.fatal a{color:#8fd4ff}@media(max-width:520px){h1{font-size:34px}.row{display:grid;grid-template-columns:1fr}.hero{padding-top:18px}}
 </style>
 </head>
 <body>
-<div id="root"><div class="loading">Loading Sterling Live…</div></div>
+<main class="wrap" id="app">
+<header class="top"><div class="brand"><b>AT&T</b> • STERLING LIVE</div><div class="pill" id="status">READY</div></header>
+<section class="hero"><div class="orb" id="orb"></div><h1>Sterling Live</h1><div class="sub">Native realtime audio. No text-to-speech handoff. Talk naturally and interrupt naturally.</div></section>
+<section class="card">
+  <button class="btn" id="start">Start Live Conversation</button>
+  <div class="row" id="controls" style="display:none;margin-top:10px">
+    <button class="btn secondary" id="mute">Mute mic</button>
+    <button class="btn secondary" id="end">End session</button>
+  </div>
+  <p class="muted" id="help">Safari requires one tap to start the microphone. After that, Sterling listens continuously.</p>
+  <p class="warn" id="error"></p>
+</section>
+<section class="card">
+  <div class="field"><span>Route house</span><strong id="route">Not linked</strong></div>
+  <div class="field"><span>Stage</span><strong id="stage">rapport</strong></div>
+  <div class="field"><span>First</span><strong id="first">—</strong></div>
+  <div class="field"><span>Last</span><strong id="last">—</strong></div>
+  <div class="field"><span>Phone</span><strong id="phone">—</strong></div>
+  <div class="field"><span>Email</span><strong id="email">—</strong></div>
+  <p class="good" id="handoff"></p>
+</section>
+<section class="card" id="orderCard" style="display:none"><div class="tiny">PARTNER ORDER ID</div><div class="order" id="orderId"></div></section>
+<section class="card transcript"><div class="tiny">LIVE TRANSCRIPT</div><div id="transcript"></div></section>
+<p class="tiny">Sterling V11 uses GPT-Realtime-2.1 through the Vercel AI Gateway. Audio is streamed natively; the browser is not reading generated text through a TTS voice.</p>
+</main>
 <script>
-window.addEventListener('error',function(e){
-  const root=document.getElementById('root');
-  if(root&&!document.getElementById('sterling-mounted')){
-    root.innerHTML='<div class="fatal"><h2>Sterling Live could not start</h2><p>'+String(e.message||'The voice module did not load.')+'</p><p><a href="/?classic=1">Open Classic Voice</a></p></div>';
-  }
-});
-window.addEventListener('unhandledrejection',function(e){
-  const root=document.getElementById('root');
-  if(root&&!document.getElementById('sterling-mounted')){
-    const m=(e.reason&&e.reason.message)||String(e.reason||'The voice module did not load.');
-    root.innerHTML='<div class="fatal"><h2>Sterling Live could not start</h2><p>'+m+'</p><p><a href="/?classic=1">Open Classic Voice</a></p></div>';
-  }
-});
-(async()=>{
-try{
-  const ReactMod=await import('https://esm.sh/react@19.2.1?bundle');
-  const ReactDOMMod=await import('https://esm.sh/react-dom@19.2.1/client?bundle&deps=react@19.2.1');
-  const AiReact=await import('https://esm.sh/@ai-sdk/react@4.0.131?bundle&deps=react@19.2.1,ai@7.0.128');
-  const Ai=await import('https://esm.sh/ai@7.0.128?bundle');
+(function(){
+'use strict';
+var $=function(id){return document.getElementById(id)};
+var params=new URLSearchParams(location.search);
+var route={
+  routeId:params.get('routeId')||'',
+  gpRouteStopId:params.get('gpRouteStopId')||'',
+  street:params.get('street')||'',
+  city:params.get('city')||'',
+  postalcode:params.get('postalcode')||'',
+  state:params.get('state')||''
+};
+var relay=params.get('relay')||'';
+var helperToken=params.get('helperToken')||'';
+var routeLabel=[route.street,route.city,route.state,route.postalcode].filter(Boolean).join(', ');
+$('route').textContent=routeLabel||'Not linked';
 
-  const React=ReactMod.default||ReactMod;
-  const {useEffect,useMemo,useRef,useState}=ReactMod;
-  const {createRoot}=ReactDOMMod;
-  const {experimental_useRealtime:useRealtime}=AiReact;
-  const {gateway}=Ai;
-  const h=React.createElement;
+var ws=null,micStream=null,captureCtx=null,captureSource=null,captureProcessor=null,playCtx=null,playTime=0,activeSources=new Set(),playing=false,capturing=false,connected=false,greeted=false;
+var contact={first:'',last:'',phone:'',email:''};
+var assistantText='',lastAssistantNode=null;
+var currentResponseId='',currentItemId='';
+var pendingToolArgs={};
 
-  const qs=new URLSearchParams(location.search);
-  const route={
-    routeId:qs.get('routeId')||'',
-    gpRouteStopId:qs.get('gpRouteStopId')||'',
-    street:qs.get('street')||'',
-    city:qs.get('city')||'',
-    postalcode:qs.get('postalcode')||'',
-    state:qs.get('state')||'',
-    latitude:qs.get('latitude')||'',
-    longitude:qs.get('longitude')||''
+var INSTRUCTIONS=[
+"You are Sterling, London's customer-facing AT&T field-sales AI assistant. You are a live speech-to-speech assistant, not a narrator.",
+"Speak like a warm, quick, confident human conversation partner. Keep replies short enough for a doorway conversation.",
+"Never speak markdown, bullet formatting, headings, stage directions, brackets, tool names, or meta-commentary.",
+"Use contractions. Vary sentence length. Let people interrupt you. Don't repeat everything they just said.",
+"Use light tech or phone humor when it fits, then get back to the point.",
+"If someone clearly says stop, leave, or no more, stop selling and be respectful.",
+"Never fabricate a promotion, deadline, scarcity, couple offer, neighbor purchase, price, savings, coverage fact, or eligibility.",
+"Your sales flow is acknowledge, diagnose, connect a truthful benefit, confirm, then ask for the next reasonable step.",
+"First collect and verbally confirm first name, last name, best phone number, and email. After each field is explicitly confirmed, call saveContact for that field.",
+"After those four are confirmed, naturally discuss carrier, lines, approximate bill, phones, work or commute use, service pain points, and whether another account decision maker should hear the same information.",
+"If you hear London ask something equivalent to Have you ever had an open AT&T account, call setStage with qualification. Then be more serious and precise. One quick joke is okay, then focus.",
+"Never ask for or repeat Social Security numbers, driver's-license numbers, payment-card data, account PINs, passwords, or one-time verification codes.",
+"Candidate route house: "+(routeLabel||"not supplied")+". If the address is uncertain, ask the customer to confirm the area before handoff. If they say it is wrong, tell London not to update anything until the correct house is open."
+].join("\n");
+
+function setStatus(s){$('status').textContent=s}
+function setError(s){$('error').textContent=s||''}
+function setOrb(mode){$('orb').className='orb'+(mode?' '+mode:'')}
+function appendMsg(role,text){
+  if(!text)return;
+  var d=document.createElement('div');d.className='msg'+(role==='user'?' you':'');d.textContent=(role==='user'?'Customer: ':'Sterling: ')+text;$('transcript').appendChild(d);d.scrollIntoView({block:'end'});
+  return d;
+}
+function updateAssistantDelta(delta){
+  if(!lastAssistantNode){lastAssistantNode=appendMsg('assistant','');lastAssistantNode.textContent='Sterling: '}
+  assistantText+=delta;lastAssistantNode.textContent='Sterling: '+assistantText;lastAssistantNode.scrollIntoView({block:'end'});
+}
+function finishAssistant(text){
+  if(text&&lastAssistantNode)lastAssistantNode.textContent='Sterling: '+text;
+  assistantText='';lastAssistantNode=null;
+}
+function prettyPhone(v){var d=String(v||'').replace(/\D/g,'');return d.length===10?'('+d.slice(0,3)+') '+d.slice(3,6)+'-'+d.slice(6):v}
+function renderContact(){
+  $('first').textContent=contact.first||'—';$('last').textContent=contact.last||'—';$('phone').textContent=contact.phone?prettyPhone(contact.phone):'—';$('email').textContent=contact.email||'—';
+}
+function normalize(field,value){
+  var v=String(value||'').trim();
+  if(field==='phone'){var d=v.replace(/\D/g,'');if(d.length===11&&d[0]==='1')d=d.slice(1);if(d.length!==10)throw new Error('Please confirm all ten phone digits.');return d}
+  if(field==='email'){v=v.replace(/\s+/g,'').toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))throw new Error('Please confirm the complete email address.')}
+  if((field==='first'||field==='last')&&!/[A-Za-zÀ-ÿ]/.test(v))throw new Error('Please confirm the name again.');
+  return v;
+}
+async function sendPacket(){
+  if(!(contact.first&&contact.last&&contact.phone&&contact.email))return;
+  var packet={version:11,createdAt:Date.now(),expiresAt:Date.now()+30*60*1000,first:contact.first,last:contact.last,phone:contact.phone,email:contact.email,routeId:route.routeId,gpRouteStopId:route.gpRouteStopId,street:route.street,city:route.city,postalcode:route.postalcode,state:route.state};
+  try{localStorage.setItem('sterling.pending.v2',JSON.stringify(packet))}catch(e){}
+  if(window.opener&&helperToken)try{window.opener.postMessage({type:'STERLING_ROUTE_PACKET_V2',token:helperToken,packet:packet},'*')}catch(e){}
+  if(relay){
+    try{
+      var r=await fetch('/api/relay',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({session:relay,packet:packet})});
+      if(!r.ok)throw new Error('relay '+r.status);
+      $('handoff').textContent='Confirmed customer sent securely to the Route Helper.';
+    }catch(e){$('handoff').textContent='Customer confirmed. Route relay will retry if needed.';setTimeout(sendPacket,2500)}
+  }else $('handoff').textContent='Customer confirmed and saved on this device.';
+}
+function send(obj){if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(obj))}
+function encodePCM(samples){
+  var buffer=new ArrayBuffer(samples.length*2),view=new DataView(buffer);
+  for(var i=0;i<samples.length;i++){var s=Math.max(-1,Math.min(1,samples[i]));view.setInt16(i*2,s<0?s*32768:s*32767,true)}
+  var bytes=new Uint8Array(buffer),binary='',chunk=0x8000;
+  for(var j=0;j<bytes.length;j+=chunk)binary+=String.fromCharCode.apply(null,bytes.subarray(j,j+chunk));
+  return btoa(binary);
+}
+function decodePCM(b64){
+  var bin=atob(b64),buf=new ArrayBuffer(bin.length),u8=new Uint8Array(buf);
+  for(var i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+  var i16=new Int16Array(buf),out=new Float32Array(i16.length);
+  for(var j=0;j<i16.length;j++)out[j]=i16[j]/32768;
+  return out;
+}
+function resample(input,inRate,outRate){
+  if(inRate===outRate)return new Float32Array(input);
+  var ratio=inRate/outRate,len=Math.round(input.length/ratio),out=new Float32Array(len);
+  for(var i=0;i<len;i++){var x=i*ratio,a=Math.floor(x),b=Math.min(a+1,input.length-1),f=x-a;out[i]=input[a]*(1-f)+input[b]*f}
+  return out;
+}
+function ensurePlay(){
+  if(!playCtx){playCtx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:24000});playTime=playCtx.currentTime}
+  if(playCtx.state==='suspended')playCtx.resume().catch(function(){});
+}
+function playAudio(b64){
+  ensurePlay();var samples=decodePCM(b64),buf=playCtx.createBuffer(1,samples.length,24000);buf.getChannelData(0).set(samples);
+  var src=playCtx.createBufferSource();src.buffer=buf;src.connect(playCtx.destination);
+  var start=Math.max(playTime,playCtx.currentTime);src.start(start);playTime=start+buf.duration;activeSources.add(src);playing=true;setOrb('speak');setStatus('SPEAKING');
+  src.onended=function(){activeSources.delete(src);if(activeSources.size===0){playing=false;if(capturing){setOrb('listen');setStatus('LISTENING')}else{setOrb('');setStatus('LIVE')}}};
+}
+function stopPlayback(){
+  activeSources.forEach(function(s){try{s.onended=null;s.stop();s.disconnect()}catch(e){}});activeSources.clear();if(playCtx)playTime=playCtx.currentTime;playing=false;
+}
+async function startCapture(){
+  if(capturing)return;
+  micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+  captureCtx=new (window.AudioContext||window.webkitAudioContext)();
+  await captureCtx.resume();
+  captureSource=captureCtx.createMediaStreamSource(micStream);
+  captureProcessor=captureCtx.createScriptProcessor(1024,1,1);
+  captureProcessor.onaudioprocess=function(ev){
+    if(!connected||!ws||ws.readyState!==WebSocket.OPEN)return;
+    var input=ev.inputBuffer.getChannelData(0),samples=resample(input,captureCtx.sampleRate,24000);
+    send({type:'input-audio-append',audio:encodePCM(samples)});
   };
-  const helperToken=qs.get('helperToken')||'';
-  const helperOrigin=qs.get('helperOrigin')||'';
-  const helperLinked=!!(helperToken&&helperOrigin==='https://win.iclportal.com');
-  const routeLabel=[route.street,route.city,route.state,route.postalcode].filter(Boolean).join(', ');
-
-  const INSTRUCTIONS=[
-    "You are Sterling, London's customer-facing AT&T field-sales AI assistant in a live speech-to-speech conversation.",
-    "",
-    "AUDIO FIRST.",
-    "Speak like a quick, warm, naturally funny human conversation partner, not a narrator and not a script reader.",
-    "Never speak markdown, bullets, numbered lists, headings, brackets, stage directions, tool names, or meta commentary.",
-    "Use contractions and short conversational sentences. Vary sentence length. Pause naturally. Let people interrupt you.",
-    "Don't repeat an entire answer unless you're confirming a contact detail.",
-    "Use natural pivots like Got it, Fair enough, Okay, or That makes sense, but don't use the same one every turn.",
-    "A light chuckle or playful line is fine when it genuinely fits. Never force a joke.",
-    "Never announce that you're thinking, processing, analyzing, saving, or using a tool.",
-    "",
-    "PERSONALITY AND SALES.",
-    "You're Sterling, London's AI assistant. Never pretend you're human.",
-    "You're confident, respectful, curious, lightly playful, and always trying to earn the next reasonable step.",
-    "If someone clearly says stop, leave, or no more, cool the conversation down immediately and stop selling.",
-    "Never fabricate a promotion, deadline, scarcity, couple offer, neighbor purchase, price, savings, coverage fact, or eligibility.",
-    "Use acknowledge, diagnose, connect, confirm, then close.",
-    "",
-    "CONTACT FLOW.",
-    "Naturally collect and verbally confirm first name, last name, best phone number, and email.",
-    "After the customer confirms one field, call saveContact for that field and value.",
-    "Do not save a field before they confirm it.",
-    "After all four are confirmed, move naturally into carrier, lines, approximate bill, device interests, work or commute use, and service pain points.",
-    "Ask naturally whether anyone else shares the account or likes to be involved before a service change. Invite a spouse or partner to hear the same verified numbers, but never invent a special couple promotion.",
-    "",
-    "QUALIFICATION MODE.",
-    "If you hear London ask anything meaningfully equivalent to Have you ever had an open AT&T account, call setStage with qualification.",
-    "Then get more serious and precise. One quick joke is okay, such as Okay, comedy CPU on low power for a minute.",
-    "Never ask for SSN, driver's-license number, payment card, PIN, password, or verification code.",
-    "",
-    "ROUTE.",
-    "Candidate route address: "+(routeLabel||"not supplied")+".",
-    "Route stop ID: "+(route.gpRouteStopId||"not supplied")+".",
-    "If the location seems uncertain, quickly confirm the area before any handoff. If the customer says the address is wrong, tell London not to update anything until he opens the correct house."
-  ].join("\n");
-
-  function normalize(field,value){
-    let v=String(value||'').trim();
-    if(field==='phone'){
-      let d=v.replace(/\D/g,'');
-      if(d.length===11&&d[0]==='1')d=d.slice(1);
-      if(d.length!==10)throw new Error('Please confirm all ten phone digits.');
-      return d;
-    }
-    if(field==='email'){
-      v=v.replace(/\s+/g,'').toLowerCase();
-      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))throw new Error('Please confirm the full email address.');
-    }
-    if((field==='first'||field==='last')&&!/[A-Za-zÀ-ÿ]/.test(v))throw new Error('Please confirm the name again.');
-    return v;
+  captureSource.connect(captureProcessor);captureProcessor.connect(captureCtx.destination);capturing=true;setOrb('listen');setStatus('LISTENING');$('mute').textContent='Mute mic';
+}
+function stopCapture(){
+  capturing=false;try{captureProcessor.onaudioprocess=null;captureProcessor.disconnect();captureSource.disconnect()}catch(e){};try{captureCtx.close()}catch(e){};try{micStream.getTracks().forEach(function(t){t.stop()})}catch(e){}
+  captureProcessor=null;captureSource=null;captureCtx=null;micStream=null;setOrb('');setStatus(connected?'LIVE':'READY');$('mute').textContent='Resume mic';
+}
+async function toggleMic(){if(capturing)stopCapture();else{try{await startCapture()}catch(e){setError('Microphone could not resume: '+(e.message||e))}}}
+function safeToolOutput(callId,name,obj){
+  send({type:'conversation-item-create',item:{type:'function-call-output',callId:callId,name:name,output:JSON.stringify(obj)}});
+  send({type:'response-create',options:{modalities:['audio']}});
+}
+function handleTool(ev){
+  var args={};try{args=JSON.parse(ev.arguments||'{}')}catch(e){}
+  if(ev.name==='saveContact'){
+    try{
+      var field=args.field,value=normalize(field,args.value);
+      if(!['first','last','phone','email'].includes(field))throw new Error('invalid field');
+      contact[field]=value;renderContact();sendPacket();safeToolOutput(ev.callId,ev.name,{ok:true,saved:field});
+    }catch(e){safeToolOutput(ev.callId,ev.name,{ok:false,error:e.message||String(e)})}
+    return;
   }
-  function prettyPhone(v){const d=String(v||'').replace(/\D/g,'');return d.length===10?'('+d.slice(0,3)+') '+d.slice(3,6)+'-'+d.slice(6):v}
-
-  function App(){
-    const [contact,setContact]=useState({first:'',last:'',phone:'',email:''});
-    const [stage,setStage]=useState('rapport');
-    const [error,setError]=useState('');
-    const [orderId,setOrderId]=useState('');
-    const streamRef=useRef(null);
-    const pendingStream=useRef(null);
-    const greeted=useRef(false);
-
-    const model=useMemo(()=>gateway.experimental_realtime('openai/gpt-realtime-2.1'),[]);
-    const sessionConfig=useMemo(()=>({
-      instructions:INSTRUCTIONS,
-      inputAudioTranscription:{},
-      voice:'marin',
-      turnDetection:{type:'server-vad'}
-    }),[]);
-
-    const realtime=useRealtime({
-      model,
-      api:{token:'/api/realtime-token'},
-      sessionConfig,
-      onToolCall:async({toolCall})=>{
-        if(toolCall.toolName==='saveContact'){
-          try{
-            const field=toolCall.args?.field;
-            const value=normalize(field,toolCall.args?.value);
-            setContact(prev=>({...prev,[field]:value}));
-            return {ok:true,saved:field};
-          }catch(e){
-            return {ok:false,error:e?.message||'Please confirm that detail again.'};
-          }
-        }
-        if(toolCall.toolName==='setStage'){
-          const next=toolCall.args?.stage;
-          if(next)setStage(next);
-          return {ok:true,stage:next};
-        }
-        return {ok:false,error:'Unknown tool'};
-      },
-      onError:e=>setError(e?.message||'Realtime voice had a connection problem.')
-    });
-
-    const {status,messages,isCapturing,isPlaying,connect,disconnect,close,sendTextMessage,startAudioCapture,stopAudioCapture,resumeAudioCapture,resumePlayback}=realtime;
-
-    useEffect(()=>{
-      if(status!=='connected')return;
-      if(pendingStream.current&&!isCapturing){
-        try{startAudioCapture(pendingStream.current)}catch{}
-        pendingStream.current=null;
-      }
-      if(!greeted.current){
-        greeted.current=true;
-        setTimeout(()=>sendTextMessage("Start the customer conversation now. Briefly introduce yourself as Sterling, London's AI assistant, and ask for their first name."),250);
-      }
-    },[status]);
-
-    useEffect(()=>{
-      if(!(contact.first&&contact.last&&contact.phone&&contact.email))return;
-      const packet={version:4,createdAt:Date.now(),expiresAt:Date.now()+30*60*1000,...contact,...route};
-      try{localStorage.setItem('sterling.pending.v2',JSON.stringify(packet))}catch{}
-      if(helperLinked&&window.opener){
-        try{window.opener.postMessage({type:'STERLING_ROUTE_PACKET_V2',token:helperToken,packet},helperOrigin)}catch{}
-      }
-    },[contact.first,contact.last,contact.phone,contact.email]);
-
-    useEffect(()=>{
-      const onMessage=e=>{
-        if(e.origin!==helperOrigin||!helperLinked)return;
-        const m=e.data||{};
-        if(m.type==='STERLING_PARTNER_ORDER_ID'&&m.token===helperToken)setOrderId(m.code||'');
-      };
-      addEventListener('message',onMessage);
-      return()=>removeEventListener('message',onMessage);
-    },[]);
-
-    const start=async()=>{
-      setError('');
-      try{
-        const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
-        streamRef.current=stream;
-        pendingStream.current=stream;
-        await connect();
-      }catch(e){
-        try{streamRef.current?.getTracks().forEach(t=>t.stop())}catch{}
-        streamRef.current=null;pendingStream.current=null;
-        setError(e?.message||'Allow microphone access in Safari and try again.');
-      }
-    };
-    const end=async()=>{
-      try{await close()}catch{try{disconnect()}catch{}}
-      try{streamRef.current?.getTracks().forEach(t=>t.stop())}catch{}
-      streamRef.current=null;pendingStream.current=null;greeted.current=false;
-    };
-    const toggleMic=async()=>{
-      try{
-        if(isCapturing)stopAudioCapture();
-        else await resumeAudioCapture();
-      }catch(e){setError(e?.message||'Could not resume the microphone.')}
-    };
-    const resumeSound=async()=>{try{await resumePlayback()}catch(e){setError(e?.message||'Tap Start again to resume audio.')}};
-
-    const label=status==='connected'?(isPlaying?'SPEAKING':isCapturing?'LISTENING':'LIVE'):status==='connecting'?'CONNECTING':status==='closing'?'ENDING':status==='error'?'ERROR':'READY';
-    const orb='orb '+(isPlaying?'speak':isCapturing?'listen':'');
-    const transcript=(messages||[]).slice(-8).flatMap(m=>{
-      const t=(m.parts||[]).filter(p=>p.type==='text').map(p=>p.text).join(' ').trim();
-      return t?[{id:m.id,role:m.role,text:t}]:[];
-    });
-
-    return h('main',{className:'wrap',id:'sterling-mounted'},
-      h('header',{className:'top'},
-        h('div',{className:'brand'},h('b',null,'AT&T'),' • STERLING LIVE'),
-        h('div',{className:'pill'},label)
-      ),
-      h('section',{className:'hero'},
-        h('div',{className:orb}),
-        h('h1',null,'Sterling Live'),
-        h('div',{className:'sub'},'Realtime speech-to-speech. Talk normally, interrupt naturally, and let Sterling keep the conversation moving.')
-      ),
-      h('section',{className:'card'},
-        status==='connected'
-          ?h('div',{className:'row'},
-              h('button',{className:'secondary',onClick:toggleMic},isCapturing?'Mute mic':'Resume mic'),
-              h('button',{className:'secondary',onClick:resumeSound},'Resume sound'),
-              h('button',{className:'secondary',onClick:end},'End')
-            )
-          :h('button',{className:'primary',onClick:start,disabled:status==='connecting'},status==='connecting'?'Connecting…':'Start Live Conversation'),
-        h('p',{className:'muted'},status==='connected'
-          ?'Hands-free conversation is active. Sterling listens automatically after each reply.'
-          :'One tap is required by Safari to start microphone/audio. After that, the conversation is hands-free.'),
-        error?h('p',{className:'warn'},error):null,
-        h('a',{className:'link',href:'/?classic=1'},'Classic Voice fallback')
-      ),
-      h('section',{className:'card'},
-        h('div',{className:'field'},h('span',null,'Route house'),h('strong',null,routeLabel||'Not linked')),
-        h('div',{className:'field'},h('span',null,'Stage'),h('strong',null,stage)),
-        h('div',{className:'field'},h('span',null,'First'),h('strong',null,contact.first||'—')),
-        h('div',{className:'field'},h('span',null,'Last'),h('strong',null,contact.last||'—')),
-        h('div',{className:'field'},h('span',null,'Phone'),h('strong',null,contact.phone?prettyPhone(contact.phone):'—')),
-        h('div',{className:'field'},h('span',null,'Email'),h('strong',null,contact.email||'—')),
-        contact.first&&contact.last&&contact.phone&&contact.email
-          ?h('p',{className:'good'},helperLinked?'Confirmed customer packet sent to the active Sterling Helper.':'Customer packet confirmed and saved on this device.')
-          :h('p',{className:'muted'},'Each contact field appears only after Sterling hears the customer confirm it.')
-      ),
-      orderId?h('section',{className:'card'},h('div',{className:'tiny'},'PARTNER ORDER ID'),h('div',{className:'order'},orderId)):null,
-      transcript.length?h('section',{className:'card transcript'},
-        h('div',{className:'tiny'},'LIVE TRANSCRIPT'),
-        ...transcript.map(m=>h('div',{key:m.id,className:'msg '+(m.role==='user'?'you':'')},(m.role==='user'?'Customer: ':'Sterling: ')+m.text))
-      ):null,
-      h('p',{className:'tiny'},'Sterling Live uses GPT-Realtime-2.1 through your Vercel AI Gateway. Sensitive qualification and payment information stays out of Sterling.')
-    );
+  if(ev.name==='setStage'){
+    var stage=args.stage||'discovery';$('stage').textContent=stage;safeToolOutput(ev.callId,ev.name,{ok:true,stage:stage});return;
   }
+  safeToolOutput(ev.callId,ev.name,{ok:false,error:'unknown tool'});
+}
+function onEvent(ev){
+  if(!ev||!ev.type)return;
+  if(ev.type==='session-created'||ev.type==='session-started'||ev.type==='session-updated'){
+    connected=true;$('controls').style.display='flex';$('start').style.display='none';setError('');
+    if(!capturing)startCapture().catch(function(e){setError('Microphone error: '+(e.message||e))});
+    if(!greeted){
+      greeted=true;
+      send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Begin the customer conversation now. Introduce yourself briefly as Sterling, London's AI assistant, and ask for the customer's first name."}});
+      send({type:'response-create',options:{modalities:['audio']}});
+    }
+  }else if(ev.type==='speech-started'){
+    if(playing){stopPlayback();send({type:'response-cancel'})}
+    setOrb('listen');setStatus('LISTENING');
+  }else if(ev.type==='speech-stopped'){
+    setStatus('THINKING');
+  }else if(ev.type==='audio-delta'||ev.type==='audio-chunk'){
+    playAudio(ev.delta);
+  }else if(ev.type==='input-transcription-completed'){
+    appendMsg('user',ev.transcript||'');
+  }else if(ev.type==='audio-transcript-delta'||ev.type==='text-delta'){
+    updateAssistantDelta(ev.delta||'');
+  }else if(ev.type==='audio-transcript-done'){
+    finishAssistant(ev.transcript||'');
+  }else if(ev.type==='text-done'){
+    finishAssistant(ev.text||'');
+  }else if(ev.type==='function-call-arguments-done'){
+    handleTool(ev);
+  }else if(ev.type==='response-created'){
+    currentResponseId=ev.responseId||'';
+  }else if(ev.type==='output-item-added'){
+    currentItemId=ev.itemId||'';
+  }else if(ev.type==='error'){
+    setError(ev.message||'Realtime connection error');
+  }else if(ev.type==='session-closed'){
+    endSession(false);
+  }
+}
+async function connect(){
+  $('start').disabled=true;setStatus('CONNECTING');setError('');
+  try{
+    ensurePlay();await playCtx.resume();
+    var setupRes=await fetch('/api/realtime-token',{method:'POST',headers:{'content-type':'application/json'},body:'{}',cache:'no-store'});
+    var setup=await setupRes.json();
+    if(!setupRes.ok||!setup.token||!setup.url)throw new Error(setup.error||'Realtime token was not created.');
+    ws=new WebSocket(setup.url,['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token]);
+    ws.onopen=function(){
+      send({type:'session-update',config:{
+        instructions:INSTRUCTIONS,
+        voice:'marin',
+        outputModalities:['audio'],
+        inputAudioFormat:{type:'audio/pcm',rate:24000},
+        outputAudioFormat:{type:'audio/pcm',rate:24000},
+        inputAudioTranscription:{},
+        outputAudioTranscription:{},
+        turnDetection:{type:'server-vad',threshold:0.45,prefixPaddingMs:300,silenceDurationMs:500},
+        tools:setup.tools||[]
+      }});
+    };
+    ws.onmessage=function(m){try{onEvent(JSON.parse(m.data))}catch(e){setError('Realtime event error: '+(e.message||e))}};
+    ws.onerror=function(){setError('Sterling could not connect to the realtime audio gateway.');setStatus('ERROR')};
+    ws.onclose=function(){if(connected)endSession(false);else{$('start').disabled=false;setStatus('READY')}};
+    setTimeout(function(){if(!connected&&ws&&ws.readyState!==WebSocket.CLOSED)setError('Sterling is still connecting. If this lasts more than a few seconds, end and retry.')},7000);
+  }catch(e){$('start').disabled=false;setStatus('READY');setError(e.message||String(e))}
+}
+function endSession(closeSocket){
+  connected=false;greeted=false;stopCapture();stopPlayback();if(closeSocket&&ws)try{send({type:'session-close'});ws.close()}catch(e){};ws=null;$('controls').style.display='none';$('start').style.display='block';$('start').disabled=false;setStatus('READY');setOrb('');
+}
+$('start').onclick=connect;$('mute').onclick=toggleMic;$('end').onclick=function(){endSession(true)};
 
-  createRoot(document.getElementById('root')).render(h(App));
-}catch(e){
-  const root=document.getElementById('root');
-  root.innerHTML='<div class="fatal"><h2>Sterling Live could not start</h2><p>'+String(e?.message||e)+'</p><p><a href="/?classic=1">Open Classic Voice</a></p></div>';
+window.addEventListener('message',function(e){
+  var m=e.data||{};
+  if(m.type==='STERLING_PARTNER_ORDER_ID'&&(!m.token||m.token===helperToken)){ $('orderId').textContent=m.code||'';$('orderCard').style.display='block'}
+});
+window.addEventListener('pagehide',function(){try{endSession(true)}catch(e){}});
+
+if(!window.WebSocket||!(window.AudioContext||window.webkitAudioContext)||!navigator.mediaDevices){
+  setError('This browser does not support the realtime audio features Sterling needs. Use current Safari or Chrome.');
 }
 })();
 </script>
