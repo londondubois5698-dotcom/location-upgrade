@@ -26,6 +26,8 @@ jobs:
           node-version: 22
       - name: Install pinned Titan dependencies
         run: npm install --prefix titan-max
+      - name: Simulate Titan realtime startup
+        run: npm run smoke --prefix titan-max
       - name: Build Titan Max
         run: npm run build --prefix titan-max
       - name: Publish compiled app into branch Pages folder
