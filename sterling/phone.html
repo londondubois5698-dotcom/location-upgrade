@@ -388,15 +388,33 @@ function normalizeContact(field,value){var v=clean(value);if(field==='phone'){va
 async function handleTool(m){
   var a={};try{a=JSON.parse(m.arguments||'{}')}catch(e){}
   try{
-    if(m.name==='saveContact'){if(a.confirmed!==true)throw new Error('Customer has not confirmed that field yet');var f=a.field;if(['first','last','phone','email'].indexOf(f)<0)throw new Error('Unknown contact field');contact[f]=normalizeContact(f,a.value);render();toolReply(m.callId,m.name,{ok:true,saved:f});return}
-    if(m.name==='setStage'){stage=a.stage||stage;toolReply(m.callId,m.name,{ok:true,stage:stage});return}
-    if(m.name==='flagAddressMismatch'){mismatch=true;toolReply(m.callId,m.name,{ok:true,blocked:true,current:currentHouse?currentHouse.label:null});return}
+    if(m.name==='saveContact'){
+      if(a.confirmed!==true)throw new Error('Customer has not confirmed that field yet');
+      var f=a.field;if(['first','last','phone','email'].indexOf(f)<0)throw new Error('Unknown contact field');
+      contact[f]=normalizeContact(f,a.value);render();spawnTypingParticles();setAlphaState('typing',850);
+      setCaption('Confirmed',(f==='first'?'First name':f==='last'?'Last name':f==='phone'?'Phone':'Email')+': '+contact[f]);
+      toolReply(m.callId,m.name,{ok:true,saved:f});return
+    }
+    if(m.name==='saveDiscovery'){
+      if(!a.field||!Object.prototype.hasOwnProperty.call(discovery,a.field))throw new Error('Unknown discovery field');
+      noteDiscovery(a.field,a.value);toolReply(m.callId,m.name,{ok:true,saved:a.field,value:discovery[a.field]});return
+    }
+    if(m.name==='setStage'){
+      stage=a.stage||stage;
+      if(stage==='qualification')setCaption('Sterling','Qualification mode — confirming the details that matter.');
+      toolReply(m.callId,m.name,{ok:true,stage:stage});return
+    }
+    if(m.name==='flagAddressMismatch'){
+      mismatch=true;setCaption('Address check','The address needs London to confirm the correct Salesforce record.');
+      toolReply(m.callId,m.name,{ok:true,blocked:true,current:currentHouse?currentHouse.label:null});return
+    }
     if(m.name==='commitContact'){
       if(!(contact.first&&contact.last&&contact.phone&&contact.email))throw new Error('All four confirmed contact fields are required');
       if(!currentHouse||!currentHouse.key)throw new Error('The iPad has not supplied a current Salesforce house yet');
       if(mismatch)throw new Error('Address mismatch is blocking the Salesforce update');
       var id=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random());
       await apiPost({action:'command',tetherId:tetherId,id:id,command:{type:'commitContact',contact:contact,expectedHouseKey:currentHouse.key,expectedHouseLabel:currentHouse.label}});
+      setCaption('Salesforce','Confirmed details sent securely to the paired iPad.');
       toolReply(m.callId,m.name,{ok:true,started:true,currentHouse:currentHouse.label});
       return;
     }
