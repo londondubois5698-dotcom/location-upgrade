@@ -16,17 +16,36 @@
     return cs.display!=='none'&&cs.visibility!=='hidden'&&Number(cs.opacity)!==0&&r.width>0&&r.height>0;
   }
   function text(el){return clean(el?.innerText||el?.textContent);}
+  function stopFromUrl(raw){
+    try{
+      const u=new URL(raw,location.href),p=u.searchParams;
+      return {
+        routeId:p.get('routeId')||p.get('gpRouteId')||'',
+        gpRouteStopId:p.get('gpRouteStopId')||'',
+        street:p.get('street')||'',
+        city:p.get('city')||'',
+        postalcode:p.get('postalcode')||'',
+        state:p.get('state')||'',
+        latitude:p.get('latitude')||'',
+        longitude:p.get('longitude')||''
+      };
+    }catch{return null;}
+  }
   function currentStop(){
-    return {
-      routeId:qs.get('routeId')||qs.get('gpRouteId')||'',
-      gpRouteStopId:qs.get('gpRouteStopId')||'',
-      street:qs.get('street')||'',
-      city:qs.get('city')||'',
-      postalcode:qs.get('postalcode')||'',
-      state:qs.get('state')||'',
-      latitude:qs.get('latitude')||'',
-      longitude:qs.get('longitude')||''
-    };
+    const urls=[location.href];
+    try{
+      for(const el of document.querySelectorAll('iframe[src],a[href]')){
+        const raw=el.getAttribute('src')||el.getAttribute('href');
+        if(raw&&/(?:routeId|gpRouteStopId|street)=/i.test(raw))urls.push(raw);
+      }
+    }catch{}
+    let best=null,bestScore=-1;
+    for(const raw of urls){
+      const st=stopFromUrl(raw);if(!st)continue;
+      const score=['routeId','gpRouteStopId','street','city','postalcode','state'].reduce((n,k)=>n+(st[k]?1:0),0);
+      if(score>bestScore){best=st;bestScore=score;}
+    }
+    return best||{routeId:'',gpRouteStopId:'',street:'',city:'',postalcode:'',state:'',latitude:'',longitude:''};
   }
   function stopLabel(s){
     return [s.street,s.city,s.state,s.postalcode].filter(Boolean).join(', ');
@@ -287,7 +306,7 @@
     await createOrder();
   }
 
-  $('x').onclick=()=>host.remove();
+  $('x').onclick=()=>host.style.display='none';
   window.addEventListener('message',e=>{
     if(e.origin!==APP_ORIGIN)return;
     const m=e.data||{};
@@ -323,5 +342,5 @@
     catch{prompt('Copy this Order ID:',state.orderId);}
   };
 
-  window.__sterlingRouteHelper={open(){host.style.display='block';},state};
+  window.__sterlingRouteHelper={open(){if(!host.isConnected)document.documentElement.appendChild(host);host.style.display='block';},state};
 })();
