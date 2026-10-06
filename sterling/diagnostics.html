@@ -2,70 +2,84 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Sterling Systems Check</title>
+<title>Sterling ONE V12 Systems Check</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#06111f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.w{max-width:720px;margin:auto;padding:22px 18px}.card{background:#0a1c30;border:1px solid #1b456c;border-radius:20px;padding:18px;margin:14px 0}.btn{width:100%;border:0;border-radius:14px;padding:16px;background:#0782db;color:#fff;font:inherit;font-weight:900}.row{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid #163650}.row:last-child{border:0}.pending{color:#ffd17f}.ok{color:#73efae}.bad{color:#ff9b9b}.muted{color:#9eb8d1;font-size:13px;line-height:1.5}.big{font-size:30px;font-weight:900;color:#58baff}code{overflow-wrap:anywhere;color:#bde0ff}
+*{box-sizing:border-box}body{margin:0;background:#06111f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.w{max-width:720px;margin:auto;padding:22px 18px}.card{background:#0a1c30;border:1px solid #1b456c;border-radius:20px;padding:18px;margin:14px 0}.btn{width:100%;border:0;border-radius:14px;padding:16px;background:#0782db;color:#fff;font:inherit;font-weight:900}.row{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid #163650}.row:last-child{border:0}.pending{color:#ffd17f}.ok{color:#73efae}.bad{color:#ff9b9b}.muted{color:#9eb8d1;font-size:13px;line-height:1.5}.big{font-size:30px;font-weight:900;color:#58baff}iframe{position:absolute;left:-10000px;width:900px;height:700px;border:0}
 </style></head>
 <body><main class="w">
-<div class="big">Sterling V11 Systems Check</div>
-<p class="muted">This page checks the actual production pieces Sterling uses. It does not use text-to-speech.</p>
+<div class="big">Sterling ONE V12 Systems Check</div>
+<p class="muted">This checks the production V12 script, live OpenAI/Vercel realtime audio path, and the exact cross-frame address behavior that broke V11.</p>
 <div class="card">
 <button class="btn" id="run">Run Full System Check</button>
-<div class="row"><span>Helper V11 file</span><b id="helper" class="pending">Not tested</b></div>
-<div class="row"><span>Realtime token</span><b id="token" class="pending">Not tested</b></div>
-<div class="row"><span>Realtime WebSocket</span><b id="socket" class="pending">Not tested</b></div>
-<div class="row"><span>Private phone ↔ iPad relay</span><b id="relay" class="pending">Not tested</b></div>
-<div class="row"><span>QR pairing</span><b id="qr" class="pending">Not tested</b></div>
-<div class="row"><span>Browser audio support</span><b id="audio" class="pending">Not tested</b></div>
+<div class="row"><span>Production ONE script</span><b id="script" class="pending">Not tested</b></div>
+<div class="row"><span>Realtime token + WebSocket + native audio</span><b id="realtime" class="pending">Not tested</b></div>
+<div class="row"><span>Cross-frame current-house detection</span><b id="address" class="pending">Not tested</b></div>
+<div class="row"><span>Next-house live refresh</span><b id="next" class="pending">Not tested</b></div>
+<div class="row"><span>Cross-frame input/event support</span><b id="events" class="pending">Not tested</b></div>
+<div class="row"><span>Phone browser audio APIs</span><b id="audio" class="pending">Not tested</b></div>
 <p id="result" class="muted"></p>
 </div>
-<div class="card muted">
-Realtime voice path: browser microphone → Vercel AI Gateway realtime socket → OpenAI GPT-Realtime-2.1 → native audio back to the browser. There is no generated-text-to-TTS step in Sterling Live V11.
-</div>
+<p class="muted">Field architecture: Salesforce/ICL page → Sterling ONE overlay → Vercel short-lived token → GPT-Realtime-2.1 native audio. No QR, no second Sterling tab, no text-to-speech handoff.</p>
+<iframe id="mock"></iframe>
 </main>
 <script>
 (function(){
 var $=function(id){return document.getElementById(id)};
 function set(id,ok,msg){var e=$(id);e.textContent=msg;e.className=ok?'ok':'bad'}
-function timeout(ms){return new Promise(function(_,rej){setTimeout(function(){rej(new Error('timeout'))},ms)})}
-async function test(){
+function wait(ms){return new Promise(function(r){setTimeout(r,ms)})}
+async function run(){
  $('run').disabled=true;$('result').textContent='Running production checks…';
- ['helper','token','socket','relay','qr','audio'].forEach(function(id){$(id).textContent='Testing…';$(id).className='pending'});
- var all=true,setup=null;
- try{var r=await fetch('/helper.js?v=11&t='+Date.now(),{cache:'no-store'});var t=await r.text();var ok=r.ok&&t.includes("VERSION='11.0'");set('helper',ok,ok?'PASS':'FAIL');all=all&&ok}catch(e){set('helper',false,'FAIL');all=false}
+ ['script','realtime','address','next','events','audio'].forEach(function(id){$(id).textContent='Testing…';$(id).className='pending'});
+ var all=true;
  try{
-   var r2=await fetch('/api/realtime-token',{method:'POST',headers:{'content-type':'application/json'},body:'{}',cache:'no-store'});
-   setup=await r2.json();var ok2=r2.ok&&!!setup.token&&!!setup.url;set('token',ok2,ok2?'PASS':'FAIL');all=all&&ok2;
- }catch(e){set('token',false,'FAIL');all=false}
- if(setup&&setup.token&&setup.url){
-   try{
-     await Promise.race([new Promise(function(resolve,reject){
-       var ws=new WebSocket(setup.url,['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token]);
-       var done=false;
-       ws.onopen=function(){ws.send(JSON.stringify({type:'session-update',config:{voice:'marin',outputModalities:['audio'],inputAudioFormat:{type:'audio/pcm',rate:24000},outputAudioFormat:{type:'audio/pcm',rate:24000},turnDetection:{type:'server-vad'},instructions:'Connection test. Do not speak.'}}))};
-       ws.onmessage=function(e){try{var m=JSON.parse(e.data);if(m.type==='session-created'||m.type==='session-updated'||m.type==='session-started'){done=true;set('socket',true,'PASS');try{ws.close()}catch(x){}resolve()}}catch(x){}};
-       ws.onerror=function(){if(!done)reject(new Error('socket error'))};
-       ws.onclose=function(){if(!done)reject(new Error('socket closed'))};
-     }),timeout(9000)]);
-   }catch(e){set('socket',false,'FAIL');all=false}
- }else{set('socket',false,'SKIPPED');all=false}
+   var r=await fetch('/one.js?v=12&t='+Date.now(),{cache:'no-store'});
+   var t=await r.text();
+   var ok=r.ok&&t.includes("VERSION='12.0'")&&!t.includes("instanceof Element")&&t.includes("Current house:");
+   set('script',ok,ok?'PASS':'FAIL');all=all&&ok;
+ }catch(e){set('script',false,'FAIL');all=false}
+
  try{
-   var sid='relay-test-'+crypto.randomUUID().replace(/-/g,'');
-   var p={version:11,createdAt:Date.now(),expiresAt:Date.now()+60000,first:'Sterling',last:'Test',phone:'7575550100',email:'sterling.test@example.com',street:'Test Route'};
-   var a=await fetch('/api/relay',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({session:sid,packet:p})});
-   var b=await fetch('/api/relay?session='+encodeURIComponent(sid)+'&t='+Date.now(),{cache:'no-store'});var bj=await b.json();
-   var ok3=a.ok&&b.ok&&bj.packet&&bj.packet.first==='Sterling';set('relay',ok3,ok3?'PASS':'FAIL');all=all&&ok3;
-   fetch('/api/relay?session='+encodeURIComponent(sid),{method:'DELETE'}).catch(function(){});
- }catch(e){set('relay',false,'FAIL');all=false}
+   var h=await fetch('/api/realtime-health?t='+Date.now(),{cache:'no-store'});
+   var j=await h.json();
+   var ok2=h.ok&&j.ok&&j.tokenMint&&j.websocket&&j.nativeAudio;
+   set('realtime',ok2,ok2?'PASS':'FAIL');all=all&&ok2;
+ }catch(e){set('realtime',false,'FAIL');all=false}
+
+ var frame=$('mock');
+ frame.srcdoc='<!doctype html><html><body><div id="header"><b>DEBBIE HARRIS</b><div id="current">3721 Pamlico Cir, Norfolk, Virginia 23513</div><button id="edit" title="Edit Address">edit</button></div><div>Stage: Opportunity</div><div style="margin-top:500px">Previous Opportunity: 3735 Pamlico Cir, Norfolk, Virginia 23513-3509</div><div>Next Opportunity: 3715 Pamlico Cir, Norfolk, Virginia 23513-3509</div><input id="cross" value=""></body></html>';
+ await new Promise(function(resolve){frame.onload=resolve});
  try{
-   var testUrl=location.origin+'/live.html?relay=test';
-   var qr=await fetch('/api/qr?u='+encodeURIComponent(testUrl),{cache:'no-store'});var qrt=await qr.text();var ok4=qr.ok&&qrt.includes('<svg');set('qr',ok4,ok4?'PASS':'FAIL');all=all&&ok4;
- }catch(e){set('qr',false,'FAIL');all=false}
+   var s=document.createElement('script');s.src='/one.js?v=12&diag='+Date.now();document.documentElement.appendChild(s);
+   await wait(1400);
+   var st=window.__sterlingONE&&window.__sterlingONE.state();
+   var ok3=!!(st&&st.current&&/^3721\s+Pamlico\s+Cir$/i.test(st.current.street));
+   set('address',ok3,ok3?'PASS':'FAIL');all=all&&ok3;
+ }catch(e){set('address',false,'FAIL');all=false}
+
+ try{
+   frame.contentDocument.getElementById('current').textContent='3715 Pamlico Cir, Norfolk, Virginia 23513';
+   await wait(1500);
+   var st2=window.__sterlingONE&&window.__sterlingONE.state();
+   var ok4=!!(st2&&st2.current&&/^3715\s+Pamlico\s+Cir$/i.test(st2.current.street));
+   set('next',ok4,ok4?'PASS':'FAIL');all=all&&ok4;
+ }catch(e){set('next',false,'FAIL');all=false}
+
+ try{
+   var input=frame.contentDocument.getElementById('cross'),count=0;
+   input.addEventListener('input',function(){count++});
+   var w=frame.contentWindow,desc=Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype,'value');
+   desc.set.call(input,'Sterling');
+   input.dispatchEvent(new w.Event('input',{bubbles:true}));
+   var ok5=input.value==='Sterling'&&count===1;
+   set('events',ok5,ok5?'PASS':'FAIL');all=all&&ok5;
+ }catch(e){set('events',false,'FAIL');all=false}
+
  var audioOk=!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&(window.AudioContext||window.webkitAudioContext)&&window.WebSocket);
  set('audio',audioOk,audioOk?'PASS':'FAIL');all=all&&audioOk;
- $('result').textContent=all?'ALL SYSTEMS READY — Sterling V11 backend, realtime socket, relay, QR, and browser audio support passed.':'One or more checks failed. Screenshot this page and send it to ChatGPT.';
+
+ $('result').textContent=all?'ALL CHECKS PASSED — V12 production voice path and the iframe address/update mechanics are working.':'One or more checks failed. Screenshot this page and send it to ChatGPT.';
  $('result').className=all?'ok':'bad';$('run').disabled=false;
 }
-$('run').onclick=test;
+$('run').onclick=run;
 })();
 </script></body></html>
