@@ -21,8 +21,8 @@ input,select{width:100%;padding:13px;border-radius:10px;border:1px solid #315777
 </style></head>
 
 <body><main class="wrap">
-<header class="top"><div class="brand"><b>AT&T</b> PROMOTIONS WITH AI</div><div class="status" id="status" role="status">READY • V5</div></header>
-<section class="hero"><div class="orb" aria-hidden="true"></div><h1>Meet <span class="sterling">Sterling.</span></h1><div class="sub">A little conversation. A smoother start.</div><div class="micro">London’s digital assistant • live AI + natural voice • contact details stay in this tab until you share them</div><button class="start" id="start">Start Sterling</button></section>
+<header class="top"><div class="brand"><b>AT&T</b> PROMOTIONS WITH AI</div><div class="status" id="status" role="status">READY • V6</div></header>
+<section class="hero"><div class="orb" aria-hidden="true"></div><h1>Meet <span class="sterling">Sterling.</span></h1><div class="sub">A little conversation. A smoother start.</div><div class="micro">London’s digital assistant • live AI + local brain + natural voice • common responses run without AI calls</div><button class="start" id="start">Start Sterling</button></section>
 <section class="grid"><div class="card conversation"><h2>YOUR CONVERSATION</h2>
 <div class="bubble" id="bubble" aria-live="polite">Hi, I’m Sterling. Let’s get your details ready for London.</div>
 <div class="live" id="live" role="status">Tap Start, allow microphone access, then wait for “Listening.”</div>
@@ -31,16 +31,16 @@ input,select{width:100%;padding:13px;border-radius:10px;border:1px solid #315777
 <form id="answerform"><label for="answer" style="margin-top:18px">Or type your answer</label><input id="answer" autocomplete="off" placeholder="Type here…"><div class="controls"><button type="submit">Use this answer</button></div></form>
 <details><summary>Voice & sound</summary><p class="hint">Natural cloud voice is active. If the cloud voice is temporarily unavailable, Sterling automatically falls back to a voice on this phone.</p><label for="voice">Voice</label><select id="voice"></select><label for="rate">Fallback speaking pace</label><input id="rate" type="range" min="0.85" max="1.1" step="0.05" value="1"><label for="boost">Voice boost</label><input id="boost" type="range" min="1" max="1.8" step="0.05" value="1.35"><label><input id="mute" type="checkbox">Text only</label><div class="controls"><button id="testvoice">Test sound</button></div><p class="hint">Cloud audio includes a volume boost. Your iPhone media volume still controls the final output, so turn it up and check Bluetooth if Sterling sounds quiet.</p></details>
 </div><div class="card"><h2>LONDON’S CONTACT PACKET</h2><p class="hint" id="progress">0 of 4 contact details confirmed</p>
-<div class="hint" id="routecontext" hidden></div><form id="contactform"><div class="formgrid">
+<div class="hint" id="routecontext" hidden></div><div class="pillrow"><span class="pill" id="brainstat">Local brain: starting…</span><span class="pill" id="helperstat">Route helper: not linked</span></div><form id="contactform"><div class="formgrid">
 <label>First name<input id="first" name="given-name" autocomplete="given-name" maxlength="80" required></label>
 <label>Last name<input id="last" name="family-name" autocomplete="family-name" maxlength="80" required></label>
 <label class="wide">Phone number<input id="phone" type="tel" name="tel" autocomplete="tel" inputmode="tel" required></label>
 <label class="wide">Email<input id="email" type="email" name="email" autocomplete="email" autocapitalize="none" spellcheck="false" required></label></div>
 <div class="controls"><button type="submit">Confirm these four details</button></div></form>
-<div id="sendbox" hidden><p class="confirmed">Contact packet ready</p><div class="controls"><button id="salesforcecopy" class="primary">Copy for Salesforce Helper</button><a class="action" id="send" href="#">Backup text to London</a><button id="copy">Copy plain packet</button></div><p class="hint" id="delivery" role="status">Use “Copy for Salesforce Helper,” then return to the active ICL/Salesforce house.</p></div>
+<div id="sendbox" hidden><p class="confirmed">Contact packet ready</p><div class="controls"><button id="salesforcesend" class="primary">Send to Route Helper</button><button id="salesforcecopy">Copy helper packet</button><a class="action" id="send" href="#">Backup text</a><button id="copy">Copy plain packet</button></div><p class="hint" id="delivery" role="status">Send directly to the linked route helper, or copy the helper packet as a fallback.</p></div>
 <p class="hint warning">Route Helper only transfers first name, last name, phone and email to the active route stop. Keep SSN, ID, PIN, payment and verification data in the approved AT&T process.</p>
 <details><summary>London’s conversation controls</summary><div class="controls"><button id="qualify">Qualification handoff</button><button id="return">Continue phone choices</button><button id="reset">New customer</button></div><p class="hint">New customer clears this tab’s details. Nothing is saved to a public repository or a customer database.</p></details>
-</div></section><footer class="footer">Sterling V5 • Live AI assistant with Route Helper handoff, AI-generated voice and cloud speech fallback. Keep SSNs, ID numbers, payment details, PINs and passcodes in the approved AT&T process. Voice recognition may use your browser’s speech service.</footer>
+</div></section><footer class="footer">Sterling V6 • Live AI assistant with Route Helper handoff, AI-generated voice and cloud speech fallback. Keep SSNs, ID numbers, payment details, PINs and passcodes in the approved AT&T process. Voice recognition may use your browser’s speech service.</footer>
 </main>
 <script>
 'use strict';
@@ -58,6 +58,9 @@ let recognition=null,listenTimer=0,listenWatch=0,speechToken=0,misses=0;
 let audioCtx=null,currentSource=null,currentAudio=null;
 let aiHistory=[];
 let cloudMic=false,recording=false;
+let brain={firstNameSpecial:{},firstNameTemplates:[],social:[]};
+let brainHits=0,aiHits=0,voiceCacheHits=0;
+let toneProfile={short:0,chatty:0,playful:0,total:0};
 const routeParams=new URLSearchParams(location.search);
 const routeContext={
   routeId:routeParams.get('routeId')||'',
@@ -69,7 +72,87 @@ const routeContext={
   latitude:routeParams.get('latitude')||'',
   longitude:routeParams.get('longitude')||''
 };
+const helperToken=routeParams.get('helperToken')||'';
+const helperOrigin=routeParams.get('helperOrigin')||'';
+const helperLinked=!!(helperToken&&helperOrigin==='https://win.iclportal.com');
 const Rec=window.SpeechRecognition||window.webkitSpeechRecognition;
+
+async function loadBrain(){
+  try{
+    const saved=localStorage.getItem('sterling.tone.v1');
+    if(saved) toneProfile={...toneProfile,...JSON.parse(saved)};
+  }catch{}
+  try{
+    const r=await fetch('/brain-data.json',{cache:'no-store'});
+    if(r.ok) brain=await r.json();
+  }catch{}
+  updateBrainStat();
+}
+function updateBrainStat(){
+  const e=$('brainstat');
+  if(e)e.textContent='Local brain: '+brainHits+' • AI: '+aiHits+' • voice cache: '+voiceCacheHits;
+  const h=$('helperstat');
+  if(h)h.textContent=helperLinked?'Route helper: linked':'Route helper: fallback mode';
+}
+function learnTone(text){
+  const t=String(text||'').trim();
+  if(!t)return;
+  toneProfile.total++;
+  if(t.length<26)toneProfile.short++;
+  if(t.length>85)toneProfile.chatty++;
+  if(/[!😂🤣]|\b(lol|haha|funny|joke)\b/i.test(t))toneProfile.playful++;
+  try{localStorage.setItem('sterling.tone.v1',JSON.stringify(toneProfile));}catch{}
+}
+function localBrainReply(text){
+  const n=String(text||'').toLowerCase().trim();
+  if(!n)return '';
+  // Keep objections and offer/price questions on live AI so context and current facts are respected.
+  if(/not interested|carrier|price|bill|offer|promo|deal|coverage|trade|credit|phone|internet/.test(n))return '';
+  for(const item of brain.social||[]){
+    if((item.match||[]).some(m=>n.includes(String(m).toLowerCase())))return item.reply||'';
+  }
+  return '';
+}
+function pickFirstNameLine(name){
+  const key=String(name||'').toLowerCase();
+  if(brain.firstNameSpecial?.[key])return brain.firstNameSpecial[key];
+  const arr=brain.firstNameTemplates||[];
+  const template=arr.length?arr[Math.abs([...key].reduce((a,c)=>a+c.charCodeAt(0),0))%arr.length]:'Nice to meet you, {name}. And your last name?';
+  return template.replaceAll('{name}',name);
+}
+function pendingPacket(){
+  return {
+    version:2,
+    first:data.first||'',last:data.last||'',phone:data.phone||'',email:data.email||'',
+    routeId:routeContext.routeId,gpRouteStopId:routeContext.gpRouteStopId,
+    street:routeContext.street,city:routeContext.city,postalcode:routeContext.postalcode,state:routeContext.state,
+    expiresAt:Date.now()+30*60*1000
+  };
+}
+function persistPending(){
+  if(!fields.every(f=>confirmed.has(f)))return;
+  try{localStorage.setItem('sterling.pending.v2',JSON.stringify(pendingPacket()));}catch{}
+}
+function sendToHelper(announce=true){
+  if(!fields.every(f=>confirmed.has(f)))return false;
+  persistPending();
+  if(helperLinked&&window.opener){
+    try{
+      window.opener.postMessage({type:'STERLING_ROUTE_PACKET_V2',token:helperToken,packet:pendingPacket()},helperOrigin);
+      if(announce){
+        $('delivery').textContent='Customer packet sent to the linked route helper. Return to the ICL/Salesforce tab and tap Run full sequence.';
+        status('ROUTE HELPER READY');
+      }
+      updateBrainStat();
+      return true;
+    }catch{}
+  }
+  if(announce){
+    $('delivery').textContent='No live helper link is open. The packet is saved for 30 minutes; use Pull from Sterling or Copy helper packet on the route helper.';
+    status('PACKET SAVED');
+  }
+  return false;
+}
 
 function status(t){$('status').textContent=t;}
 function stopListening(){
@@ -154,17 +237,58 @@ function deviceSpeak(text,thenListen,token){
   }
 }
 
+const COMMON_VOICE=new Set([
+  ...questions,
+  'Please say all ten digits, or type the number below.',
+  'Please say the email again, including at and dot, or type it below.',
+  'Got it. About how many phone lines are on the account?',
+  'Thanks. Roughly what are you paying each month for wireless before any device payoff amounts?',
+  'Got it. Are you mainly looking to lower the bill, upgrade phones, improve service, or some combination of those?',
+  'That helps. Is there a specific phone or upgrade you already have in mind?',
+  'Welcome back. Who do you currently have for wireless service?'
+]);
+async function voiceCacheKey(text){
+  const bytes=new TextEncoder().encode(text);
+  if(crypto.subtle){
+    const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))).map(b=>b.toString(16).padStart(2,'0')).join('');
+    return '/__sterling_voice_cache__/'+hash;
+  }
+  let h=0;for(const b of bytes)h=((h<<5)-h+b)|0;
+  return '/__sterling_voice_cache__/'+Math.abs(h);
+}
+async function getVoiceCache(text){
+  if(!COMMON_VOICE.has(text)||!('caches' in window))return null;
+  try{
+    const c=await caches.open('sterling-voice-v1');
+    const r=await c.match(await voiceCacheKey(text));
+    if(r){voiceCacheHits++;updateBrainStat();return await r.arrayBuffer();}
+  }catch{}
+  return null;
+}
+async function putVoiceCache(text,buf,type){
+  if(!COMMON_VOICE.has(text)||!('caches' in window))return;
+  try{
+    const c=await caches.open('sterling-voice-v1');
+    await c.put(await voiceCacheKey(text),new Response(buf.slice(0),{headers:{'content-type':type||'audio/mpeg'}}));
+  }catch{}
+}
+
 async function cloudSpeak(text,thenListen,token){
   status('VOICE LOADING');
   $('live').textContent='Sterling is getting his voice ready…';
   try{
-    const r=await fetch('/api/tts',{
-      method:'POST',
-      headers:{'content-type':'application/json'},
-      body:JSON.stringify({text})
-    });
-    if(!r.ok)throw new Error('cloud voice unavailable');
-    const buf=await r.arrayBuffer();
+    let buf=await getVoiceCache(text),voiceType='audio/mpeg';
+    if(!buf){
+      const r=await fetch('/api/tts',{
+        method:'POST',
+        headers:{'content-type':'application/json'},
+        body:JSON.stringify({text})
+      });
+      if(!r.ok)throw new Error('cloud voice unavailable');
+      voiceType=r.headers.get('content-type')||'audio/mpeg';
+      buf=await r.arrayBuffer();
+      await putVoiceCache(text,buf,voiceType);
+    }
     if(token!==speechToken)return;
     const ctx=await ensureAudio();
     if(ctx){
@@ -186,7 +310,7 @@ async function cloudSpeak(text,thenListen,token){
       src.start(0);
       return;
     }
-    const blob=new Blob([buf],{type:r.headers.get('content-type')||'audio/mpeg'});
+    const blob=new Blob([buf],{type:voiceType||'audio/mpeg'});
     const a=new Audio(URL.createObjectURL(blob));
     currentAudio=a;a.volume=1;
     a.onended=()=>{
@@ -444,6 +568,7 @@ function render(){
   $('sendbox').hidden=!ready;
   $('confirmbar').hidden=!pending;
   if(ready){
+    persistPending();
     const sep=/iPhone|iPad|iPod/.test(navigator.userAgent)?'&':'?';
     $('send').href='sms:+12053108645'+sep+'body='+encodeURIComponent(packet());
   }
@@ -469,7 +594,15 @@ function safeContext(){
 }
 
 async function aiReply(message){
+  const local=localBrainReply(message);
+  if(local){
+    brainHits++;updateBrainStat();
+    aiHistory.push({role:'user',content:message},{role:'assistant',content:local});
+    aiHistory=aiHistory.slice(-6);
+    return say(local);
+  }
   halt();
+  aiHits++;updateBrainStat();
   status('THINKING');
   $('live').textContent='Sterling is thinking…';
   try{
@@ -514,6 +647,7 @@ function captureQualification(text){
 
 async function handle(text){
   text=String(text||'').trim();
+  learnTone(text);
   if(!text)return;
   active=true;paused=false;$('pause').textContent='Pause';
   halt();$('live').textContent='Heard: '+text;
@@ -523,10 +657,17 @@ async function handle(text){
       pending=null;render();say('No problem. '+questions[stage]);return;
     }
     if(/^(yes|yeah|yep|correct|right|that['’]?s (right|correct)|it is|sure|okay|ok)[.!\s]*$/i.test(text)){
-      data[pending.field]=pending.value;
-      $(pending.field).value=pending.value;
-      confirmed.add(pending.field);
-      pending=null;next();return;
+      const confirmedField=pending.field;
+      data[confirmedField]=pending.value;
+      $(confirmedField).value=pending.value;
+      confirmed.add(confirmedField);
+      pending=null;
+      if(confirmedField==='first'){
+        stage=1;render();
+        say(pickFirstNameLine(data.first));
+        return;
+      }
+      next();return;
     }
     pending=null;
   }
@@ -621,6 +762,7 @@ $('contactform').onsubmit=e=>{
   pending=null;active=true;paused=false;$('pause').textContent='Pause';
   next();
 };
+$('salesforcesend').onclick=()=>sendToHelper(true);
 $('salesforcecopy').onclick=async()=>{
   try{
     await navigator.clipboard.writeText(salesforcePacket());
@@ -663,14 +805,14 @@ $('return').onclick=()=>{
 };
 $('reset').onclick=()=>{
   if((confirmed.size||Object.values(data).length)&&!window.confirm('Clear this customer’s details and start a new session?'))return;
-  halt();data={};confirmed.clear();pending=null;stage=0;active=false;paused=false;aiHistory=[];
+  halt();data={};confirmed.clear();pending=null;stage=0;active=false;paused=false;aiHistory=[];try{localStorage.removeItem('sterling.pending.v2');}catch{}
   for(const f of fields)$(f).value='';
   $('answer').value='';
   $('delivery').textContent='Not sent. Opens Messages to 205-310-8645; tap Send there.';
   $('start').textContent='Start Sterling';$('pause').textContent='Pause';
   $('bubble').textContent='Ready for the next customer.';
   $('live').textContent='Tap Start to begin.';
-  status('READY • V5');render();
+  status('READY • V6');render();
 };
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){
@@ -678,5 +820,5 @@ document.addEventListener('visibilitychange',()=>{
     status('PAUSED');$('live').textContent='Tap Resume when you return.';
   }
 });
-render();
+loadBrain();render();updateBrainStat();
 </script></body></html>
