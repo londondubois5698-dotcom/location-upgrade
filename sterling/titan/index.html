@@ -18,7 +18,7 @@
 .caption{position:absolute;left:13px;right:13px;bottom:13px;background:#06131fe8;border:1px solid #224d6c;border-radius:18px;padding:12px;backdrop-filter:blur(12px)}.lab{font-size:10px;letter-spacing:1.2px;color:#6cd5ff;font-weight:900}.text{font-size:15px;line-height:1.35;margin-top:5px}.meter{height:6px;background:#142332;border-radius:999px;overflow:hidden;margin-top:9px}.meter span{display:block;height:100%;width:0;background:linear-gradient(90deg,#36bfff,#7df1ad);transition:width .2s}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:11px}.card{background:#08131f;border:1px solid #1c405d;border-radius:20px;padding:13px}.card h3{margin:0 0 8px;font-size:11px;letter-spacing:1.5px;color:#78a9c8}.card.new h3{color:#79efae}.bill{font-size:37px;font-weight:950;letter-spacing:-1.6px;min-height:44px;color:#ff8c8c}.bill.new{color:#79efb0}.row{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #173148;font-size:12px}.row:last-child{border:0}.row span:first-child{color:#7998b1}.row strong{text-align:right;max-width:62%}
 .device{display:none;margin-top:10px;align-items:center;gap:10px;background:#071827;border:1px solid #2c5f82;border-radius:16px;padding:10px}.phone{width:34px;height:60px;border:3px solid #8be5ff;border-radius:9px;box-shadow:inset 0 0 0 2px #06101a}.device b{display:block;font-size:15px}
-.controls{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:11px}.btn{border:0;border-radius:16px;min-height:54px;padding:12px;background:#0b8be8;color:#fff;font:inherit;font-weight:950;font-size:16px}.btn.alt{background:#173a55}.btn.warn{background:#6a4b18}.btn.stop{background:#632b34}.full{grid-column:1/-1}.ringOn{box-shadow:inset 0 0 0 2px #ffd36d}.fallback{display:none;margin-top:10px}.fallback.show{display:grid}.foot{font-size:10px;color:#6f8ca5;line-height:1.45;margin-top:10px}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:11px}.btn{border:0;border-radius:16px;min-height:54px;padding:12px;background:#0b8be8;color:#fff;font:inherit;font-weight:950;font-size:16px}.btn.alt{background:#173a55}.btn.warn{background:#6a4b18}.btn.stop{background:#632b34}.full{grid-column:1/-1}.ringOn{box-shadow:inset 0 0 0 2px #ffd36d}.fallback{display:none;margin-top:10px}.fallback.show{display:grid}.logbox{margin-top:11px;background:#08131f;border:1px solid #1c405d;border-radius:20px;padding:13px}.logbox h3{margin:0 0 8px;font-size:11px;letter-spacing:1.5px;color:#ffd77d}.logrow{font-size:12px;padding:8px 0;border-bottom:1px solid #173148}.logrow:last-child{border:0}.logrow b{display:block;color:#fff}.logrow span{color:#7898b1}.foot{font-size:10px;color:#6f8ca5;line-height:1.45;margin-top:10px}
 @media(max-width:430px){.brand{font-size:36px}.grid{gap:7px}.card{padding:11px}.bill{font-size:31px}.hero{min-height:315px}}
 </style>
 </head>
@@ -49,6 +49,8 @@
   <button class="btn stop" id="newPerson">New Person</button>
 </section>
 
+<section class="logbox"><h3>SECOND LOOP LOG</h3><div id="logList"><div class="logrow"><span>No saved stops yet. End & Remember saves this stop.</span></div></div></section>
+
 <section class="controls fallback" id="fallback">
   <button class="btn alt" data-fallback="verify">London will verify everything in the official system.</button>
   <button class="btn alt" data-fallback="numbers">Your NOW → NEW numbers are still right here on the screen.</button>
@@ -64,7 +66,7 @@
 const MAX=2000,WARN=1500,FINAL=1850,SAFE_LOCK=1950,$=id=>document.getElementById(id);
 let active=false,muted=false,ring=false,locked=false,warned=false,finalizing=false,socket=null,connecting=false,connected=false,reconnects=0;
 let playCtx=null,playTime=0,playing=[],micStream=null,captureCtx=null,captureSource=null,captureProcessor=null,gate={noise:.006,open:false,voiced:0,quiet:0,pre:[]};
-let transcriptIn=0,audioIn=0,outWords=0,lastOut='';
+let transcriptIn=0,audioIn=0,outWords=0,lastOut='',currentLocation=null,currentAddress='';
 let d={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',internetProvider:'',internetBill:'',internetUse:'',tv:'',notes:''};
 
 const wc=s=>{s=String(s||'').trim();return s?s.split(/\s+/).length:0};
@@ -164,7 +166,7 @@ async function connect(){
       else if(t==='speech-stopped')state('THINKING');
       else if(t==='audio-delta'||t==='audio-chunk'){play(m.delta||'');state('TITAN SPEAKING')}
       else if(t==='function-call-arguments-done')tool(m);
-      else if(n.includes('input')&&n.includes('transcription')&&(n.includes('completed')||n.includes('done'))){const h=m.transcript||m.text||'';if(h){transcriptIn+=wc(h);budget();cap('CUSTOMER',h)}}
+      else if(n.includes('input')&&n.includes('transcription')&&(n.includes('completed')||n.includes('done'))){const h=m.transcript||m.text||'';if(h){transcriptIn+=wc(h);budget();cap('CUSTOMER',h);const am=h.match(/(?:i(?:'m| am) at|we(?:'re| are) at|address is)\s+([^,.!?]+)/i);if(am){currentAddress=am[1].trim();const old=nearestLog();if(old&&connected)send({type:'context-append',content:'London identified this stop as '+currentAddress+'. Earlier stop memory: '+JSON.stringify(old),delegationId:null})}}}
       else if(n.includes('transcript')&&n.includes('delta')&&!n.includes('input')){const x=m.delta||m.transcript||'';if(x){tr+=x;cap('TITAN',tr)}}
       else if(n.includes('transcript')&&(n.includes('done')||n.includes('completed'))&&!n.includes('input')){const x=m.transcript||m.text||tr;if(x&&x!==lastOut){outWords+=wc(x);lastOut=x;budget();cap('TITAN',x)}tr=''}
       else if(t==='error'){state('ERROR');cap('CONNECTION',m.message||'Realtime error')}
