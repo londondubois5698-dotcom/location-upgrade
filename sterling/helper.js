@@ -150,7 +150,7 @@
   host.style.cssText='position:fixed;z-index:2147483647;right:12px;bottom:12px;max-width:calc(100vw - 24px);font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;';
   document.documentElement.appendChild(host);
   const sh=host.attachShadow({mode:'open'});
-  sh.innerHTML=\`
+  sh.innerHTML=`
     <style>
       *{box-sizing:border-box}.panel{width:min(390px,calc(100vw - 24px));background:#061425;color:#fff;border:1px solid #22527d;border-radius:18px;box-shadow:0 18px 60px #0008;overflow:hidden}
       .head{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:#0b2743;border-bottom:1px solid #1b4268}
@@ -163,18 +163,18 @@
       @media(max-width:520px){.panel{width:calc(100vw - 20px)}.row{grid-template-columns:1fr}.head{padding:11px}.body{padding:12px}}
     </style>
     <div class="panel">
-      <div class="head"><div><div class="brand"><b>Sterling</b> Route Helper</div><div class="ver">v1.1.0 • iPhone/iPad/Desktop</div></div><button class="close" id="x">×</button></div>
+      <div class="head"><div><div class="brand"><b>Sterling</b> Route Helper</div><div class="ver">v${VERSION} • self-updating</div></div><button class="close" id="x">×</button></div>
       <div class="body">
         <div class="stop" id="stop"></div>
         <div class="status" id="status">Ready. Open Sterling Live or load a customer packet.</div>
         <div class="packet" id="packet">No customer packet loaded.</div>
         <div class="code hide" id="code"></div>
-        <div class="row one"><button class="primary" id="openSterling">Open Sterling for this stop</button></div>
+        <div class="row one"><button class="primary" id="openSterling">Open Sterling Live</button></div>
         <div class="row one"><button class="success" id="all">Run now</button></div>
         <div style="display:none"><button id="pull">Pull from Sterling</button><button id="load">Paste packet</button><button id="fill">Fill + Save</button><button id="order">Create Order ID</button><button id="copyCode">Copy Order ID</button></div>
         <div class="mini">Safety: helper verifies route stop/address when Sterling supplied them. It only edits name, phone and email, then uses Save and Order.</div>
       </div>
-    </div>\`;
+    </div>`;
 
   const $=id=>sh.getElementById(id);
   const state={packet:null,orderId:'',stop:currentStop(),sterlingWindow:null,autoRunning:false,lastStopKey:''};
@@ -351,7 +351,7 @@
     const m=e.data||{};
     if(m.type!=='STERLING_ROUTE_PACKET_V2'||m.token!==bridgeToken)return;
     const p=acceptPacket(m.packet);
-    if(p)setStatus('Sterling sent '+p.first+' '+p.last+' to this exact route stop. Ready to run.','good');
+    if(p)setStatus('Sterling sent '+p.first+' '+p.last+' to this active house. Auto mode is starting…','good');
   });
 
   $('openSterling').onclick=()=>{
