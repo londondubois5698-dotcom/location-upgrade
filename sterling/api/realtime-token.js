@@ -4,37 +4,81 @@ import {
   tool
 } from 'ai';
 import { z } from 'zod';
+import { STERLING_INSTRUCTIONS } from '../brain.js';
+
+const MODEL = 'openai/gpt-realtime-2.1';
+const ALLOWED_ORIGINS = new Set([
+  'https://win.iclportal.com',
+  'https://sterling-olive.vercel.app',
+  'https://sterling-londondubois5698-dotcom.vercel.app'
+]);
 
 const tools = {
   saveContact: tool({
-    description: 'Save one customer contact field only after the customer verbally confirms that field is correct.',
+    description: 'Save one customer contact field only after the customer explicitly confirms it is correct.',
     inputSchema: z.object({
       field: z.enum(['first','last','phone','email']),
-      value: z.string().min(1).max(254)
+      value: z.string().min(1).max(254),
+      confirmed: z.boolean()
     })
   }),
   setStage: tool({
-    description: 'Update Sterling sales stage when the conversation clearly moves to a new phase.',
+    description: 'Update the live sales stage when the conversation clearly enters a new phase.',
     inputSchema: z.object({
       stage: z.enum(['rapport','contact','discovery','qualification','value','close'])
+    })
+  }),
+  commitContact: tool({
+    description: 'Call exactly once after first name, last name, phone, and email have all been explicitly confirmed. This starts the same-page Salesforce update for the current house.',
+    inputSchema: z.object({})
+  }),
+  flagAddressMismatch: tool({
+    description: 'Use when the customer says the house/address/area Sterling has is not correct.',
+    inputSchema: z.object({
+      heardAddress: z.string().max(240).optional()
     })
   })
 };
 
+function applyCors(req,res){
+  const origin = req.headers?.origin || '';
+  if(origin && ALLOWED_ORIGINS.has(origin)){
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary','Origin');
+  }
+  res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers','Content-Type');
+  return !origin || ALLOWED_ORIGINS.has(origin);
+}
+
+export async function mintRealtimeSetup(){
+  const toolDefs = await getRealtimeToolDefinitions({ tools });
+  const setup = await gateway.experimental_realtime.getToken({
+    model: MODEL,
+    expiresAfterSeconds: 240
+  });
+  return {
+    ...setup,
+    model: MODEL,
+    tools: toolDefs,
+    instructions: STERLING_INSTRUCTIONS,
+    version: '12.0'
+  };
+}
+
 export default async function handler(req,res){
-  if(req.method!=='POST') return res.status(405).json({error:'POST only'});
+  res.setHeader('Cache-Control','no-store, max-age=0');
+  if(req.method==='OPTIONS'){
+    applyCors(req,res);
+    return res.status(204).end();
+  }
+  if(!applyCors(req,res)) return res.status(403).json({error:'Origin not allowed'});
+  if(req.method!=='GET' && req.method!=='POST') return res.status(405).json({error:'GET or POST only'});
   try{
-    const body=typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{});
-    const sessionConfig=body.sessionConfig||undefined;
-    const toolDefs=await getRealtimeToolDefinitions({tools});
-    const setup=await gateway.experimental_realtime.getToken({
-      model:'openai/gpt-realtime-2.1',
-      expiresAfterSeconds:600,
-      sessionConfig:{...(sessionConfig||{}),tools:toolDefs}
-    });
-    res.setHeader('Cache-Control','no-store');
-    return res.status(200).json({...setup,tools:toolDefs});
+    const setup = await mintRealtimeSetup();
+    return res.status(200).json(setup);
   }catch(e){
+    console.error('[sterling:realtime-token] failed', { message:e?.message, stack:e?.stack });
     return res.status(500).json({error:e?.message||'Could not start realtime voice'});
   }
 }
