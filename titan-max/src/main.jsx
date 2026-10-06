@@ -421,7 +421,13 @@ function App(){
       // Do not submit the greeting here. The AI SDK's connect() call can
       // return while the provider session is still CONNECTING. onEvent sends
       // the first turn only after session-created/session-updated/start.
-      realtime.connect({stream,capture:true});
+      void realtime.connect({stream,capture:true}).catch(err=>{
+        greetingRef.current=null;
+        stopLocalMedia();
+        setError(err?.message||String(err));
+        setNotice('Realtime transport could not start. Tap Start Titan to retry.');
+        setFaceMode('serious');
+      });
       setNotice('Realtime transport opened. Waiting for provider ready signal…');
     }catch(e){
       greetingRef.current=null;
