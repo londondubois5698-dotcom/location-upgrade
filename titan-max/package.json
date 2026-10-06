@@ -8,9 +8,9 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@ai-sdk/gateway": "latest",
-    "@ai-sdk/react": "latest",
-    "ai": "latest",
+    "@ai-sdk/gateway": "4.0.104",
+    "@ai-sdk/react": "4.0.131",
+    "ai": "7.0.128",
     "react": "latest",
     "react-dom": "latest"
   },
