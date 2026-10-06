@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#071528">
-<title>Sterling Field Voice</title>
+<title>Sterling Alpha V14</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#071528;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 .wrap{max-width:680px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 18px calc(30px + env(safe-area-inset-bottom))}
@@ -18,10 +18,53 @@
 .pair{display:none}.liveOnly{display:none}.contact{font-size:13px;line-height:1.55;color:#c2d8ea}.mini{font-size:11px;color:#7893aa;line-height:1.45}
 .wave{height:62px;border-radius:18px;background:#06182a;display:flex;align-items:center;justify-content:center;margin:12px 0;font-weight:900;color:#90b6d5}.wave.live{color:#79efb2;box-shadow:inset 0 0 0 1px #2a6}
 @media(max-width:430px){.brand{font-size:36px}.card{padding:15px}.value{max-width:65%}}
+
+/* Sterling Alpha V14 visual layer */
+.alpha-version{font-size:14px;letter-spacing:1.5px;vertical-align:middle;color:#7ee6ff;background:#0b3355;border:1px solid #1b6da0;border-radius:999px;padding:5px 9px;margin-left:6px}
+.alpha-stage{position:relative;overflow:hidden;border:1px solid #1e5e8d;border-radius:26px;background:linear-gradient(180deg,#0b2139,#061422 58%,#071727);box-shadow:0 24px 70px #0008;margin:14px 0;padding:0}
+.alpha-hero{position:relative;height:min(48vh,430px);min-height:330px;overflow:hidden;background:#0a1a2b}
+.alpha-robot{position:absolute;inset:-2%;background-image:linear-gradient(180deg,transparent 58%,#071727 96%),url('/assets/sterling-alpha-hero.jpg?v=14');background-size:cover;background-position:center 38%;transform-origin:58% 45%;transition:transform .55s cubic-bezier(.22,.8,.3,1),filter .4s ease,background-position .55s ease;filter:saturate(.98) contrast(1.04)}
+.alpha-stage[data-state="idle"] .alpha-robot{animation:alphaBreathe 5.2s ease-in-out infinite}
+.alpha-stage[data-state="listening"] .alpha-robot{transform:scale(1.035) translateY(2px);background-position:center 36%;filter:saturate(1.03) contrast(1.05)}
+.alpha-stage[data-state="thinking"] .alpha-robot{transform:scale(1.025) translate(-5px,4px);background-position:48% 40%;filter:saturate(.9) contrast(1.08)}
+.alpha-stage[data-state="speaking"] .alpha-robot{transform:scale(1.045) translate(4px,-1px);background-position:52% 36%;filter:saturate(1.08) contrast(1.06)}
+.alpha-stage[data-state="typing"] .alpha-robot{transform:scale(1.055) translate(-7px,5px);background-position:42% 45%;filter:saturate(1.05) contrast(1.05)}
+.alpha-stage[data-state="boot"] .alpha-robot{animation:alphaBoot 1.55s cubic-bezier(.2,.8,.2,1) both}
+@keyframes alphaBreathe{0%,100%{transform:scale(1.018) translateY(0)}50%{transform:scale(1.027) translateY(-3px)}}
+@keyframes alphaBoot{0%{opacity:0;transform:scale(1.18) translateX(-36px);filter:blur(7px) brightness(.65)}40%{opacity:1}100%{opacity:1;transform:scale(1.02);filter:blur(0) brightness(1)}}
+.alpha-shade{position:absolute;inset:0;background:radial-gradient(circle at 70% 22%,transparent 0 24%,#03101b44 60%,#02081299 100%);pointer-events:none}
+.alpha-wave{position:absolute;left:7%;right:7%;top:46%;height:70px;display:flex;gap:4px;align-items:center;justify-content:center;opacity:.22;mix-blend-mode:screen;pointer-events:none}
+.alpha-wave i{width:3px;height:12px;border-radius:4px;background:#55c8ff;box-shadow:0 0 12px #36aaff;animation:alphaWave 1.15s ease-in-out infinite;animation-delay:calc(var(--i)*-55ms)}
+.alpha-stage[data-state="listening"] .alpha-wave,.alpha-stage[data-state="speaking"] .alpha-wave{opacity:.82}
+.alpha-stage[data-state="thinking"] .alpha-wave{opacity:.3}
+@keyframes alphaWave{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(2.2)}}
+.alpha-top{position:absolute;z-index:4;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.alpha-chip{font-size:11px;font-weight:900;letter-spacing:.4px;padding:7px 10px;border-radius:999px;background:#041525cc;border:1px solid #1c5278;color:#b9dbf4;backdrop-filter:blur(10px)}
+.alpha-chip.good{color:#7af2b0;border-color:#1d7f58}.alpha-chip.focus{color:#76d9ff}
+.pair-toast{position:absolute;z-index:5;right:14px;top:54px;background:#06273bdd;border:1px solid #1bbf7a;color:#7df3b4;padding:10px 13px;border-radius:14px;font-size:12px;font-weight:900;opacity:0;transform:translateY(-8px);pointer-events:none}
+.pair-toast.show{animation:pairToast 3s ease both}@keyframes pairToast{0%{opacity:0;transform:translateY(-9px)}15%,75%{opacity:1;transform:none}100%{opacity:0}}
+.alpha-nameplate{position:absolute;z-index:4;left:50%;bottom:16px;transform:translateX(-50%);padding:7px 16px;border-radius:7px;background:linear-gradient(#24384b,#09121d);border:1px solid #6589a7;color:#d8efff;font-weight:950;letter-spacing:1.3px;font-size:12px;box-shadow:0 8px 20px #0009}
+.typing-particles{position:absolute;z-index:4;left:15%;bottom:15%;width:130px;height:70px;pointer-events:none}
+.typing-particles b{position:absolute;width:4px;height:4px;border-radius:50%;background:#70ddff;box-shadow:0 0 10px #24aaff;animation:particleFly .75s ease-out forwards}
+@keyframes particleFly{from{opacity:.9;transform:translate(0,0) scale(1)}to{opacity:0;transform:translate(var(--x),var(--y)) scale(.25)}}
+.alpha-live{padding:15px 15px 16px;background:linear-gradient(180deg,#071727,#061321)}
+.alpha-statusline{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:11px}.alpha-state{font-size:12px;font-weight:950;color:#81d7ff;letter-spacing:.8px}.alpha-state.live{color:#75f1ac}
+.alpha-caption{background:#081d31;border:1px solid #1c4b70;border-radius:16px;padding:12px 13px;margin:10px 0 13px;min-height:74px}
+.alpha-caption .caplabel{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#6fa9ce;font-weight:900}.alpha-caption .captext{font-size:15px;line-height:1.35;margin-top:6px;color:#e4f4ff}
+.nownew{display:grid;grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);gap:8px;align-items:stretch}.nn{background:#071a2b;border:1px solid #1b486c;border-radius:17px;padding:12px;min-width:0}.nn h3{margin:0 0 9px;font-size:12px;letter-spacing:1.5px;color:#83b8d9}.nn.new h3{color:#73efae}.nnarrow{display:flex;align-items:center;justify-content:center;color:#5ec4ff;font-size:24px;font-weight:900}
+.nnrow{display:grid;grid-template-columns:48% 52%;gap:5px;padding:6px 0;border-bottom:1px solid #123450;font-size:12px}.nnrow:last-child{border:0}.nnrow span:first-child{color:#7fa2be}.nnrow strong{color:#f2f9ff;overflow:hidden;text-overflow:ellipsis}.nn.new .money{color:#79efb2;font-size:17px}
+.typing-value{position:relative}.typing-value.pulse{animation:valuePulse .65s ease}@keyframes valuePulse{0%{color:#72eaff;text-shadow:0 0 14px #22aaff}100%{color:#f2f9ff;text-shadow:none}}
+.alpha-fit{margin-top:11px;padding:10px 12px;border-radius:14px;background:#071a2a;border:1px solid #194361;font-size:12px;line-height:1.4;color:#9fc2dc}.alpha-fit strong{color:#e6f5ff}
+.alpha-promos{display:flex;gap:6px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}.alpha-promos::-webkit-scrollbar{display:none}.promo{white-space:nowrap;background:#0c2941;border:1px solid #1e5279;border-radius:999px;padding:7px 9px;font-size:10px;font-weight:850;color:#a9d6f4}
+.noise-meter{height:5px;background:#06101a;border-radius:999px;overflow:hidden;margin-top:9px}.noise-meter span{display:block;height:100%;width:0%;background:linear-gradient(90deg,#38bdf8,#72efad);transition:width .08s linear}
+.alpha-controls-note{font-size:10px;color:#6f8ea8;text-align:center;margin-top:8px}
+@media(max-width:430px){.alpha-hero{height:43vh;min-height:315px}.nownew{grid-template-columns:1fr 22px 1fr}.nn{padding:10px}.nnrow{font-size:11px}.alpha-caption .captext{font-size:14px}}
+@media(prefers-reduced-motion:reduce){.alpha-robot,.alpha-wave i{animation:none!important;transition:none!important}}
+
 </style>
 </head>
 <body><main class="wrap">
-<div class="brand"><b>Sterling</b> Field Voice</div>
+<div class="brand"><b>Sterling</b> Alpha <span class="alpha-version">V14</span></div>
 <p class="sub">Phone = the conversation. iPad = Salesforce. Sterling keeps both synchronized.</p>
 
 <section class="card pair" id="pairCard">
@@ -30,6 +73,57 @@
   <input id="pairCode" class="field" inputmode="numeric" maxlength="6" placeholder="000000">
   <button id="claim" class="btn" style="margin-top:10px">Pair Phone</button>
   <div id="pairStatus" class="mini" style="margin-top:10px"></div>
+</section>
+
+
+<section class="alpha-stage liveOnly" id="alphaStage" data-state="idle">
+  <div class="alpha-hero">
+    <div class="alpha-robot" id="alphaRobot" aria-hidden="true"></div>
+    <div class="alpha-shade"></div>
+    <div class="alpha-wave" id="alphaWave"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i><i style="--i:6"></i><i style="--i:7"></i><i style="--i:8"></i><i style="--i:9"></i><i style="--i:10"></i><i style="--i:11"></i><i style="--i:12"></i><i style="--i:13"></i><i style="--i:14"></i><i style="--i:15"></i><i style="--i:16"></i><i style="--i:17"></i><i style="--i:18"></i><i style="--i:19"></i><i style="--i:20"></i><i style="--i:21"></i><i style="--i:22"></i><i style="--i:23"></i><i style="--i:24"></i><i style="--i:25"></i><i style="--i:26"></i><i style="--i:27"></i><i style="--i:28"></i></div>
+    <div class="alpha-top">
+      <span class="alpha-chip good" id="alphaPair">iPad • linked</span>
+      <span class="alpha-chip focus" id="alphaFocus">VOICE FOCUS • ON</span>
+    </div>
+    <div class="pair-toast" id="pairToast">✓ Pairing Sync Complete</div>
+    <div class="typing-particles" id="typingParticles"></div>
+    <div class="alpha-nameplate">STERLING ONE</div>
+  </div>
+  <div class="alpha-live">
+    <div class="alpha-statusline"><span class="alpha-state" id="alphaState">READY</span><span class="alpha-chip" id="alphaHouse">Waiting for Salesforce…</span></div>
+    <div class="noise-meter"><span id="noiseMeter"></span></div>
+    <div class="alpha-caption">
+      <div class="caplabel" id="captionLabel">Sterling</div>
+      <div class="captext" id="liveCaption">Paired and ready. Tap Start Sterling when the customer has your phone.</div>
+    </div>
+    <div class="nownew">
+      <div class="nn now">
+        <h3>NOW</h3>
+        <div class="nnrow"><span>Carrier</span><strong class="typing-value" id="dCarrier">—</strong></div>
+        <div class="nnrow"><span>Lines</span><strong class="typing-value" id="dLines">—</strong></div>
+        <div class="nnrow"><span>Bill</span><strong class="typing-value" id="dBill">—</strong></div>
+        <div class="nnrow"><span>Phones</span><strong class="typing-value" id="dPhones">—</strong></div>
+        <div class="nnrow"><span>Plan</span><strong class="typing-value" id="dPlan">—</strong></div>
+      </div>
+      <div class="nnarrow">→</div>
+      <div class="nn new">
+        <h3>NEW • AT&amp;T</h3>
+        <div class="nnrow"><span>Wireless</span><strong id="nPlan">Extra 2.0</strong></div>
+        <div class="nnrow"><span>Est.</span><strong class="money typing-value" id="nPrice">—</strong></div>
+        <div class="nnrow"><span>Savings</span><strong class="money typing-value" id="nSavings">—</strong></div>
+        <div class="nnrow"><span>Upgrade</span><strong class="typing-value" id="nUpgrade">Discovering…</strong></div>
+        <div class="nnrow"><span>Discount</span><strong class="typing-value" id="nDiscount">Check fit</strong></div>
+      </div>
+    </div>
+    <div class="alpha-fit" id="internetFit"><strong>Wireless first.</strong> Sterling will only surface Internet Air after learning how the household actually uses home internet.</div>
+    <div class="alpha-promos" id="promoStrip">
+      <span class="promo">Signature: 20% Premium*</span>
+      <span class="promo">Appreciation: 20% Premium / 15% Extra*</span>
+      <span class="promo">55+: 2 lines + Air $100*</span>
+      <span class="promo">Air: $55 standalone / $35 w wireless*</span>
+    </div>
+    <div class="alpha-controls-note">*Field-sheet snapshot. Final eligibility and pricing are verified in the official AT&amp;T system.</div>
+  </div>
 </section>
 
 <section class="card liveOnly" id="mainCard">
