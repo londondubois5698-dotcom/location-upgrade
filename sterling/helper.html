@@ -11,8 +11,8 @@
 </head>
 <body><main class="wrap">
 <div class="hero">
-  <h1>Sterling Helper V10</h1>
-  <p class="sub">One small bookmark. After this setup, the bookmark always loads the newest helper automatically, so future fixes do not require reinstalling it.</p>
+  <h1>Sterling Helper V11</h1>
+  <p class="sub">One small bookmark. After this setup, it always loads the newest helper automatically. V11 can pair a customer phone to your Salesforce iPad with a private QR relay.</p>
 </div>
 
 <div class="card">
@@ -22,7 +22,7 @@
   <p class="ok" id="copied"></p>
   <div class="step"><div class="num">2</div><p>Tap Safari <b>Share → Add Bookmark</b>. Name it <b>Sterling Helper</b>.</p></div>
   <div class="step"><div class="num">3</div><p>Open <b>Bookmarks → Edit → Sterling Helper</b>. Delete the normal web address and paste the code you copied into the URL field. Tap <b>Done</b>.</p></div>
-  <p class="muted">From then on: open an active ICL house, tap the <b>Sterling Helper</b> bookmark, then tap <b>Open Sterling Live</b>. That is it.</p>
+  <p class="muted">From then on: open the active ICL house, tap the <b>Sterling Helper</b> bookmark, then tap <b>Use Customer Phone</b>. Let the customer scan the QR. Sterling sends the confirmed contact back to your iPad automatically.</p>
 </div>
 
 <div class="card desktop">
@@ -33,7 +33,7 @@
 
 <div class="card">
   <h2>What changed</h2>
-  <p class="muted">The bookmark is now only a tiny loader. The real helper lives on Sterling's site and updates itself. The helper reads the address actually visible on the Salesforce page, so if Salesforce moves from 3739 Pamlico to 3735 Pamlico without updating the old URL, Sterling uses the visible 3735 house instead of the stale URL.</p>
+  <p class="muted">The bookmark is only a tiny loader. The real helper updates itself. V11 reads the current address actually visible at the top of the Salesforce record and ignores Previous Opportunity and Next Opportunity addresses. If Salesforce changes houses without changing the old URL, the visible current-house address wins.</p>
   <p class="muted">When a confirmed customer packet comes back and matches the active house, Auto mode can fill the four contact fields, save, open Order, and capture the Partner Order ID.</p>
 </div>
 
@@ -44,7 +44,7 @@
 <p class="tiny">Safari does not allow a website to create or edit your bookmark for you. That one manual bookmark edit is an Apple browser restriction. After it is saved, V10 updates itself from the web.</p>
 </main>
 <script>
-const code="javascript:(()=>{if(window.__sterlingRouteHelper?.open){window.__sterlingRouteHelper.open();return}const s=document.createElement('script');s.src='https://sterling-olive.vercel.app/helper.js?v=10&t='+Date.now();s.onerror=()=>alert('Sterling Helper could not load. Check your connection and try again.');document.documentElement.appendChild(s)})()";
+const code="javascript:(()=>{if(window.__sterlingRouteHelper?.open){window.__sterlingRouteHelper.open();return}const s=document.createElement('script');s.src='https://sterling-olive.vercel.app/helper.js?v=11&t='+Date.now();s.onerror=()=>alert('Sterling Helper could not load. Check your connection and try again.');document.documentElement.appendChild(s)})()";
 document.getElementById('code').value=code;
 document.getElementById('drag').href=code;
 document.getElementById('copy').onclick=async()=>{
