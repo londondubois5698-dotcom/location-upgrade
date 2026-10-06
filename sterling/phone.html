@@ -132,7 +132,7 @@
 (function(){
 'use strict';
 var APP='https://sterling-olive.vercel.app';
-var VERSION='14.2';
+var VERSION='14.3';
 var tetherId='';
 var currentHouse=null,lastHouseKey='',lastResultId='';
 var contact={first:'',last:'',phone:'',email:''},stage='rapport',mismatch=false;
@@ -140,7 +140,7 @@ var discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInter
 var alphaState='idle',alphaTimer=null;
 var gate={noise:.006,open:false,voiced:0,quiet:0,pre:[]};
 var captureHighpass=null,captureLowpass=null,micAnalyser=null;
-var active=false,connected=false,connecting=false,muted=false,reconnects=0,socket=null;
+var active=false,connected=false,connecting=false,muted=false,reconnects=0,socket=null,connectWatchdog=null,reconnectTimer=null,connectAttempt=0;
 var micStream=null,captureCtx=null,captureSource=null,captureProcessor=null,playCtx=null,playTime=0,playingSources=[];
 
 function $(id){return document.getElementById(id)}
@@ -340,15 +340,89 @@ async function handleTool(m){
     toolReply(m.callId,m.name,{ok:false,error:'Unknown tool'})
   }catch(e){toolReply(m.callId,m.name,{ok:false,error:e.message||String(e)})}
 }
-async function connect(){
-  if(!active||connecting)return;connecting=true;connected=false;setVoice('CONNECTING…');
+function clearConnectTimers(){
+  if(connectWatchdog){clearTimeout(connectWatchdog);connectWatchdog=null}
+  if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null}
+}
+function scheduleReconnect(reason){
+  if(!active)return;
+  if(reconnectTimer)return;
+  connected=false;connecting=false;render();
+  reconnects=Math.min(reconnects+1,8);
+  var delay=Math.min(5000,500+reconnects*650);
+  setVoice('RECONNECTING…','warn');
+  setCaption('Sterling',reason||'Connection dropped. Reconnecting automatically…');
+  reconnectTimer=setTimeout(function(){reconnectTimer=null;connect(true)},delay);
+}
+async function fetchRealtimeSetup(){
+  var ctrl=typeof AbortController!=='undefined'?new AbortController():null;
+  var timeout=setTimeout(function(){try{if(ctrl)ctrl.abort()}catch(e){}},8000);
   try{
-    var r=await fetch(APP+'/api/realtime-token?v=14&t='+Date.now(),{cache:'no-store'}),setup=await r.json();if(!r.ok||!setup.token||!setup.url)throw new Error(setup.error||'Realtime setup failed');
-    var protocols=(setup.protocols&&setup.protocols.length)?setup.protocols:['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token];var ws=new WebSocket(setup.url,protocols);socket=ws;var greeted=false,sterlingTranscript='';
-    ws.onopen=function(){connecting=false;send({type:'session-update',config:{instructions:setup.instructions,voice:'cedar',outputModalities:['audio'],inputAudioFormat:{type:'audio/pcm',rate:24000},outputAudioFormat:{type:'audio/pcm',rate:24000},turnDetection:{type:'server-vad',threshold:0.52,prefixPaddingMs:300,silenceDurationMs:600},tools:setup.tools||[]}})};
+    var r=await fetch(APP+'/api/realtime-token?v=14.3&t='+Date.now(),{cache:'no-store',signal:ctrl?ctrl.signal:undefined});
+    var setup=await r.json();
+    if(!r.ok||!setup.token||!setup.url)throw new Error(setup.error||'Realtime setup failed');
+    return setup;
+  }finally{clearTimeout(timeout)}
+}
+async function connect(force){
+  if(!active)return;
+  if(connected&&!force)return;
+  if(connecting&&!force)return;
+
+  clearConnectTimers();
+  connectAttempt++;
+  connecting=true;connected=false;render();setVoice('CONNECTING…');
+  setCaption('Sterling','Connecting voice…');
+
+  try{
+    if(socket&&socket.readyState!==WebSocket.CLOSED){
+      try{socket.onclose=null;socket.onerror=null;socket.close()}catch(e){}
+    }
+    socket=null;
+
+    var setup=await fetchRealtimeSetup();
+    if(!active){connecting=false;return}
+
+    var protocols=(setup.protocols&&setup.protocols.length)?setup.protocols:['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token];
+    var ws=new WebSocket(setup.url,protocols);socket=ws;var greeted=false,sterlingTranscript='',thisAttempt=connectAttempt;
+
+    connectWatchdog=setTimeout(function(){
+      if(active&&thisAttempt===connectAttempt&&!connected){
+        try{ws.close()}catch(e){}
+        scheduleReconnect('Voice handshake timed out. Retrying with a fresh connection…')
+      }
+    },10000);
+
+    ws.onopen=function(){
+      if(thisAttempt!==connectAttempt)return;
+      connecting=false;
+      send({type:'session-update',config:{
+        instructions:setup.instructions,
+        voice:'cedar',
+        outputModalities:['audio'],
+        inputAudioFormat:{type:'audio/pcm',rate:24000},
+        outputAudioFormat:{type:'audio/pcm',rate:24000},
+        turnDetection:{type:'server-vad',threshold:0.52,prefixPaddingMs:300,silenceDurationMs:600},
+        tools:setup.tools||[]
+      }})
+    };
+
     ws.onmessage=function(ev){
-      var m;try{m=JSON.parse(ev.data)}catch(e){return}var mt=String(m.type||''),norm=mt.replace(/[._]/g,'-').toLowerCase();
-      if(mt==='session-created'||mt==='session-started'||mt==='session-updated'){connected=true;connecting=false;reconnects=0;render();setVoice('LIVE • LISTENING','good');if(currentHouse)send({type:'context-append',content:'The paired iPad is currently on Salesforce house '+currentHouse.label+'. Treat that as the only active household.',delegationId:null});if(!greeted){greeted=true;send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Begin naturally as Sterling, London's assistant. Sound relaxed and masculine. Build rapport before collecting details. Ask only one main question at a time and react to the customer's answer before moving on."}});send({type:'response-create',options:{modalities:['audio']}})}}
+      if(thisAttempt!==connectAttempt)return;
+      var m;try{m=JSON.parse(ev.data)}catch(e){return}
+      var mt=String(m.type||''),norm=mt.replace(/[._]/g,'-').toLowerCase();
+
+      if(mt==='session-created'||mt==='session-started'||mt==='session-updated'){
+        if(connectWatchdog){clearTimeout(connectWatchdog);connectWatchdog=null}
+        connected=true;connecting=false;reconnects=0;render();setVoice('LIVE • LISTENING','good');
+        setCaption('Sterling','Connected. I’m listening.');
+        if(currentHouse)send({type:'context-append',content:'The paired iPad is currently on Salesforce house '+currentHouse.label+'. Treat that as the only active household.',delegationId:null});
+        if(!greeted){
+          greeted=true;
+          send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Begin naturally as Sterling, London's assistant. Sound relaxed and masculine. Build rapport before collecting details. Ask only one main question at a time and react to the customer's answer before moving on."}});
+          send({type:'response-create',options:{modalities:['audio']}})
+        }
+      }
       else if(mt==='speech-started'){stopPlayback();send({type:'response-cancel'});setVoice('LISTENING','good');setCaption('Listening…','Go ahead — Sterling is listening.')}
       else if(mt==='speech-stopped'){setVoice('THINKING…')}
       else if(mt==='audio-delta'||mt==='audio-chunk'){playAudio(m.delta||'');setVoice('STERLING SPEAKING','good')}
@@ -356,18 +430,47 @@ async function connect(){
       else if(norm.indexOf('input')>=0&&norm.indexOf('transcription')>=0&&(norm.indexOf('completed')>=0||norm.indexOf('done')>=0)){var heard=m.transcript||m.text||m.delta||'';if(heard)setCaption('Customer',heard)}
       else if(norm.indexOf('transcript')>=0&&norm.indexOf('delta')>=0&&norm.indexOf('input')<0){var d=m.delta||m.transcript||'';if(d){sterlingTranscript+=d;setCaption('Sterling',sterlingTranscript)}}
       else if(norm.indexOf('transcript')>=0&&(norm.indexOf('done')>=0||norm.indexOf('completed')>=0)&&norm.indexOf('input')<0){var done=m.transcript||m.text||sterlingTranscript;if(done)setCaption('Sterling',done);sterlingTranscript=''}
-      else if(mt==='error'){setVoice(m.message||'Realtime error','bad');setCaption('Connection',m.message||'Realtime error')}
+      else if(mt==='error'){
+        var em=m.message||'Realtime error';
+        setCaption('Connection',em);
+        if(/AI Gateway API key|Client secrets can only/i.test(em)){
+          setVoice(em,'bad');$('voiceSetup').style.display='block';active=false;connecting=false;connected=false;clearConnectTimers();render()
+        }else{
+          try{ws.close()}catch(e){}
+          scheduleReconnect('Sterling hit a realtime connection error. Retrying…')
+        }
+      }
     };
-    ws.onerror=function(){setVoice('Realtime connection error','bad')};
-    ws.onclose=function(){connected=false;connecting=false;render();if(active){reconnects++;setVoice('RECONNECTING…','warn');setTimeout(connect,Math.min(6000,1000*reconnects))}else setVoice('STOPPED')}
-  }catch(e){connecting=false;connected=false;render();var msg=e.message||String(e);setVoice(msg,'bad');if(/AI Gateway API key|Client secrets can only/i.test(msg))$('voiceSetup').style.display='block';if(active&&!/AI Gateway API key|Client secrets can only/i.test(msg)){reconnects++;setTimeout(connect,Math.min(6000,1000*reconnects))}}
+
+    ws.onerror=function(){
+      if(thisAttempt!==connectAttempt||!active)return;
+      try{ws.close()}catch(e){}
+      scheduleReconnect('Network handshake missed. Retrying automatically…')
+    };
+
+    ws.onclose=function(){
+      if(thisAttempt!==connectAttempt)return;
+      if(connectWatchdog){clearTimeout(connectWatchdog);connectWatchdog=null}
+      connected=false;connecting=false;render();
+      if(active)scheduleReconnect('Voice connection closed. Reconnecting…');
+      else setVoice('STOPPED')
+    };
+  }catch(e){
+    connecting=false;connected=false;render();
+    var msg=e&&e.name==='AbortError'?'Voice setup request timed out':(e.message||String(e));
+    if(/AI Gateway API key|Client secrets can only/i.test(msg)){
+      clearConnectTimers();active=false;setVoice(msg,'bad');$('voiceSetup').style.display='block';render()
+    }else scheduleReconnect(msg+'. Retrying automatically…')
+  }
 }
-async function start(){if(active)return;try{bootAlpha(false);setCaption('Sterling','Coming online…');await prepareMic();active=true;muted=false;render();await heartbeat();await connect()}catch(e){active=false;render();setVoice(e.message||String(e),'bad');releaseMic()}}
-function stop(){active=false;connected=false;connecting=false;try{if(socket)socket.close()}catch(e){}socket=null;releaseMic();stopPlayback();render();setVoice('STOPPED');setCaption('Sterling','Paused. Tap Start Sterling when you are ready.')}
+async function start(){try{clearConnectTimers();if(active&&!connected&&!connecting){await connect(true);return}if(active&&connected)return;bootAlpha(false);setCaption('Sterling','Coming online…');await prepareMic();active=true;muted=false;render();await heartbeat();await connect(true)}catch(e){active=false;connecting=false;connected=false;clearConnectTimers();render();setVoice(e.message||String(e),'bad');releaseMic()}}
+function stop(){active=false;connected=false;connecting=false;connectAttempt++;clearConnectTimers();try{if(socket){socket.onclose=null;socket.onerror=null;socket.close()}}catch(e){}socket=null;releaseMic();stopPlayback();render();setVoice('STOPPED');setCaption('Sterling','Paused. Tap Start Sterling when you are ready.')}
 $('start').onclick=start;$('stop').onclick=stop;$('mute').onclick=function(){muted=!muted;render();setVoice(muted?'MIC MUTED':'LIVE • LISTENING',muted?'warn':'good')};
 $('voiceSetup').onclick=function(){location.href=APP+'/voice-setup.html?v=14'};
 $('repair').onclick=function(){stop();localStorage.removeItem('sterling.tetherId.v1');tetherId='';currentHouse=null;lastHouseKey='';lastResultId='';contact={first:'',last:'',phone:'',email:''};discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',notes:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';render();$('pairStatus').textContent='Enter the new six-digit code from the iPad.'};
 
+window.addEventListener('online',function(){if(active&&!connected)connect(true)});
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&active&&!connected)setTimeout(function(){connect(true)},250)});
 tetherId=localStorage.getItem('sterling.tetherId.v1')||'';
 render();if(tetherId){setTimeout(function(){bootAlpha(false)},220);heartbeat();pollStatus()}
 })();
