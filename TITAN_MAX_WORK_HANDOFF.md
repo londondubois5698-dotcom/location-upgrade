@@ -54,3 +54,10 @@ When this project is opened in ChatGPT Work, read this file first, then inspect 
 - Titan no longer sends its greeting immediately after `connect()`.
 - The first spoken turn is now queued until `session-created`, `session-updated`, or `session-started` arrives, then it is submitted.
 - Transport promise rejections are caught and converted into a clean retry state instead of an unhandled failure.
+
+## 2026-10-06 transport compatibility regression fix
+- Removed `maxPlaybackBufferSeconds` from Titan's turn-based AI Gateway client-secret session. The AI SDK only allows that option for continuous PCM sessions.
+- Added `titan-max/smoke/realtime-smoke.mjs`, which instantiates the real AI SDK Gateway realtime model with mocked browser transport/audio, verifies the known bad configuration fails, then verifies Titan's current configuration reaches provider-ready state and accepts the first submission.
+- Added independent GitHub Action `Titan Max Realtime Simulation`.
+- Verified passing output: `TITAN_REALTIME_SMOKE_OK`, `connected:true`, `providerReady:true`, `firstSubmission:true`, with `session-update`, `conversation-item-create`, and `response-create`.
+- Production frontend build also passed in the same simulation workflow.
