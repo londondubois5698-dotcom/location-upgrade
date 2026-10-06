@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "smoke": "node smoke/realtime-smoke.mjs"
   },
   "dependencies": {
     "@ai-sdk/gateway": "4.0.104",
