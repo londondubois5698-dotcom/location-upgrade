@@ -66,17 +66,21 @@ function visibleCurrentAddress(){
       if(!visible(el))return;
       var t=txt(el);if(!t||t.length>220)return;
       var m=t.match(re);if(!m)return;
-      var anc=el,context='';
-      for(var i=0;i<4&&anc;i++,anc=anc.parentElement)context+=' '+txt(anc);
+      var context=t,anc=el.parentElement,depth=0;
+      while(anc&&depth<3){
+        var at=txt(anc);
+        if(at&&at.length<360)context+=' '+at;
+        anc=anc.parentElement;depth++;
+      }
       if(/Previous\s+Opportunity|Next\s+Opportunity/i.test(context))return;
       var r=el.getBoundingClientRect(),score=0;
-      if(r.top>=0&&r.top<90)score+=800;
-      else if(r.top<180)score+=500;
-      else if(r.top<300)score+=150;
-      if(/Prospective\s+Customer/i.test(context))score+=600;
-      if(/Edit\s+Address/i.test((el.getAttribute('title')||'')+' '+(el.getAttribute('aria-label')||'')+' '+context))score+=300;
-      if(t.trim()===m[0].trim())score+=120;
-      score+=Math.max(0,200-t.length);
+      if(r.top>=0&&r.top<100)score+=1000;
+      else if(r.top<180)score+=650;
+      else if(r.top<300)score+=180;
+      if(/Prospective\s+Customer/i.test(context))score+=700;
+      if(/Edit\s+Address/i.test((el.getAttribute('title')||'')+' '+(el.getAttribute('aria-label')||'')+' '+context))score+=350;
+      if(t.trim()===m[0].trim())score+=160;
+      score+=Math.max(0,220-t.length);
       candidates.push({street:clean(m[1]),city:clean(m[2]),state:'Virginia',postalcode:clean(m[4]),score:score,top:r.top,text:t});
     });
   });
