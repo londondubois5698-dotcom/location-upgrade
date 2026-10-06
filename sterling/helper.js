@@ -4,7 +4,7 @@
   if(window.__sterlingRouteHelper?.open){window.__sterlingRouteHelper.open();return;}
 
   const APP_ORIGIN='https://sterling-olive.vercel.app';
-  const VERSION='1.1.0';
+  const VERSION='10.0.0';
   const bridgeToken=Array.from(crypto.getRandomValues(new Uint32Array(4))).map(n=>n.toString(16)).join('-');
   const qs=new URLSearchParams(location.search);
 
@@ -31,6 +31,25 @@
       };
     }catch{return null;}
   }
+  function parseVisibleAddress(){
+    const re=/(\d{1,6}\s+[A-Za-z0-9.'#\- ]+?),\s*([A-Za-z .'‑\-]+?),\s*(Virginia|VA)\s+(\d{5}(?:-\d{4})?)/i;
+    let best=null;
+    for(const d of allDocs()){
+      for(const el of Array.from(d.querySelectorAll('div,span,p,a,strong,h1,h2,h3,td'))){
+        if(!visible(el))continue;
+        const t=text(el);
+        if(!t||t.length>180)continue;
+        const m=t.match(re);
+        if(!m)continue;
+        const r=el.getBoundingClientRect();
+        const score=(r.top<190?100:0)+(180-t.length);
+        if(!best||score>best.score){
+          best={street:clean(m[1]),city:clean(m[2]),state:'Virginia',postalcode:clean(m[4]),score};
+        }
+      }
+    }
+    return best;
+  }
   function currentStop(){
     const urls=[location.href];
     try{
@@ -45,7 +64,18 @@
       const score=['routeId','gpRouteStopId','street','city','postalcode','state'].reduce((n,k)=>n+(st[k]?1:0),0);
       if(score>bestScore){best=st;bestScore=score;}
     }
-    return best||{routeId:'',gpRouteStopId:'',street:'',city:'',postalcode:'',state:'',latitude:'',longitude:''};
+    best=best||{routeId:'',gpRouteStopId:'',street:'',city:'',postalcode:'',state:'',latitude:'',longitude:''};
+    const dom=parseVisibleAddress();
+    if(dom){
+      const stale=best.street&&norm(best.street)!==norm(dom.street);
+      best={...best,street:dom.street,city:dom.city,state:dom.state,postalcode:dom.postalcode};
+      if(stale){
+        best.gpRouteStopId='';
+        best.latitude='';
+        best.longitude='';
+      }
+    }
+    return best;
   }
   function stopLabel(s){
     return [s.street,s.city,s.state,s.postalcode].filter(Boolean).join(', ');
@@ -136,20 +166,18 @@
       <div class="head"><div><div class="brand"><b>Sterling</b> Route Helper</div><div class="ver">v1.1.0 • iPhone/iPad/Desktop</div></div><button class="close" id="x">×</button></div>
       <div class="body">
         <div class="stop" id="stop"></div>
-        <div class="status" id="status">Ready. Open Sterling for this stop or load a customer packet.</div>
+        <div class="status" id="status">Ready. Open Sterling Live or load a customer packet.</div>
         <div class="packet" id="packet">No customer packet loaded.</div>
         <div class="code hide" id="code"></div>
         <div class="row one"><button class="primary" id="openSterling">Open Sterling for this stop</button></div>
-        <div class="row"><button id="pull">Pull from Sterling</button><button id="load">Paste packet</button></div>
-        <div class="row one"><button id="fill">Fill + Save</button></div>
-        <div class="row"><button class="success" id="order">Create Order ID</button><button class="quiet" id="all">Run full sequence</button></div>
-        <div class="row one"><button class="quiet" id="copyCode">Copy Order ID</button></div>
+        <div class="row one"><button class="success" id="all">Run now</button></div>
+        <div style="display:none"><button id="pull">Pull from Sterling</button><button id="load">Paste packet</button><button id="fill">Fill + Save</button><button id="order">Create Order ID</button><button id="copyCode">Copy Order ID</button></div>
         <div class="mini">Safety: helper verifies route stop/address when Sterling supplied them. It only edits name, phone and email, then uses Save and Order.</div>
       </div>
     </div>\`;
 
   const $=id=>sh.getElementById(id);
-  const state={packet:null,orderId:'',stop:currentStop(),sterlingWindow:null};
+  const state={packet:null,orderId:'',stop:currentStop(),sterlingWindow:null,autoRunning:false,lastStopKey:''};
   $('stop').textContent=stopLabel(state.stop)||'Current Salesforce / ICL record';
   function setStatus(msg,kind=''){const el=$('status');el.textContent=msg;el.className='status '+kind;}
   function renderPacket(){
@@ -167,7 +195,8 @@
     try{
       const p=typeof raw==='string'?parsePacket(raw):parsePacket(JSON.stringify(raw));
       verify(p,state.stop);state.packet=p;renderPacket();
-      setStatus('Packet loaded and matched to this stop.','good');
+      setStatus('Packet loaded and matched to this stop. Auto mode is starting…','good');
+      setTimeout(()=>{ if(!state.autoRunning) runAll(true); },350);
       return p;
     }catch(e){setStatus(e.message||String(e),'bad');return null;}
   }
@@ -296,14 +325,24 @@
     }catch(e){setStatus(e.message||String(e),'bad');return '';}
   }
 
-  async function runAll(){
-    if(!state.packet){const p=await loadPacket();if(!p)return;}
-    try{verify(state.packet,state.stop);}catch(e){setStatus(e.message,'bad');return;}
-    const label=stopLabel(state.stop)||'this record';
-    if(!confirm('Update '+label+' to '+state.packet.first+' '+state.packet.last+', save it, then create a Partner Order ID?'))return;
-    const ok=await fillAndSave();if(!ok)return;
-    await sleep(900);
-    await createOrder();
+  async function runAll(auto=false){
+    if(state.autoRunning)return;
+    if(!state.packet){
+      if(auto)return;
+      const p=await loadPacket();if(!p)return;
+    }
+    state.autoRunning=true;
+    try{
+      state.stop=currentStop();
+      verify(state.packet,state.stop);
+      const ok=await fillAndSave();if(!ok)return;
+      await sleep(900);
+      await createOrder();
+    }catch(e){
+      setStatus(e.message||String(e),'bad');
+    }finally{
+      state.autoRunning=false;
+    }
   }
 
   $('x').onclick=()=>host.style.display='none';
@@ -322,7 +361,7 @@
     p.set('routeHelper','1');
     p.set('helperToken',bridgeToken);
     p.set('helperOrigin',location.origin);
-    state.sterlingWindow=window.open(APP_ORIGIN+'/?'+p.toString(),'sterling-route');
+    state.sterlingWindow=window.open(APP_ORIGIN+'/live.html?'+p.toString(),'sterling-route');
     if(!state.sterlingWindow)setStatus('Pop-up blocked. Allow pop-ups for this site, then tap Open Sterling again.','bad');
     else setStatus('Sterling opened and linked to this route stop.','good');
   };
@@ -335,12 +374,36 @@
   $('load').onclick=loadPacket;
   $('fill').onclick=fillAndSave;
   $('order').onclick=createOrder;
-  $('all').onclick=runAll;
+  $('all').onclick=()=>runAll(false);
   $('copyCode').onclick=async()=>{
     if(!state.orderId){setStatus('No Partner Order ID captured yet.');return;}
     try{await navigator.clipboard.writeText(state.orderId);setStatus('Order ID copied.','good');}
     catch{prompt('Copy this Order ID:',state.orderId);}
   };
 
-  window.__sterlingRouteHelper={open(){if(!host.isConnected)document.documentElement.appendChild(host);host.style.display='block';},state};
+  function refreshActiveStop(){
+    const next=currentStop();
+    const key=norm(next.street)+'|'+norm(next.city)+'|'+norm(next.postalcode);
+    if(!key)return;
+    if(key!==state.lastStopKey){
+      const had=!!state.lastStopKey;
+      state.lastStopKey=key;
+      state.stop=next;
+      $('stop').textContent=stopLabel(state.stop)||'Current Salesforce / ICL record';
+      if(had){
+        showCode('');
+        if(state.packet){
+          try{verify(state.packet,state.stop);}
+          catch{state.packet=null;renderPacket();}
+        }
+        setStatus('New house detected: '+(state.stop.street||'route stop')+'. Sterling Helper updated automatically.','good');
+      }
+    }
+  }
+  const observer=new MutationObserver(()=>setTimeout(refreshActiveStop,120));
+  try{observer.observe(document.documentElement,{subtree:true,childList:true,characterData:true});}catch{}
+  setInterval(refreshActiveStop,900);
+  refreshActiveStop();
+
+  window.__sterlingRouteHelper={open(){if(!host.isConnected)document.documentElement.appendChild(host);host.style.display='block';refreshActiveStop();},state};
 })();
