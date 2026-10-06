@@ -1,4 +1,4 @@
-name: Deploy Titan Max to GitHub Pages
+name: Build Titan Max GitHub Site
 on:
   push:
     branches: [main]
@@ -6,36 +6,42 @@ on:
       - 'titan-max/**'
       - '.github/workflows/titan-max-pages.yml'
   workflow_dispatch:
+
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
+
 concurrency:
-  group: titan-max-pages
+  group: titan-max-build
   cancel-in-progress: true
+
 jobs:
-  build:
+  build-and-publish-folder:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install
+      - name: Install pinned Titan dependencies
         run: npm install --prefix titan-max
       - name: Build Titan Max
         run: npm run build --prefix titan-max
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
-        with:
-          path: titan-max/dist
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Publish compiled app into branch Pages folder
+        run: |
+          rm -rf titan-live
+          mkdir -p titan-live
+          cp -R titan-max/dist/. titan-live/
+          touch titan-live/.nojekyll
+      - name: Commit compiled Titan Max
+        run: |
+          git config user.name "Titan Max Builder"
+          git config user.email "actions@users.noreply.github.com"
+          git add titan-live
+          if git diff --cached --quiet; then
+            echo "Titan Max compiled output is already current."
+            exit 0
+          fi
+          git commit -m "Publish Titan Max compiled GitHub site [skip ci]"
+          git push origin HEAD:main
