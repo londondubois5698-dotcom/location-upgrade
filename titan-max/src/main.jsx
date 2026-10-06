@@ -232,6 +232,7 @@ function App(){
   const analyzerRef=useRef(null);
   const rafRef=useRef(null);
   const faceRef=useRef(null);
+  const greetingRef=useRef(null);
 
   const model=useMemo(()=>gateway.experimental_realtime('openai/gpt-realtime-2.1'),[]);
   const instructions=useMemo(()=>{
@@ -282,6 +283,26 @@ function App(){
       if(t.includes('speech-start')||t.includes('input-audio'))setFaceMode('friendly');
       if(t.includes('response')&&t.includes('start'))setFaceMode('thinking');
       if(t==='error')setFaceMode('serious');
+
+      // AI SDK connect() starts the transport but can resolve before the
+      // provider has marked the realtime session writable. Wait for the
+      // provider's ready event before submitting Titan's first turn.
+      if((t==='session-created'||t==='session-updated'||t==='session-started')&&greetingRef.current){
+        const firstTurn=greetingRef.current;
+        greetingRef.current=null;
+        setTimeout(()=>{
+          try{
+            realtime.sendTextMessage(firstTurn);
+            setNotice('Titan Executive AI is live and listening.');
+            setFaceMode(ring?'ring':'friendly');
+          }catch(err){
+            greetingRef.current=firstTurn;
+            setError(err?.message||String(err));
+            setNotice('Realtime opened, but Titan is waiting for the provider ready signal. Tap Start Titan to retry.');
+            setFaceMode('serious');
+          }
+        },0);
+      }
     },
     onError:e=>{
       setError(e.message||'Titan realtime error');
@@ -393,19 +414,17 @@ function App(){
       streamRef.current=stream;startAnalyzer(stream);
 
       setNotice('Opening realtime executive link…');
-      let timeoutId;
-      const timeout=new Promise((_,reject)=>{timeoutId=setTimeout(()=>reject(new Error('Realtime link did not open within 10 seconds. Titan reset it cleanly.')),10000)});
-      await Promise.race([realtime.connect({stream,capture:true}),timeout]);
-      clearTimeout(timeoutId);
+      greetingRef.current=ring
+        ?"Ring Mode is active. Speak first now with a short polished technology opener, identify yourself as Titan, London's AI partner, say London is right here, ask for about 20 seconds, then listen."
+        :'Say exactly: Titan, executive AI ready. Then stop and listen immediately.';
 
-      setNotice('Titan Executive AI is live and listening.');
-      setFaceMode(ring?'ring':'friendly');
-      if(ring){
-        realtime.sendTextMessage("Ring Mode is active. Speak first now with a short polished technology opener, identify yourself as Titan, London's AI partner, say London is right here, ask for about 20 seconds, then listen.");
-      }else{
-        realtime.sendTextMessage('Say exactly: Titan, executive AI ready. Then stop and listen immediately.');
-      }
+      // Do not submit the greeting here. The AI SDK's connect() call can
+      // return while the provider session is still CONNECTING. onEvent sends
+      // the first turn only after session-created/session-updated/start.
+      realtime.connect({stream,capture:true});
+      setNotice('Realtime transport opened. Waiting for provider ready signal…');
     }catch(e){
+      greetingRef.current=null;
       realtime.disconnect();stopLocalMedia();
       setError(e.message||String(e));
       setNotice('Startup stopped cleanly. Fix the message above, then tap Start Titan again.');
@@ -414,6 +433,7 @@ function App(){
   }
 
   function stopTitan(){
+    greetingRef.current=null;
     realtime.disconnect();stopLocalMedia();setNotice('Titan stopped. Tap Start Titan when ready.');setFaceMode('neutral');setStarting(false);
   }
 
