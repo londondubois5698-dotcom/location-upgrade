@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#06111d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Titan Light">
+  <title>Titan Light • Offline Wingman</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brandRow">
+        <div class="goldT">T</div>
+        <div>
+          <div class="wordmark">TITAN <b>LIGHT</b></div>
+          <div class="sub">Offline wingman • zero backend • local brain</div>
+        </div>
+      </div>
+      <div class="offlinePill"><i></i><span id="netState">OFFLINE READY</span></div>
+    </header>
+
+    <section class="heroCard">
+      <div class="heroCopy">
+        <div class="eyebrow">LOCAL AI BACKUP</div>
+        <div class="heroStatus"><span class="statusDot"></span><strong id="statusText">Standing by</strong></div>
+        <p id="liveText">Everything important is stored on this phone.</p>
+      </div>
+      <div class="heroFace">
+        <img src="../sterling/assets/sterling360/f01.webp" alt="Titan Light">
+        <div class="heroShade"></div>
+        <button id="expandFace" class="expandBtn" aria-label="Expand face">⛶</button>
+      </div>
+    </section>
+
+    <section class="compare">
+      <article class="quote now" id="nowCard">
+        <div class="carrierHeader"><strong id="nowCarrier">NOW</strong><span>YOUR CURRENT</span></div>
+        <small class="label">Monthly Bill</small>
+        <div class="bigMoney" id="nowBill">—<em>/mo</em></div>
+        <div class="fact"><span>Carrier</span><b id="carrierValue">—</b></div>
+        <div class="fact"><span>Lines</span><b id="linesValue">—</b></div>
+        <div class="fact"><span>Phones</span><b id="phonesValue">—</b></div>
+        <div class="fact"><span>Pain point</span><b id="painValue">Discovering…</b></div>
+      </article>
+
+      <div class="arrow">→</div>
+
+      <article class="quote att">
+        <div class="carrierHeader attHeader"><strong>AT&amp;T</strong><span>NEW</span></div>
+        <small class="label">Offline Estimate</small>
+        <div class="bigMoney attMoney" id="newBill">—<em>/mo</em></div>
+        <div class="savings">
+          <div class="bag">💰</div>
+          <div><small>YOU'LL SAVE</small><strong id="saveValue">—</strong></div>
+        </div>
+        <div class="fact"><span>Plan</span><b id="planValue">Extra 2.0</b></div>
+        <div class="fact"><span>Upgrade</span><b id="upgradeValue">Discovering…</b></div>
+        <div class="fact"><span>Verify</span><b>London</b></div>
+      </article>
+    </section>
+
+    <section class="valueBanner">
+      <span>◆</span>
+      <div><strong>A better fit. A lower bill.</strong><small>Offline estimate only — verify current AT&amp;T pricing and promos when connected.</small></div>
+    </section>
+
+    <details class="repDrawer">
+      <summary>London • Titan Light brain & memory</summary>
+      <div class="drawerBody">
+        <div class="memoryStats">
+          <div><small>SESSIONS</small><b id="sessionCount">0</b></div>
+          <div><small>LEARNED</small><b id="lessonCount">0</b></div>
+          <div><small>WINNERS</small><b id="winnerCount">0</b></div>
+        </div>
+
+        <label>Type what the customer said</label>
+        <div class="inputRow">
+          <input id="manualInput" autocomplete="off" placeholder="e.g. I'm Kevin, Verizon, 4 lines, about $280">
+          <button id="sendManual">Send</button>
+        </div>
+
+        <div class="quickChips" id="quickChips">
+          <button data-say="hello">Hello</button>
+          <button data-say="not interested">Not interested</button>
+          <button data-say="I'm busy">Busy</button>
+          <button data-say="I'm not home">Not home</button>
+          <button data-say="what do you want">What do you want?</button>
+          <button data-say="stop">Stop</button>
+        </div>
+
+        <div class="teachGrid">
+          <input id="teachTrigger" placeholder="When they say…">
+          <input id="teachReply" placeholder="Titan should say…">
+          <button id="teachBtn">Teach Titan</button>
+        </div>
+
+        <div class="transcript" id="transcript"></div>
+        <button id="markWinner" class="winnerBtn">⭐ Mark Titan's last line as a winner</button>
+        <button id="newSession" class="ghostBtn">New customer / clear live screen</button>
+      </div>
+    </details>
+
+    <div id="contactOverlay" class="overlay" hidden>
+      <div class="contactCard">
+        <div class="overlayTop"><div><small>TITAN LIGHT CONTACT CARD</small><h2>Quick accuracy check</h2></div><span>LOCAL</span></div>
+        <div class="contactGrid">
+          <div><small>FIRST</small><b id="cFirst">—</b></div>
+          <div><small>LAST</small><b id="cLast">—</b></div>
+          <div><small>PHONE</small><b id="cPhone">—</b></div>
+          <div><small>EMAIL</small><b id="cEmail">—</b></div>
+        </div>
+        <p>Say a correction, type it below, or say “looks right.”</p>
+        <button id="closeContact" class="ghostBtn">Close card</button>
+      </div>
+    </div>
+
+    <div id="faceOverlay" class="faceOverlay" hidden>
+      <img src="../sterling/assets/sterling360/f01.webp" alt="Titan Light full screen">
+      <div class="fullShade"></div>
+      <div class="fullLabel"><b>TITAN LIGHT</b><span id="fullState">OFFLINE READY</span></div>
+      <button id="closeFace" class="faceClose">×</button>
+    </div>
+
+    <section class="bottomDock">
+      <button id="talkBtn" class="dock talk active">🎙<span>Talk<small>Start</small></span></button>
+      <button id="ringBtn" class="dock ring">☎<span>Ring<small>Listen First</small></span></button>
+      <button id="outdoorBtn" class="dock outdoor active">▲<span>Outdoor<small>MAX</small></span></button>
+      <button id="typeBtn" class="dock type">⌨<span>Type<small>Fallback</small></span></button>
+      <button id="stopBtn" class="dock stop">■<span>Stop<small>Session</small></span></button>
+    </section>
+
+    <div id="voiceNotice" class="voiceNotice" hidden></div>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
