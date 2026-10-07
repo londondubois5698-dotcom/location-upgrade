@@ -412,6 +412,7 @@ async function pollStatus(){
       var hadHouse=!!lastHouseKey;
       currentHouse=j.house;lastHouseKey=j.house.key;
       if(hadHouse){contact={first:'',last:'',phone:'',email:''};discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',rapportAnchor:'',painPoint:'',motivator:'',objection:'',decisionStyle:'',jonesCue:'',lossAversionCue:'',urgencyTrigger:'',nextClose:'',notes:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';if(!restoreLiveMemory())setCaption('Sterling','New house detected. Starting fresh.');}
+      else{restoreLiveMemory()}
       render();
       if(connected)send({type:'context-append',content:'The iPad Salesforce record changed. Current live house is now '+j.house.label+'. Reset all assumptions and contact details from the prior household.',delegationId:null});
     }else if(j.house){currentHouse=j.house;render()}
