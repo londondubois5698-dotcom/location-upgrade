@@ -1,0 +1,13 @@
+{
+  "name":"Titan Light Offline Wingman",
+  "short_name":"Titan Light",
+  "description":"Offline backup sales wingman with a fully local scripted brain.",
+  "start_url":"/location-upgrade/titan-light/",
+  "scope":"/location-upgrade/titan-light/",
+  "display":"standalone",
+  "background_color":"#020811",
+  "theme_color":"#06111d",
+  "icons":[
+    {"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
