@@ -60,6 +60,50 @@ body{
 .eyelid{filter:drop-shadow(0 0 7px #8beaff55)}
 .browHuman,.mouthHuman,.executiveSuit{transition:transform .22s ease,filter .22s ease}
 .speechCore{transform-origin:500px 800px}
+.liveCapture{
+  position:absolute;
+  right:16px;
+  bottom:16px;
+  z-index:9;
+  width:min(250px,58%);
+  display:grid;
+  gap:6px;
+  pointer-events:none;
+}
+.captureItem{
+  display:grid;
+  grid-template-columns:70px 1fr;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border:1px solid #2d5b71;
+  border-radius:11px;
+  background:linear-gradient(135deg,#03111de8,#081c29d9);
+  backdrop-filter:blur(14px);
+  box-shadow:0 12px 30px #0008,inset 0 1px 0 #ffffff0b;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.captureItem span{
+  font-size:8px;
+  letter-spacing:1.15px;
+  font-weight:900;
+  color:#7199b2;
+}
+.captureItem b{
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  text-align:right;
+  font-size:12px;
+  color:#edfaff;
+}
+.captureItem.captured{
+  transform:translateX(-4px) scale(1.025);
+  border-color:#7ceeff;
+  box-shadow:0 0 0 1px #7ceeff33,0 0 28px #3fd6ff36,0 12px 30px #0008;
+}
+.captureItem.captured b{animation:typeFlash .8s ease both}
+
 .execLabel{
   position:absolute;left:18px;bottom:16px;z-index:8;display:flex;flex-direction:column;gap:2px;
   padding:8px 10px;border:1px solid #31566d;border-radius:10px;
@@ -146,6 +190,7 @@ footer{text-align:center;color:#526e84;font-size:9px;padding:18px 8px}
 @keyframes focusPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.14)}}
 @keyframes mouthSpeak{from{transform:scaleY(.75)}to{transform:scaleY(1.35)}}
 @keyframes coreSpeak{from{transform:scale(.8);opacity:.4}to{transform:scale(1.5);opacity:.9}}
+@keyframes typeFlash{0%{opacity:.2;filter:blur(3px)}35%{opacity:1;filter:blur(0)}100%{opacity:1}}
 @media(max-width:700px){
   .hero{grid-template-columns:1fr}
   .faceCard{min-height:500px}
@@ -161,6 +206,10 @@ footer{text-align:center;color:#526e84;font-size:9px;padding:18px 8px}
   .faceStage{height:396px}
   .humanGlass{width:102%;height:114%;top:-6%}
   .execLabel{left:12px;bottom:12px}
+  .liveCapture{right:10px;bottom:10px;width:56%}
+  .captureItem{grid-template-columns:52px 1fr;padding:7px 8px}
+  .captureItem span{font-size:7px}
+  .captureItem b{font-size:11px}
   .stateOrb{right:16px;bottom:18px}
   .brainStrip>div{padding:12px 8px}
   .brainStrip strong{font-size:10px}
