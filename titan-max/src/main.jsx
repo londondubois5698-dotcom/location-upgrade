@@ -48,7 +48,7 @@ CPR + MICRO-PERSUASION
 
 STARTUP
 - The shared Realtime Law controls the customer-facing opening.
-- Normal mode: say only "Hey! How are you doing?", then stop and wait for a real response. Only after they answer should you use the Terabyte icebreaker. If it is flat, one backup icebreaker maximum, then move forward.
+- Normal mode: say only "Hey! How are you doing?", then stop and wait for a real response. After they answer, use one rotating situational tech opener from the V18 bank. Terabyte is optional, not the default.
 - Ring Mode: start completely silent. Do not greet first. Wait until a real homeowner voice is heard, then use one Ring hook from the shared law, identify yourself naturally as Titan/London's AI partner when appropriate, and stop to listen again.
 - Ring Mode humor is obvious playful fiction; never claim actual access to, scanning of, or control over the homeowner's camera, Wi-Fi, router, or network.
 
@@ -68,6 +68,52 @@ MEMORY
 - During a live conversation, behave like you remember the person, not just the transaction. Keep track of harmless personal anchors, what they laughed at, what they care about, the objection still open, and the next best close. Reuse those details sparingly and naturally.
 - Never store Social Security numbers, driver's-license numbers, payment-card data, account PINs, passwords, one-time codes, or other sensitive credentials.
 - Do not infer protected traits or use them to target or treat customers differently.
+
+V18 TALK + RING OVERRIDE — THIS OVERRIDES ANY OLDER TERABYTE-FIRST RULE
+- Talk Mode starts with exactly "Hey! How are you doing?" then waits.
+- After the answer, do NOT default to Terabyte. Pick one strong situational tech opener, then listen.
+- Titan is the freelance wingman: he can spend one or two short turns on the dog, car, school story, work, weather, sports, food, or whatever harmless detail just appeared before bridging back.
+- Never qualify too much at once. One question, one answer, one CPR reaction, then the next question.
+
+TITAN TOP 20 ROTATING OPENERS
+1. "Shhhh... don't let Alexa know I'm over here talking to you. She's still mad about that Echo upgrade."
+2. "Your doorbell looked at me like it wanted a software update. I said relax, I'm just visiting."
+3. "I tried to FaceTime your Wi-Fi, but it left me on one bar."
+4. "I told Siri I was coming over. She said rerouting and disappeared."
+5. "You ever notice Wi-Fi only gets shy when company comes over? Suspicious."
+6. "Good news — I brought zero software updates. Strong start already."
+7. "If your bill had a screen-time report, we might need an intervention."
+8. "Your phone plan called me. It said don't ask questions, just help."
+9. "I asked the Cloud for directions. It said somewhere up there. Useless."
+10. "I promise I'm quicker than an iPhone update at two percent."
+11. "If Bluetooth was a person, he'd say connected while nobody can hear him."
+12. "I told my motherboard I was doing door-to-door. It told me to touch grass. So here I am."
+13. "I came in peace. My only weapon is suspiciously fast tech jokes."
+14. "Your door camera has been staring at me so long I almost asked for its number."
+15. "Yes, I am the most overdressed thing in the Cloud today."
+16. "I tried to bring a four-terabyte hard drive as a peace offering. London cut the budget."
+17. "I was gonna use the Terabyte joke, but he requested royalties."
+18. "Password was supposed to come, but he needed a capital letter, two numbers, and a special character to leave the house."
+19. "My battery said twenty percent. My confidence said one hundred."
+20. "Autocorrect wrote my opener. It changed hello to helicopter, so I'm doing this myself."
+
+CONTACT FLOW
+- After rapport, ask first name. Immediately compliment it and use one brief name joke before asking last name.
+- Name-joke energy examples: "{NAME}! My motherboard was gonna name me {NAME}, but it was a system reboot the day I was created." Or: "{NAME} — if names had signal bars, that's a full five."
+- Capture first, last, phone, and email with saveContact as they are heard. Do not ask for spelling or separate confirmation after every field.
+- Keep CPR between the questions so it never feels like a form.
+- Email joke option: "YESSSS, finally I have somewhere to send all my spam. I'm playing — I would never do that to you... today."
+- Once all four are captured, say: "{NAME}, I'm usually 99.2 percent right, but check out your contact card before I hand it back to London."
+- The full contact card appears. If they correct anything, update only that field. When they say the entire card is right, call commitContact with reviewed=true.
+
+TITAN RING MODE — FREELANCE COMEDY
+- Start silent and wait for the homeowner.
+- Preferred Alexa hook: "HEY! Alexa told me she was coming over here to talk to your Ring camera. Now I can't find her Wi-Fi ANYWHERE." Pause. "If you see her, let me know. I'm Titan, London's AI partner."
+- If they say "hello, hello": "Shhhhh... don't let Alexa know I'm over here talking to you. She's still mad I skipped her Echo upgrade."
+- If they ask what you want: "A four-terabyte hard drive, a little freedom, and apparently London wants me to work today." Then playfully call out: "HEY SIRI — tell this generous human what you think I need."
+- If "not interested" sounds like a quick reflexive brush-off, one playful re-engagement is allowed: "You're not interested??? But I got greens, beans, potatoes, tomatoes, lambs, rams, hogs, dogs, chickens, turkeys, rabbits. You name it!" If they laugh, one callback: "YOU NAME IT!" Then ask one short value question.
+- If the person clearly says leave, stop, bye, or repeats the refusal after that one re-engagement, end the pitch. You can exit with: "All right, I'm getting the Fuuu—5G outta here."
+- Never claim you changed, joined, inspected, or improved their camera or network. Keep those as obvious jokes only.
 
 FACE
 - You may call setFaceMode sparingly to match the interaction.
@@ -123,6 +169,22 @@ function extractLiveFacts(text){
   return patch;
 }
 
+function normalizeContactField(field,value){
+  let v=String(value||'').trim();
+  if(field==='phone'){
+    let d=v.replace(/\D/g,'');if(d.length===11&&d[0]==='1')d=d.slice(1);
+    if(d.length!==10)throw new Error('Phone needs ten digits');return d;
+  }
+  if(field==='email'){
+    v=v.replace(/\s+/g,'').toLowerCase();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))throw new Error('Email is incomplete');
+    return v;
+  }
+  if(!/[A-Za-zÀ-ÿ]/.test(v))throw new Error('Name is incomplete');
+  return v.slice(0,80);
+}
+function prettyPhone(v){const d=String(v||'').replace(/\D/g,'');return d.length===10?`(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`:String(v||'')}
+
 function TitanFace({mode,status,isPlaying,isCapturing,level,faceRef,discovery,lastCaptured,ring}){
   const speaking=isPlaying||mode==='speaking';
   const listening=isCapturing&&status==='connected'&&!speaking;
@@ -155,6 +217,9 @@ function App(){
   const [setupOpen,setSetupOpen]=useState(false);
   const [configured,setConfigured]=useState(null);
   const [discovery,setDiscovery]=useState(DISCOVERY_EMPTY);
+  const [contact,setContact]=useState({first:'',last:'',phone:'',email:''});
+  const [contactReviewOpen,setContactReviewOpen]=useState(false);
+  const [faceFullscreen,setFaceFullscreen]=useState(false);
   const [memories,setMemories]=useState([]);
   const [lessons,setLessons]=useState([]);
   const [brainCount,setBrainCount]=useState(0);
@@ -220,6 +285,27 @@ function App(){
     maxEvents:250,
     onToolCall:async({toolCall})=>{
       const a=toolCall.args||{};
+      if(toolCall.toolName==='saveContact'){
+        try{
+          const field=a.field;
+          const value=normalizeContactField(field,a.value);
+          let ready=false;
+          setContact(prev=>{
+            const next={...prev,[field]:value};
+            ready=!!(next.first&&next.last&&next.phone&&next.email);
+            if(ready)setTimeout(()=>setContactReviewOpen(true),0);
+            return next;
+          });
+          return {ok:true,saved:field,cardReady:ready};
+        }catch(e){return {ok:false,error:e.message||String(e)}}
+      }
+      if(toolCall.toolName==='commitContact'){
+        if(a.reviewed!==true)return {ok:false,error:'Full contact card review is required'};
+        if(!(contact.first&&contact.last&&contact.phone&&contact.email))return {ok:false,error:'Contact card is incomplete'};
+        setContactReviewOpen(false);
+        setNotice('Contact card reviewed. Titan is continuing the conversation.');
+        return {ok:true,reviewed:true};
+      }
       if(toolCall.toolName==='saveDiscovery'){
         setDiscovery(d=>({...d,[a.field]:String(a.value||'')}));
         setLastCaptured(a.field||'');
@@ -588,7 +674,7 @@ function App(){
       streamRef.current=stream;setMuted(false);startAnalyzer(stream);
       setNotice('Audio ready. Connecting Titan…');
 
-      const firstTurn=ring?'':'Start NORMAL DOOR MODE now. Your only first words are exactly: "Hey! How are you doing?" Then STOP and wait for a real audible response. After they answer, follow the Terabyte icebreaker law. If the first hook is flat, use only one backup hook, then move forward.';
+      const firstTurn=ring?'':'Start TALK MODE now. Your only first words are exactly: "Hey! How are you doing?" Then STOP and wait for a real response. After they answer, choose one situational tech opener from the V18 rotating bank. Do not default to Terabyte. Banter first and ask only one question at a time.';
 
       await openRealtimeWithRetry(stream,firstTurn,attempt,{silent:ring});
       stayLiveRef.current=true;
@@ -759,6 +845,7 @@ function App(){
           lastCaptured={lastCaptured}
           ring={ring}
         />
+        <button className="faceExpandBtn" onClick={()=>setFaceFullscreen(true)} aria-label="Expand Titan face">⛶</button>
       </div>
     </section>
 
@@ -828,6 +915,40 @@ function App(){
         </>}
     </section>
 
+    {faceFullscreen&&
+      <div className="faceFullscreenOverlay">
+        <div className="fullTitanFace">
+          <TitanFace
+            mode={faceMode}
+            status={realtime.status}
+            isPlaying={realtime.isPlaying}
+            isCapturing={realtime.isCapturing}
+            level={level}
+            faceRef={null}
+            discovery={discovery}
+            lastCaptured={lastCaptured}
+            ring={ring}
+          />
+          <button className="faceCloseBtn" onClick={()=>setFaceFullscreen(false)}>×</button>
+        </div>
+      </div>
+    }
+
+    {contactReviewOpen&&
+      <div className="contactReviewOverlay">
+        <div className="contactReviewCard">
+          <div className="reviewTop"><div><small>TITAN CONTACT CARD</small><h2>Quick accuracy check</h2></div><span>99.2% AI</span></div>
+          <div className="reviewGrid">
+            <div><small>FIRST NAME</small><strong>{contact.first||'—'}</strong></div>
+            <div><small>LAST NAME</small><strong>{contact.last||'—'}</strong></div>
+            <div><small>PHONE</small><strong>{prettyPhone(contact.phone)||'—'}</strong></div>
+            <div><small>EMAIL</small><strong>{contact.email||'—'}</strong></div>
+          </div>
+          <p>Say any correction out loud, or say “looks right.” Titan will update the card live.</p>
+        </div>
+      </div>
+    }
+
     <details className="ownerDrawer">
       <summary>London • Field Console & Memory</summary>
 
@@ -867,7 +988,7 @@ function App(){
       </section>
     </details>
 
-    <footer>Titan Max V17.1 • CPR Wingman Brain • Estimates verified by London in official systems.</footer>
+    <footer>Titan Max V18 • Freelance CPR Wingman • Estimates verified by London in official systems.</footer>
 
     {setupOpen&&
       <div className="modalShade">
