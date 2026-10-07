@@ -45,3 +45,5 @@ button{cursor:pointer}
   .contactGrid{grid-template-columns:1fr}
   .teachGrid{grid-template-columns:1fr}
 }
+.voicePackBtn{width:100%;margin-top:9px;border:1px solid #b78926;background:linear-gradient(135deg,#5e450f,#8f6816);color:#ffe8a3;border-radius:13px;padding:11px;font-weight:900;font-size:10px}
+.voicePackStatus{font-size:8px;color:#7898ad;line-height:1.4;margin:6px 2px 0}
