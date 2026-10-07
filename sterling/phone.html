@@ -132,7 +132,7 @@
 (function(){
 'use strict';
 var APP='https://sterling-olive.vercel.app';
-var VERSION='14.5';
+var VERSION='15.0-law';
 var tetherId='';
 var currentHouse=null,lastHouseKey='',lastResultId='';
 var contact={first:'',last:'',phone:'',email:''},stage='rapport',mismatch=false;
@@ -169,7 +169,20 @@ function typeValue(id,value){
   el.dataset.value=text;if(el._typingTimer)clearInterval(el._typingTimer);el.textContent='';var i=0;el.classList.add('pulse');
   el._typingTimer=setInterval(function(){i++;el.textContent=text.slice(0,i);if(i>=text.length){clearInterval(el._typingTimer);el._typingTimer=null;setTimeout(function(){el.classList.remove('pulse')},500)}},Math.max(18,Math.min(42,360/Math.max(1,text.length))))
 }
-function spawnTypingParticles(){var box=$('typingParticles');if(!box)return;for(var i=0;i<10;i++){var p=document.createElement('b');p.style.left=(25+Math.random()*65)+'px';p.style.top=(32+Math.random()*20)+'px';p.style.setProperty('--x',(-35+Math.random()*80)+'px');p.style.setProperty('--y',(-20-Math.random()*50)+'px');box.appendChild(p);setTimeout((function(x){return function(){x.remove()}})(p),900)}}
+function playTypingSfx(){
+  try{
+    var ctx=playCtx||captureCtx;if(!ctx||ctx.state!=='running')return;
+    [0,42,84].forEach(function(delay,idx){setTimeout(function(){
+      try{
+        var osc=ctx.createOscillator(),gain=ctx.createGain(),now=ctx.currentTime;
+        osc.type=idx%2?'triangle':'square';osc.frequency.setValueAtTime(165+idx*38+Math.random()*15,now);
+        gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.018,now+.004);gain.gain.exponentialRampToValueAtTime(.0001,now+.045);
+        osc.connect(gain);gain.connect(ctx.destination);osc.start(now);osc.stop(now+.05)
+      }catch(e){}
+    },delay)})
+  }catch(e){}
+}
+function spawnTypingParticles(){playTypingSfx();var box=$('typingParticles');if(!box)return;for(var i=0;i<10;i++){var p=document.createElement('b');p.style.left=(25+Math.random()*65)+'px';p.style.top=(32+Math.random()*20)+'px';p.style.setProperty('--x',(-35+Math.random()*80)+'px');p.style.setProperty('--y',(-20-Math.random()*50)+'px');box.appendChild(p);setTimeout((function(x){return function(){x.remove()}})(p),900)}}
 function numberFromWords(v){var t=clean(v).toLowerCase().replace(/[^a-z0-9.]/g,'');var m=t.match(/\d+/);if(m)return parseInt(m[0],10);var map={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10};return map[t]||0}
 function moneyFromText(v){var m=clean(v).replace(/,/g,'').match(/\d+(?:\.\d{1,2})?/);return m?Number(m[0]):0}
 function extraEstimate(lines){var n=numberFromWords(lines);if(!n)return 0;var base={1:80,2:140,3:180,4:200,5:250,6:300};return n<=6?base[n]:300+(n-6)*50}
@@ -299,12 +312,12 @@ async function prepareMic(){
       if($('noiseMeter'))$('noiseMeter').style.width=Math.min(100,Math.round(rms*900))+'%';
 
       if(!gate.open)gate.noise=gate.noise*.99+Math.min(rms,.05)*.01;
-      var threshold=Math.max(.0065,gate.noise*1.7);
+      var threshold=Math.max(.0075,gate.noise*1.9);
 
-      // Reject only very obvious taps/rubs. Ordinary speech gets through quickly.
-      var hardTap=peak>.995&&rms>threshold*3.8;
-      var harshRub=zcr>.42&&rms>threshold*2.9;
-      var voiceLike=!hardTap&&!harshRub&&rms>threshold&&zcr>.002&&zcr<.38;
+      // Aggressive handling-noise suppression: finger taps/rubs should not open the local gate.
+      var hardTap=peak>.90&&rms>threshold*2.7;
+      var harshRub=zcr>.34&&rms>threshold*2.1;
+      var voiceLike=!hardTap&&!harshRub&&rms>threshold&&zcr>.003&&zcr<.32;
 
       gate.pre.push(samples.slice(0));if(gate.pre.length>12)gate.pre.shift();
       if(voiceLike)gate.voiced=Math.min(12,gate.voiced+1);else gate.voiced=Math.max(0,gate.voiced-1);
@@ -370,11 +383,11 @@ async function connect(){
       connecting=false;
       send({type:'session-update',config:{
         instructions:setup.instructions,
-        voice:'cedar',
+        voice:'echo',
         outputModalities:['audio'],
         inputAudioFormat:{type:'audio/pcm',rate:24000},
         outputAudioFormat:{type:'audio/pcm',rate:24000},
-        turnDetection:{type:'server-vad',threshold:0.52,prefixPaddingMs:300,silenceDurationMs:600},
+        turnDetection:{type:'server-vad',threshold:0.75,prefixPaddingMs:250,silenceDurationMs:420},
         tools:setup.tools||[]
       }})
     };
@@ -388,7 +401,7 @@ async function connect(){
         if(currentHouse)send({type:'context-append',content:'The paired iPad is currently on Salesforce house '+currentHouse.label+'. Treat that as the only active household.',delegationId:null});
         if(!greeted){
           greeted=true;
-          send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Begin naturally as Sterling, London's assistant. Sound relaxed and masculine. Build rapport before collecting details. Ask only one main question at a time and react to the customer's answer before moving on."}});
+          send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Begin the mandatory Realtime Law opening now. Say exactly: Hey real quick... do you know Password? Then say: Yeah... Password. That one dude who won't let you in the house unless you bring a capital letter, two numbers, and a special character! Then stop and listen. If the customer audibly laughs, target a roughly 0.2-second beat, give one brief natural chuckle, then pivot. Do not skip or replace this opening."}});
           send({type:'response-create',options:{modalities:['audio']}})
         }
       }
