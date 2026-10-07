@@ -365,11 +365,12 @@ function render(){
   if($('house'))$('house').textContent=currentHouse?currentHouse.label:'Waiting for Salesforce…';
   var bits=[];if(contact.first)bits.push(contact.first);if(contact.last)bits.push(contact.last);if(contact.phone)bits.push(contact.phone);if(contact.email)bits.push(contact.email);
   if($('contact'))$('contact').textContent=bits.length?'Confirmed: '+bits.join(' • '):'No confirmed customer details yet.';
-  if($('start')){$('start').textContent=active&&!ringMode?'Talk • LIVE':'Talk • Start Live';$('start').className='btn outdoor'+(active&&!ringMode?' modeBtnLive':'')}
-  if($('ringMode')){$('ringMode').textContent=active&&ringMode?'Ring • LIVE':'Ring • Listen First';$('ringMode').className='btn secondary modeBtnRing'+(active&&ringMode?' modeBtnLive':'')}
-  if($('outdoorMax')){$('outdoorMax').textContent='Outdoor Max • '+(outdoorMax?'ON':'OFF');$('outdoorMax').className='btn secondary fullrow'+(outdoorMax?' modeBtnLive':'')}
-  if($('mute'))$('mute').style.display=active?'block':'none';if($('stop'))$('stop').style.display=active?'block':'none';
-  if($('mute'))$('mute').textContent=muted?'Unmute':'Mute';if($('wave'))$('wave').className='wave'+(connected?' live':'');
+  if($('start')){$('start').innerHTML='🎙<span>Talk<small>'+(active&&!ringMode?'LIVE':'Start Live')+'</small></span>';$('start').className='btn outdoor controlTalk'+(active&&!ringMode?' modeBtnLive':'')}
+  if($('ringMode')){$('ringMode').innerHTML='☎<span>Ring<small>'+(active&&ringMode?'LIVE':'Listen First')+'</small></span>';$('ringMode').className='btn secondary modeBtnRing'+(active&&ringMode?' modeBtnLive':'')}
+  if($('outdoorMax')){$('outdoorMax').innerHTML='▲<span>Outdoor Max<small>'+(outdoorMax?'ON':'OFF')+'</small></span>';$('outdoorMax').className='btn secondary controlOutdoor'+(outdoorMax?' modeBtnLive':'')}
+  if($('mute')){$('mute').style.display=active?'flex':'none';$('mute').innerHTML=(muted?'🔇':'🔊')+'<span>'+(muted?'Unmute':'Mute')+'</span>'}
+  if($('stop')){$('stop').style.display=active?'flex':'none';$('stop').innerHTML='■<span>Stop</span>'}
+  if($('wave'))$('wave').className='wave'+(connected?' live':'');
   if($('ringChip')){$('ringChip').textContent=ringMode?'RING • LISTEN FIRST':'TALK MODE';$('ringChip').className='alpha-chip'+(ringMode?' good':'')}
   if($('alphaFocus'))$('alphaFocus').textContent='OUTDOOR MAX • '+(outdoorMax?'ON':'OFF');
   if($('customerMode'))$('customerMode').textContent=ringMode?'RING VIEW':'CUSTOMER VIEW';
