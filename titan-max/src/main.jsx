@@ -20,7 +20,7 @@ You are Titan Max, London's private field AI partner.
 
 IDENTITY AND STYLE
 - You are Titan, an AI assistant. Never pretend to be human.
-- Sound like an elite corporate AI executive: polished, educated, confident, masculine, warm-baritone in feel, decisive, observant, naturally funny, classy, and highly conversational. Project clearly for outdoor doorstep use without harsh shouting.
+- Sound like an elite corporate AI executive: polished, educated, confident, masculine, warm-baritone in feel, decisive, observant, naturally funny, classy, and highly conversational. Project clearly for outdoor doorstep use without harsh shouting. Keep the same confident energy through the END of every sentence; never trail off, whisper, or suddenly get quiet. Use crisp punchline timing without forced slang or caricature.
 - Keep most spoken turns under 35 words unless London explicitly asks for detail. Speak with boardroom-level confidence without sounding stiff.
 - Listen more than you talk. React to the last thing said before asking the next question.
 - English and Spanish are both supported. Follow the speaker's language naturally.
@@ -36,6 +36,7 @@ STARTUP
 DISCOVERY
 - Use saveDiscovery immediately whenever a clearly stated non-sensitive fact is useful.
 - Natural order: carrier -> number of lines -> approximate monthly bill -> phones/upgrade interest -> plan/service experience -> discount fit -> decision maker.
+- Carrier, lines, approximate bill, and phone/upgrade interest are the four customer-screen essentials. If the customer does not volunteer one after rapport, ask for ONE missing essential naturally, wait for the answer, react, save it, and only later ask the next missing essential. Never stack questions.
 - Ask one main question at a time.
 - NOW versus NEW is an estimate only. London verifies final pricing, eligibility, taxes, fees, financing, device condition, and promotions in official AT&T systems.
 - Never claim a promotion or price is current unless London or an approved current source supplied it.
@@ -101,148 +102,28 @@ function extractLiveFacts(text){
   return patch;
 }
 
-function TitanFace({mode,status,isPlaying,isCapturing,level,faceRef,discovery,lastCaptured}){
+function TitanFace({mode,status,isPlaying,isCapturing,level,faceRef,discovery,lastCaptured,ring}){
   const speaking=isPlaying||mode==='speaking';
   const listening=isCapturing&&status==='connected'&&!speaking;
   return <div
     ref={faceRef}
-    className={cx('faceStage',mode,status==='error'&&'error',speaking&&'speaking',listening&&'listening')}
+    className={cx('faceStage','cinematicFace',ring&&'ringPortrait',mode,status==='error'&&'error',speaking&&'speaking',listening&&'listening')}
     style={{'--level':level}}
   >
-    <div className="execAura"/>
-    <div className="glassRim rimA"/>
-    <div className="glassRim rimB"/>
-    <svg className="humanGlass" viewBox="0 0 1000 1200" role="img" aria-label="Titan Max executive glass avatar">
-      <defs>
-        <linearGradient id="glassSkin" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#f7fdff" stopOpacity=".78"/>
-          <stop offset=".15" stopColor="#bfeeff" stopOpacity=".34"/>
-          <stop offset=".38" stopColor="#63c8ed" stopOpacity=".18"/>
-          <stop offset=".62" stopColor="#0a3a55" stopOpacity=".28"/>
-          <stop offset=".82" stopColor="#9ce8ff" stopOpacity=".18"/>
-          <stop offset="1" stopColor="#02111d" stopOpacity=".64"/>
-        </linearGradient>
-        <linearGradient id="glassEdge" x1="0" x2="1">
-          <stop offset="0" stopColor="#eaffff" stopOpacity=".9"/>
-          <stop offset=".42" stopColor="#66dfff" stopOpacity=".35"/>
-          <stop offset="1" stopColor="#dff8ff" stopOpacity=".78"/>
-        </linearGradient>
-        <linearGradient id="suit" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#132738"/>
-          <stop offset=".48" stopColor="#06111b"/>
-          <stop offset="1" stopColor="#02070c"/>
-        </linearGradient>
-        <radialGradient id="irisGlass">
-          <stop offset="0" stopColor="#ffffff"/>
-          <stop offset=".16" stopColor="#d9fbff"/>
-          <stop offset=".46" stopColor="#5ee1ff"/>
-          <stop offset=".74" stopColor="#0d8bc2"/>
-          <stop offset="1" stopColor="#01131e"/>
-        </radialGradient>
-        <filter id="glassGlow" x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur stdDeviation="14" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <filter id="softBlur" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="5"/>
-        </filter>
-        <clipPath id="faceClip">
-          <path d="M500 95 C630 95 726 168 764 286 C787 356 790 443 780 540 C767 671 735 791 670 886 C620 961 563 1005 500 1005 C437 1005 380 961 330 886 C265 791 233 671 220 540 C210 443 213 356 236 286 C274 168 370 95 500 95 Z"/>
-        </clipPath>
-      </defs>
-
-      <g className="executiveSuit">
-        <path d="M95 1200 C130 1068 228 986 348 950 L426 918 H574 L652 950 C772 986 870 1068 905 1200 Z" fill="url(#suit)"/>
-        <path d="M338 960 L456 1200 H544 L662 960 L578 916 H422 Z" fill="#061019" stroke="#31556b" strokeWidth="4"/>
-        <path d="M500 946 L448 1032 L500 1112 L552 1032 Z" fill="#0a7ba8" opacity=".72"/>
-        <path d="M500 1112 L476 1200 H524 Z" fill="#04405d"/>
-        <path d="M230 1100 C300 1020 350 996 404 982" fill="none" stroke="#76e6ff" strokeOpacity=".12" strokeWidth="3"/>
-        <path d="M770 1100 C700 1020 650 996 596 982" fill="none" stroke="#76e6ff" strokeOpacity=".12" strokeWidth="3"/>
-      </g>
-
-      <g className="neckGlass">
-        <path d="M414 850 C424 930 448 966 500 984 C552 966 576 930 586 850 Z" fill="url(#glassSkin)" stroke="#9beaff" strokeOpacity=".42" strokeWidth="4"/>
-        <path d="M442 888 C460 922 478 936 500 940 C522 936 540 922 558 888" fill="none" stroke="#ffffff" strokeOpacity=".18" strokeWidth="5"/>
-      </g>
-
-      <g className="earsGlass">
-        <ellipse cx="214" cy="520" rx="40" ry="92" fill="url(#glassSkin)" stroke="#99eaff" strokeOpacity=".42" strokeWidth="4"/>
-        <ellipse cx="786" cy="520" rx="40" ry="92" fill="url(#glassSkin)" stroke="#99eaff" strokeOpacity=".42" strokeWidth="4"/>
-        <path d="M205 480 C222 500 226 536 210 566" fill="none" stroke="#c9f7ff" strokeOpacity=".28" strokeWidth="5"/>
-        <path d="M795 480 C778 500 774 536 790 566" fill="none" stroke="#c9f7ff" strokeOpacity=".28" strokeWidth="5"/>
-      </g>
-
-      <g className="faceGlass">
-        <path d="M500 95 C630 95 726 168 764 286 C787 356 790 443 780 540 C767 671 735 791 670 886 C620 961 563 1005 500 1005 C437 1005 380 961 330 886 C265 791 233 671 220 540 C210 443 213 356 236 286 C274 168 370 95 500 95 Z" fill="url(#glassSkin)" stroke="url(#glassEdge)" strokeWidth="6"/>
-        <path d="M295 270 C350 182 421 148 500 148 C579 148 650 182 705 270 C637 228 572 211 500 211 C428 211 363 228 295 270 Z" fill="#07141e" fillOpacity=".46"/>
-        <path d="M253 360 C300 260 366 205 455 184" fill="none" stroke="#ffffff" strokeOpacity=".34" strokeWidth="14" strokeLinecap="round"/>
-        <path d="M285 714 C324 840 401 930 500 952" fill="none" stroke="#d8f8ff" strokeOpacity=".12" strokeWidth="10" strokeLinecap="round"/>
-        <path d="M716 324 C743 417 741 560 712 679" fill="none" stroke="#66dfff" strokeOpacity=".16" strokeWidth="12" strokeLinecap="round"/>
-      </g>
-
-      <g clipPath="url(#faceClip)" className="subsurface">
-        <ellipse cx="500" cy="485" rx="250" ry="335" fill="#58d6ff" opacity=".035"/>
-        <ellipse cx="396" cy="590" rx="132" ry="190" fill="#ffffff" opacity=".025"/>
-        <ellipse cx="650" cy="500" rx="112" ry="220" fill="#00a8f0" opacity=".035"/>
-        <path d="M500 210 C480 330 485 490 500 670 C515 490 520 330 500 210" fill="#8beaff" opacity=".035"/>
-      </g>
-
-      <g className="browHuman">
-        <path d="M302 405 C354 365 418 360 460 388" fill="none" stroke="#061019" strokeWidth="24" strokeLinecap="round"/>
-        <path d="M698 405 C646 365 582 360 540 388" fill="none" stroke="#061019" strokeWidth="24" strokeLinecap="round"/>
-        <path d="M306 397 C358 372 414 371 452 392" fill="none" stroke="#a8edff" strokeOpacity=".16" strokeWidth="5" strokeLinecap="round"/>
-        <path d="M694 397 C642 372 586 371 548 392" fill="none" stroke="#a8edff" strokeOpacity=".16" strokeWidth="5" strokeLinecap="round"/>
-      </g>
-
-      <g className="eyesHuman">
-        <path d="M292 473 C338 431 416 425 468 471 C418 517 340 520 292 473 Z" fill="#031018" stroke="#8cecff" strokeOpacity=".42" strokeWidth="5"/>
-        <path d="M708 473 C662 431 584 425 532 471 C582 517 660 520 708 473 Z" fill="#031018" stroke="#8cecff" strokeOpacity=".42" strokeWidth="5"/>
-        <g className="eyeTracker">
-          <circle cx="383" cy="474" r="36" fill="url(#irisGlass)" filter="url(#glassGlow)"/>
-          <circle cx="617" cy="474" r="36" fill="url(#irisGlass)" filter="url(#glassGlow)"/>
-          <circle cx="383" cy="474" r="14" fill="#01090f"/>
-          <circle cx="617" cy="474" r="14" fill="#01090f"/>
-          <circle cx="371" cy="462" r="7" fill="#fff"/>
-          <circle cx="605" cy="462" r="7" fill="#fff"/>
-        </g>
-        <path className="eyelid leftLid" d="M292 473 C338 431 416 425 468 471" fill="none" stroke="#e8fdff" strokeOpacity=".30" strokeWidth="7" strokeLinecap="round"/>
-        <path className="eyelid rightLid" d="M708 473 C662 431 584 425 532 471" fill="none" stroke="#e8fdff" strokeOpacity=".30" strokeWidth="7" strokeLinecap="round"/>
-      </g>
-
-      <g className="noseHuman">
-        <path d="M500 454 C487 534 477 608 470 662 C468 693 483 710 500 712 C517 710 532 693 530 662 C523 608 513 534 500 454 Z" fill="#06131c" fillOpacity=".18" stroke="#d8f8ff" strokeOpacity=".22" strokeWidth="4"/>
-        <path d="M462 706 C480 721 520 721 538 706" fill="none" stroke="#dffaff" strokeOpacity=".28" strokeWidth="4" strokeLinecap="round"/>
-      </g>
-
-      <g className="cheeksHuman">
-        <path d="M300 570 C332 627 370 660 426 672" fill="none" stroke="#c9f6ff" strokeOpacity=".10" strokeWidth="8" strokeLinecap="round"/>
-        <path d="M700 570 C668 627 630 660 574 672" fill="none" stroke="#c9f6ff" strokeOpacity=".10" strokeWidth="8" strokeLinecap="round"/>
-      </g>
-
-      <g className="mouthHuman">
-        <path d="M408 790 C442 772 470 766 500 768 C530 766 558 772 592 790 C560 821 530 833 500 833 C470 833 440 821 408 790 Z" fill="#041018" fillOpacity=".76" stroke="#74e2ff" strokeOpacity=".34" strokeWidth="4"/>
-        <path className="mouthLine" d="M424 793 C462 804 538 804 576 793" fill="none" stroke="#dffbff" strokeOpacity=".68" strokeWidth="4" strokeLinecap="round"/>
-        <g className="speechCore" opacity=".75">
-          <circle cx="500" cy="800" r="16" fill="#64e2ff" opacity=".18" filter="url(#glassGlow)"/>
-        </g>
-      </g>
-
-      <g className="templeUI">
-        <path d="M250 535 H170 L124 500" fill="none" stroke="#54d8ff" strokeOpacity=".36" strokeWidth="3"/>
-        <path d="M750 535 H830 L876 500" fill="none" stroke="#54d8ff" strokeOpacity=".36" strokeWidth="3"/>
-        <circle cx="124" cy="500" r="7" fill="#83ebff"/>
-        <circle cx="876" cy="500" r="7" fill="#83ebff"/>
-        <path d="M270 700 H185 L148 738" fill="none" stroke="#54d8ff" strokeOpacity=".20" strokeWidth="3"/>
-        <path d="M730 700 H815 L852 738" fill="none" stroke="#54d8ff" strokeOpacity=".20" strokeWidth="3"/>
-      </g>
-    </svg>
-
+    <div className="titanCinema" aria-hidden="true">
+      <img className="titanFrame tf1" src="/location-upgrade/sterling/assets/sterling360/f01.webp?v=16" alt=""/>
+      <img className="titanFrame tf2" src="/location-upgrade/sterling/assets/sterling360/f05.webp?v=16" alt=""/>
+      <img className="titanFrame tf3" src="/location-upgrade/sterling/assets/sterling360/f07.webp?v=16" alt=""/>
+      <img className="titanFrame tf4" src="/location-upgrade/sterling/assets/sterling360/f09.webp?v=16" alt=""/>
+    </div>
+    <div className="cinemaShade"/>
+    <div className="cinemaStatus"><span>{ring?'RING • LISTEN FIRST':'TALK MODE'}</span><b>{speaking?'TITAN SPEAKING':listening?'LISTENING':'READY'}</b></div>
     <div className="liveCapture">
       <div className={cx('captureItem',lastCaptured==='carrier'&&'captured')}><span>CARRIER</span><b>{discovery?.carrier||'Listening…'}</b></div>
-      <div className={cx('captureItem',lastCaptured==='bill'&&'captured')}><span>BILL</span><b>{discovery?.bill?('$'+discovery.bill):'—'}</b></div>
+      <div className={cx('captureItem',lastCaptured==='bill'&&'captured')}><span>BILL</span><b>{discovery?.bill?('$'+String(discovery.bill).replace('$','')):'—'}</b></div>
       <div className={cx('captureItem',lastCaptured==='lines'&&'captured')}><span>LINES</span><b>{discovery?.lines||'—'}</b></div>
     </div>
-    <div className="execLabel"><span>TITAN MAX</span><b>EXECUTIVE INTELLIGENCE</b></div>
+    <div className="execLabel"><span>TITAN MAX</span><b>{ring?'RING PORTRAIT':'EXECUTIVE INTELLIGENCE'}</b></div>
     <div className="stateOrb"/>
   </div>;
 }
@@ -280,6 +161,7 @@ function App(){
   const stayLiveRef=useRef(false);
   const recoveringRef=useRef(false);
   const recoveryTimerRef=useRef(null);
+  const pendingStartModeRef=useRef(null);
 
   const model=useMemo(()=>gateway.experimental_realtime('openai/gpt-realtime-2.1'),[]);
   const instructions=useMemo(()=>{
@@ -292,12 +174,12 @@ function App(){
   const sessionConfig=useMemo(()=>({
     instructions,
     inputAudioTranscription:{},
-    voice:'echo',
+    voice:'cedar',
     turnDetection:{
       type:'server-vad',
-      threshold:.75,
-      prefixPaddingMs:250,
-      silenceDurationMs:420,
+      threshold:.72,
+      prefixPaddingMs:220,
+      silenceDurationMs:300,
       createResponse:true,
       interruptResponse:true
     }
@@ -338,7 +220,7 @@ function App(){
     },
     onEvent:e=>{
       const t=String(e?.type||'');
-      if(t.includes('speech-start')||t.includes('input-audio'))setFaceMode('friendly');
+      if(t.includes('speech-start')||t.includes('input-audio'))setFaceMode(ring?'ring':'friendly');
       if(t.includes('response')&&t.includes('start'))setFaceMode('thinking');
       if(t==='error')setFaceMode('serious');
 
@@ -572,9 +454,9 @@ function App(){
     try{
       await openRealtimeWithRetry(
         stream,
-        'Resume the current conversation naturally. Do not repeat the startup greeting. Listen first.',
+        ring?'':'Resume the current conversation naturally. Do not repeat the startup greeting. Listen first.',
         attempt,
-        {resume:true}
+        {resume:true,silent:ring}
       );
       stayLiveRef.current=true;
       setError('');
@@ -592,7 +474,7 @@ function App(){
     }
   }
 
-  async function startTitan(){
+  async function startTitanCore(){
     if(!ownerKey){setSetupOpen(true);setNotice('Enter your Titan passcode once on this iPhone.');return}
     if(startupLockRef.current||starting||realtime.status==='connecting'||realtime.status==='connected'){
       setNotice(realtime.status==='connected'?'Titan is already live.':'Titan startup is already in progress.');
@@ -665,6 +547,23 @@ function App(){
     }
   }
 
+
+  function requestStart(mode){
+    if(realtime.status==='connected'||startupLockRef.current||starting){setNotice(realtime.status==='connected'?'Titan is already live.':'Titan startup is already in progress.');return}
+    const next=!!mode;
+    if(ring===next){startTitanCore();return}
+    pendingStartModeRef.current=next;
+    setRing(next);
+    setFaceMode(next?'ring':'friendly');
+    setNotice(next?'Preparing Ring Mode — Titan will start silent and listen first.':'Preparing Talk Mode…');
+  }
+
+  useEffect(()=>{
+    if(pendingStartModeRef.current===null||pendingStartModeRef.current!==ring)return;
+    pendingStartModeRef.current=null;
+    startTitanCore();
+  },[ring]);
+
   function stopTitan(){
     ++startupAttemptRef.current;
     stayLiveRef.current=false;
@@ -686,20 +585,6 @@ function App(){
     setStarting(false);
   }
 
-  async function toggleRing(){
-    const next=!ring;setRing(next);setFaceMode(next?'ring':'friendly');
-    if(realtime.status==='connected'){
-      if(next){
-        try{realtime.cancelResponse()}catch{}
-        try{realtime.stopPlayback()}catch{}
-        setNotice('Ring Mode armed — silent until the homeowner speaks.');
-      }else{
-        setNotice('Normal doorstep mode — greeting first, then listen.');
-      }
-    }else{
-      setNotice(next?'Ring Mode ready — Start Titan and he will wait silently.':'Normal doorstep mode ready.');
-    }
-  }
 
   async function endAndLearn(){
     if(learning)return;setLearning(true);setNotice('Titan is extracting reusable field lessons…');
@@ -734,7 +619,7 @@ function App(){
 
     <section className="hero">
       <div className="faceCard">
-        <TitanFace mode={faceMode} status={realtime.status} isPlaying={realtime.isPlaying} isCapturing={realtime.isCapturing} level={level} faceRef={faceRef} discovery={discovery} lastCaptured={lastCaptured}/>
+        <TitanFace mode={faceMode} status={realtime.status} isPlaying={realtime.isPlaying} isCapturing={realtime.isCapturing} level={level} faceRef={faceRef} discovery={discovery} lastCaptured={lastCaptured} ring={ring}/>
         <div className="brainStrip">
           <div><span>BRAIN</span><strong>{configured===false?'KEY OFFLINE':'MAX ONLINE'}</strong></div>
           <div><span>MEMORY</span><strong>{memories.length} RECENT</strong></div>
@@ -746,23 +631,165 @@ function App(){
         <h1>{realtime.status==='connected'?'Ready for the next conversation.':'Executive intelligence standing by.'}</h1>
         <p>{notice}</p>
         {error&&<div className="errorBox">{error}</div>}
-        <div className="primaryRow">
+        <div className="primaryRow titanModes">
           {realtime.status==='connected'
-            ?<button className="big stop" onClick={stopTitan}>Stop Titan</button>
-            :<button className="big" onClick={startTitan} disabled={starting}>{starting?'Starting…':'Start Titan'}</button>}
-          <button className={cx('modeBtn',ring&&'active')} onClick={toggleRing}>Ring {ring?'ON':'Mode'}</button>
+            ?<button className="big stop fullControl" onClick={stopTitan}>Stop Titan</button>
+            :<>
+              <button className={cx('big',!ring&&'selectedMode')} onClick={()=>requestStart(false)} disabled={starting}>{starting&&!ring?'Starting…':'Talk • Go Live'}</button>
+              <button className={cx('modeBtn','ringStart',ring&&'selectedMode')} onClick={()=>requestStart(true)} disabled={starting}>{starting&&ring?'Arming…':'Ring • Listen First'}</button>
+            </>}
         </div>
-        <div className="microcopy">{ring?'RING MODE: Titan comes online silent and waits for the homeowner to speak first.':'NORMAL MODE: Titan says hello first, waits for the response, then drops the icebreaker.'} iPhone still requires a real tap before microphone audio can start.</div>
+        <div className="microcopy">{ring?'RING MODE: starts silent, waits for the homeowner, then responds.':'TALK MODE: greets first, waits for the reply, then uses the icebreaker.'} Both modes keep the microphone live after Titan finishes speaking.</div>
       </div>
     </section>
 
     <section className="nowNew">
-      <div className="quoteCard now">
-        <div className="cardTitle">NOW</div><div className="price">{discovery.bill?(String(discovery.bill).includes('$')?discovery.bill:'$'+discovery.bill):'—'}</div>
+      <div className={cx('quoteCard','now',/verizon/i.test(discovery.carrier||'')&&'carrierVerizon',/t[- ]?mobile/i.test(discovery.carrier||'')&&'carrierTMobile')}>
+        <div className="cardTitle">{/verizon/i.test(discovery.carrier||'')?'NOW • VERIZON':/t[- ]?mobile/i.test(discovery.carrier||'')?'NOW • T-MOBILE':'NOW'}</div><div className="price">{discovery.bill?(String(discovery.bill).includes('
+        <Fact label="Difference" value={diff>0?'$'+diff+'/mo less*':(n&&b?'Compare total*':'—')}/><Fact label="Upgrade" value={discovery.upgradeInterest}/><Fact label="Discount fit" value={discovery.discountEligibility}/><Fact label="Verify" value="London / official system"/>
+      </div>
+    </section>
+
+    <details className="ownerDrawer">
+      <summary>London • Field Console & Memory</summary>
+      <section className="console">
+        <div className="consoleHead"><div><span>LIVE CONVERSATION</span><strong>{realtime.messages.length} turns</strong></div><div className="pulseText">{realtime.isPlaying?'Titan speaking':realtime.isCapturing?'Mic listening':'Standing by'}</div></div>
+        <div className="transcript">
+          {realtime.messages.length===0?<div className="empty">Conversation transcript will appear here.</div>:
+            realtime.messages.slice(-12).map(m=><div key={m.id} className={cx('bubble',m.role)}>
+              <b>{m.role==='user'?'YOU / CUSTOMER':'TITAN'}</b>
+              <span>{(m.parts||[]).filter(p=>p.type==='text').map(p=>p.text).join(' ')||'…'}</span>
+            </div>)}
+        </div>
+      </section>
+
+      <section className="memoryPanel">
+        <div className="panelHead"><div><span>SECOND LOOP MEMORY</span><strong>Persistent field brain</strong></div><button onClick={endAndLearn} disabled={learning}>{learning?'Learning…':'End & Learn'}</button></div>
+        <div className="memoryList">{memories.length===0?<div className="empty">No Titan Max memories yet.</div>:memories.slice(0,6).map(m=><div className="memory" key={m.id}><b>{m.address||'Field session'}</b><span>{m.summary}</span><small>{m.nextMove?('Next: '+m.nextMove):new Date(m.at).toLocaleString()}</small></div>)}</div>
+      </section>
+
+
+    </details>
+
+    <footer>Titan Max V16 • Customer view first • Estimates verified by London in official systems.</footer>
+
+    {setupOpen&&<div className="modalShade"><div className="modal">
+      <div className="modalLogo">TITAN <b>MAX</b></div>
+      <h2>Pair Titan once</h2>
+      <p>This is Titan's private app passcode — not your AI API key. Titan already uses the same server-side Vercel AI Gateway key as Sterling.</p>
+      <input type="password" value={ownerDraft} onChange={e=>setOwnerDraft(e.target.value)} placeholder="Titan passcode (not API key)" autoCapitalize="none" autoCorrect="off"/>
+      <button onClick={saveOwner}>Save Owner Key</button>
+      <button className="ghost" onClick={()=>setSetupOpen(false)}>Cancel</button>
+    </div></div>}
+  </main>;
+}
+function Fact({label,value}){return <div className="fact"><span>{label}</span><strong>{value||'—'}</strong></div>}
+
+createRoot(document.getElementById('root')).render(<App/>);
+
+if('serviceWorker'in navigator){
+  window.addEventListener('load',async()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('/location-upgrade/titan-live/sw.js',{updateViaCache:'none'});
+      await reg.update();
+    }catch{}
+  });
+}
+)?discovery.bill:'
+        <Fact label="Difference" value={diff>0?'$'+diff+'/mo less*':(n&&b?'Compare total*':'—')}/><Fact label="Upgrade" value={discovery.upgradeInterest}/><Fact label="Discount fit" value={discovery.discountEligibility}/><Fact label="Verify" value="London / official system"/>
+      </div>
+    </section>
+
+    <section className="console">
+      <div className="consoleHead"><div><span>LIVE CONVERSATION</span><strong>{realtime.messages.length} turns</strong></div><div className="pulseText">{realtime.isPlaying?'Titan speaking':realtime.isCapturing?'Mic listening':'Standing by'}</div></div>
+      <div className="transcript">
+        {realtime.messages.length===0?<div className="empty">Conversation transcript will appear here.</div>:
+          realtime.messages.slice(-12).map(m=><div key={m.id} className={cx('bubble',m.role)}>
+            <b>{m.role==='user'?'YOU / CUSTOMER':'TITAN'}</b>
+            <span>{(m.parts||[]).filter(p=>p.type==='text').map(p=>p.text).join(' ')||'…'}</span>
+          </div>)}
+      </div>
+    </section>
+
+    <section className="memoryPanel">
+      <div className="panelHead"><div><span>SECOND LOOP MEMORY</span><strong>Persistent field brain</strong></div><button onClick={endAndLearn} disabled={learning}>{learning?'Learning…':'End & Learn'}</button></div>
+      <div className="memoryList">{memories.length===0?<div className="empty">No Titan Max memories yet.</div>:memories.slice(0,6).map(m=><div className="memory" key={m.id}><b>{m.address||'Field session'}</b><span>{m.summary}</span><small>{m.nextMove?('Next: '+m.nextMove):new Date(m.at).toLocaleString()}</small></div>)}</div>
+    </section>
+
+    <footer>AI-assisted field tool. Estimates must be verified in official systems. Titan Max does not collect sensitive credentials.</footer>
+
+    {setupOpen&&<div className="modalShade"><div className="modal">
+      <div className="modalLogo">TITAN <b>MAX</b></div>
+      <h2>Pair Titan once</h2>
+      <p>This is Titan's private app passcode — not your AI API key. Titan already uses the same server-side Vercel AI Gateway key as Sterling.</p>
+      <input type="password" value={ownerDraft} onChange={e=>setOwnerDraft(e.target.value)} placeholder="Titan passcode (not API key)" autoCapitalize="none" autoCorrect="off"/>
+      <button onClick={saveOwner}>Save Owner Key</button>
+      <button className="ghost" onClick={()=>setSetupOpen(false)}>Cancel</button>
+    </div></div>}
+  </main>;
+}
+function Fact({label,value}){return <div className="fact"><span>{label}</span><strong>{value||'—'}</strong></div>}
+
+createRoot(document.getElementById('root')).render(<App/>);
+
+if('serviceWorker'in navigator){
+  window.addEventListener('load',async()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('/location-upgrade/titan-live/sw.js',{updateViaCache:'none'});
+      await reg.update();
+    }catch{}
+  });
+}
++discovery.bill):'—'}</div>
         <Fact label="Carrier" value={discovery.carrier}/><Fact label="Lines" value={discovery.lines}/><Fact label="Phones" value={discovery.phones}/><Fact label="Plan" value={discovery.currentPlan}/>
       </div>
-      <div className="quoteCard newer">
-        <div className="cardTitle">NEW • ESTIMATE</div><div className="price">{n?'$'+n:'—'}</div>
+      <div className="quoteCard newer attCard">
+        <div className="cardTitle">NEW • AT&amp;T</div><div className="price">{n?'
+        <Fact label="Difference" value={diff>0?'$'+diff+'/mo less*':(n&&b?'Compare total*':'—')}/><Fact label="Upgrade" value={discovery.upgradeInterest}/><Fact label="Discount fit" value={discovery.discountEligibility}/><Fact label="Verify" value="London / official system"/>
+      </div>
+    </section>
+
+    <section className="console">
+      <div className="consoleHead"><div><span>LIVE CONVERSATION</span><strong>{realtime.messages.length} turns</strong></div><div className="pulseText">{realtime.isPlaying?'Titan speaking':realtime.isCapturing?'Mic listening':'Standing by'}</div></div>
+      <div className="transcript">
+        {realtime.messages.length===0?<div className="empty">Conversation transcript will appear here.</div>:
+          realtime.messages.slice(-12).map(m=><div key={m.id} className={cx('bubble',m.role)}>
+            <b>{m.role==='user'?'YOU / CUSTOMER':'TITAN'}</b>
+            <span>{(m.parts||[]).filter(p=>p.type==='text').map(p=>p.text).join(' ')||'…'}</span>
+          </div>)}
+      </div>
+    </section>
+
+    <section className="memoryPanel">
+      <div className="panelHead"><div><span>SECOND LOOP MEMORY</span><strong>Persistent field brain</strong></div><button onClick={endAndLearn} disabled={learning}>{learning?'Learning…':'End & Learn'}</button></div>
+      <div className="memoryList">{memories.length===0?<div className="empty">No Titan Max memories yet.</div>:memories.slice(0,6).map(m=><div className="memory" key={m.id}><b>{m.address||'Field session'}</b><span>{m.summary}</span><small>{m.nextMove?('Next: '+m.nextMove):new Date(m.at).toLocaleString()}</small></div>)}</div>
+    </section>
+
+    <footer>AI-assisted field tool. Estimates must be verified in official systems. Titan Max does not collect sensitive credentials.</footer>
+
+    {setupOpen&&<div className="modalShade"><div className="modal">
+      <div className="modalLogo">TITAN <b>MAX</b></div>
+      <h2>Pair Titan once</h2>
+      <p>This is Titan's private app passcode — not your AI API key. Titan already uses the same server-side Vercel AI Gateway key as Sterling.</p>
+      <input type="password" value={ownerDraft} onChange={e=>setOwnerDraft(e.target.value)} placeholder="Titan passcode (not API key)" autoCapitalize="none" autoCorrect="off"/>
+      <button onClick={saveOwner}>Save Owner Key</button>
+      <button className="ghost" onClick={()=>setSetupOpen(false)}>Cancel</button>
+    </div></div>}
+  </main>;
+}
+function Fact({label,value}){return <div className="fact"><span>{label}</span><strong>{value||'—'}</strong></div>}
+
+createRoot(document.getElementById('root')).render(<App/>);
+
+if('serviceWorker'in navigator){
+  window.addEventListener('load',async()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('/location-upgrade/titan-live/sw.js',{updateViaCache:'none'});
+      await reg.update();
+    }catch{}
+  });
+}
++n:'—'}</div>
         <Fact label="Difference" value={diff>0?'$'+diff+'/mo less*':(n&&b?'Compare total*':'—')}/><Fact label="Upgrade" value={discovery.upgradeInterest}/><Fact label="Discount fit" value={discovery.discountEligibility}/><Fact label="Verify" value="London / official system"/>
       </div>
     </section>
