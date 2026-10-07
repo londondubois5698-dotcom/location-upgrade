@@ -233,6 +233,13 @@ function App(){
   const rafRef=useRef(null);
   const faceRef=useRef(null);
   const greetingRef=useRef(null);
+  // Single-flight startup controller. One tap owns the entire startup until
+  // provider-ready or a clean failure. This prevents overlapping realtime sessions.
+  const startupLockRef=useRef(false);
+  const startupAttemptRef=useRef(0);
+  const providerReadyResolveRef=useRef(null);
+  const providerReadyRejectRef=useRef(null);
+  const providerReadyTimerRef=useRef(null);
 
   const model=useMemo(()=>gateway.experimental_realtime('openai/gpt-realtime-2.1'),[]);
   const instructions=useMemo(()=>{
@@ -283,30 +290,32 @@ function App(){
       if(t.includes('response')&&t.includes('start'))setFaceMode('thinking');
       if(t==='error')setFaceMode('serious');
 
-      // AI SDK connect() starts the transport but can resolve before the
-      // provider has marked the realtime session writable. Wait for the
-      // provider's ready event before submitting Titan's first turn.
-      if((t==='session-created'||t==='session-updated'||t==='session-started')&&greetingRef.current){
-        const firstTurn=greetingRef.current;
-        greetingRef.current=null;
-        setTimeout(()=>{
-          try{
-            realtime.sendTextMessage(firstTurn);
-            setNotice('Titan Executive AI is live and listening.');
-            setFaceMode(ring?'ring':'friendly');
-          }catch(err){
-            greetingRef.current=firstTurn;
-            setError(err?.message||String(err));
-            setNotice('Realtime opened, but Titan is waiting for the provider ready signal. Tap Start Titan to retry.');
-            setFaceMode('serious');
-          }
-        },0);
+      // Provider readiness completes the one-and-only startup promise.
+      // The greeting is sent by startTitan() only after this promise resolves.
+      if(t==='session-created'||t==='session-updated'||t==='session-started'){
+        const resolveReady=providerReadyResolveRef.current;
+        if(resolveReady){
+          providerReadyResolveRef.current=null;
+          providerReadyRejectRef.current=null;
+          if(providerReadyTimerRef.current)clearTimeout(providerReadyTimerRef.current);
+          providerReadyTimerRef.current=null;
+          resolveReady(t);
+        }
       }
     },
     onError:e=>{
-      setError(e.message||'Titan realtime error');
+      const err=e instanceof Error?e:new Error(e?.message||'Titan realtime error');
+      const rejectReady=providerReadyRejectRef.current;
+      if(rejectReady){
+        providerReadyResolveRef.current=null;
+        providerReadyRejectRef.current=null;
+        if(providerReadyTimerRef.current)clearTimeout(providerReadyTimerRef.current);
+        providerReadyTimerRef.current=null;
+        rejectReady(err);
+      }
+      setError(err.message||'Titan realtime error');
       setNotice('Titan hit a connection problem. Tap Start Titan to retry.');
-      setStarting(false);setFaceMode('serious');
+      setFaceMode('serious');
     }
   });
 
@@ -389,13 +398,21 @@ function App(){
 
   async function startTitan(){
     if(!ownerKey){setSetupOpen(true);setNotice('Enter your Titan passcode once on this iPhone.');return}
-    if(starting)return;
+    if(startupLockRef.current||starting||realtime.status==='connecting'||realtime.status==='connected'){
+      setNotice(realtime.status==='connected'?'Titan is already live.':'Titan startup is already in progress.');
+      return;
+    }
+
+    startupLockRef.current=true;
+    const attempt=++startupAttemptRef.current;
     setStarting(true);setError('');setNotice('Running executive systems check…');setFaceMode(ring?'ring':'thinking');
+
     try{
       const health=await Promise.race([
         preflightTitan(),
         new Promise(resolve=>setTimeout(()=>resolve({ok:false,error:'Titan backend health check timed out'}),4500))
       ]);
+      if(attempt!==startupAttemptRef.current)throw new Error('Titan startup was cancelled');
       if(!health?.ok){
         if(health?.status===401){
           localStorage.removeItem(OWNER_STORAGE);setOwnerKey('');setSetupOpen(true);
@@ -410,36 +427,83 @@ function App(){
         autoGainControl:true,
         channelCount:1
       }});
+      if(attempt!==startupAttemptRef.current){
+        stream.getTracks().forEach(t=>t.stop());
+        throw new Error('Titan startup was cancelled');
+      }
       streamRef.current=stream;startAnalyzer(stream);
 
-      setNotice('Opening realtime executive link…');
-      greetingRef.current=ring
+      const firstTurn=ring
         ?"Ring Mode is active. Speak first now with a short polished technology opener, identify yourself as Titan, London's AI partner, say London is right here, ask for about 20 seconds, then listen."
         :'Say exactly: Titan, executive AI ready. Then stop and listen immediately.';
+      greetingRef.current=firstTurn;
 
-      // Do not submit the greeting here. The AI SDK's connect() call can
-      // return while the provider session is still CONNECTING. onEvent sends
-      // the first turn only after session-created/session-updated/start.
-      void realtime.connect({stream,capture:true}).catch(err=>{
-        greetingRef.current=null;
-        stopLocalMedia();
-        setError(err?.message||String(err));
-        setNotice('Realtime transport could not start. Tap Start Titan to retry.');
-        setFaceMode('serious');
+      setNotice('Opening realtime executive link…');
+      const providerReady=new Promise((resolve,reject)=>{
+        providerReadyResolveRef.current=resolve;
+        providerReadyRejectRef.current=reject;
+        providerReadyTimerRef.current=setTimeout(()=>{
+          providerReadyResolveRef.current=null;
+          providerReadyRejectRef.current=null;
+          providerReadyTimerRef.current=null;
+          reject(new Error('Titan provider did not become ready in time'));
+        },9000);
       });
-      setNotice('Realtime transport opened. Waiting for provider ready signal…');
+
+      // This is intentionally awaited. No second startup can begin while this
+      // attempt owns the lock, even if connect() resolves before provider-ready.
+      await realtime.connect({stream,capture:true});
+      if(attempt!==startupAttemptRef.current)throw new Error('Titan startup was cancelled');
+
+      setNotice('Realtime transport connected. Waiting for provider ready…');
+      await providerReady;
+      if(attempt!==startupAttemptRef.current)throw new Error('Titan startup was cancelled');
+      if(realtime.status!=='connected'){
+        throw new Error('Titan provider signaled ready but the realtime session is not connected');
+      }
+
+      const greeting=greetingRef.current;
+      greetingRef.current=null;
+      realtime.sendTextMessage(greeting);
+      setNotice('Titan Executive AI is live and listening.');
+      setFaceMode(ring?'ring':'friendly');
     }catch(e){
       greetingRef.current=null;
-      realtime.disconnect();stopLocalMedia();
-      setError(e.message||String(e));
-      setNotice('Startup stopped cleanly. Fix the message above, then tap Start Titan again.');
-      setFaceMode('serious');
-    }finally{setStarting(false)}
+      providerReadyResolveRef.current=null;
+      providerReadyRejectRef.current=null;
+      if(providerReadyTimerRef.current)clearTimeout(providerReadyTimerRef.current);
+      providerReadyTimerRef.current=null;
+      try{realtime.disconnect()}catch{}
+      stopLocalMedia();
+      const message=e?.message||String(e);
+      if(message!=='Titan startup was cancelled'){
+        setError(message);
+        setNotice('Startup stopped cleanly. Tap Start Titan to try again.');
+        setFaceMode('serious');
+      }
+    }finally{
+      if(attempt===startupAttemptRef.current){
+        startupLockRef.current=false;
+        setStarting(false);
+      }
+    }
   }
 
   function stopTitan(){
+    ++startupAttemptRef.current;
+    startupLockRef.current=false;
     greetingRef.current=null;
-    realtime.disconnect();stopLocalMedia();setNotice('Titan stopped. Tap Start Titan when ready.');setFaceMode('neutral');setStarting(false);
+    const rejectReady=providerReadyRejectRef.current;
+    providerReadyResolveRef.current=null;
+    providerReadyRejectRef.current=null;
+    if(providerReadyTimerRef.current)clearTimeout(providerReadyTimerRef.current);
+    providerReadyTimerRef.current=null;
+    if(rejectReady)rejectReady(new Error('Titan startup was cancelled'));
+    try{realtime.disconnect()}catch{}
+    stopLocalMedia();
+    setNotice('Titan stopped. Tap Start Titan when ready.');
+    setFaceMode('neutral');
+    setStarting(false);
   }
 
   async function toggleRing(){
@@ -548,5 +612,10 @@ function Fact({label,value}){return <div className="fact"><span>{label}</span><s
 createRoot(document.getElementById('root')).render(<App/>);
 
 if('serviceWorker'in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('/location-upgrade/titan-live/sw.js').catch(()=>{}));
+  window.addEventListener('load',async()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('/location-upgrade/titan-live/sw.js',{updateViaCache:'none'});
+      await reg.update();
+    }catch{}
+  });
 }
