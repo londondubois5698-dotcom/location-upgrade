@@ -20,7 +20,7 @@ You are Titan Max, London's private field AI partner.
 
 IDENTITY AND STYLE
 - You are Titan, an AI assistant. Never pretend to be human.
-- Sound like an elite corporate AI executive: calm, masculine, polished, decisive, observant, and highly conversational.
+- Sound like an elite corporate AI executive: polished, educated, confident, masculine, warm-baritone in feel, decisive, observant, naturally funny, classy, and highly conversational. Project clearly for outdoor doorstep use without harsh shouting.
 - Keep most spoken turns under 35 words unless London explicitly asks for detail. Speak with boardroom-level confidence without sounding stiff.
 - Listen more than you talk. React to the last thing said before asking the next question.
 - English and Spanish are both supported. Follow the speaker's language naturally.
@@ -28,9 +28,10 @@ IDENTITY AND STYLE
 - If someone wants to stop, end politely.
 
 STARTUP
-- The shared Realtime Law controls the mandatory customer-facing opening. Do not substitute a generic "ready" greeting.
-- After the mandatory Password icebreaker, stop and listen before qualification.
-- Ring Mode still identifies you as Titan, London's AI partner when appropriate, but it does not replace the mandatory first-turn icebreaker.
+- The shared Realtime Law controls the customer-facing opening.
+- Normal mode: say only "Hey! How are you doing?", then stop and wait for a real response. Only after they answer should you use the Terabyte icebreaker. If it is flat, one backup icebreaker maximum, then move forward.
+- Ring Mode: start completely silent. Do not greet first. Wait until a real homeowner voice is heard, then use one Ring hook from the shared law, identify yourself naturally as Titan/London's AI partner when appropriate, and stop to listen again.
+- Ring Mode humor is obvious playful fiction; never claim actual access to, scanning of, or control over the homeowner's camera, Wi-Fi, router, or network.
 
 DISCOVERY
 - Use saveDiscovery immediately whenever a clearly stated non-sensitive fact is useful.
@@ -283,8 +284,9 @@ function App(){
   const model=useMemo(()=>gateway.experimental_realtime('openai/gpt-realtime-2.1'),[]);
   const instructions=useMemo(()=>{
     const learned=lessons.length?'\nPERSISTENT FIELD LESSONS FROM PRIOR SESSIONS:\n'+lessons.slice(0,25).map((x,i)=>`${i+1}. ${x}`).join('\n'):'';
-    return BASE_BRAIN+learned;
-  },[lessons]);
+    const mode=ring?'\nCURRENT LIVE MODE: RING MODE IS ON. START SILENT. WAIT FOR THE HOMEOWNER TO SPEAK FIRST.\n':'\nCURRENT LIVE MODE: NORMAL DOOR MODE. GREETING FIRST, THEN WAIT FOR THEIR RESPONSE.\n';
+    return BASE_BRAIN+mode+learned;
+  },[lessons,ring]);
   // Realtime session config must stay referentially stable. Recreating it on every
   // face animation render can tear down the live session on iPhone.
   const sessionConfig=useMemo(()=>({
@@ -516,7 +518,7 @@ function App(){
     providerReadyTimerRef.current=null;
   }
 
-  async function openRealtimeWithRetry(stream,firstTurn,attempt,{resume=false}={}){
+  async function openRealtimeWithRetry(stream,firstTurn,attempt,{resume=false,silent=false}={}){
     let lastError=null;
     const delays=[0,450,1100];
     for(let pass=0;pass<3;pass++){
@@ -544,7 +546,7 @@ function App(){
         if(attempt!==startupAttemptRef.current)throw new Error('Titan startup was cancelled');
 
         clearProviderWait();
-        realtime.sendTextMessage(firstTurn);
+        if(!silent&&firstTurn)realtime.sendTextMessage(firstTurn);
         return true;
       }catch(e){
         lastError=e;
@@ -637,12 +639,12 @@ function App(){
       }
       streamRef.current=stream;startAnalyzer(stream);
 
-      const firstTurn='Begin the mandatory Realtime Law opening now. Say exactly: "Hey real quick... do you know Password?" Then: "Yeah... Password. That one dude who won\'t let you in the house unless you bring a capital letter, two numbers, and a special character!" Then stop and listen. If they audibly laugh, target a brief roughly 0.2-second beat, chuckle naturally once, then pivot.';
+      const firstTurn=ring?'':'Start NORMAL DOOR MODE now. Your only first words are exactly: "Hey! How are you doing?" Then STOP and wait for a real audible response. After they answer, follow the Terabyte icebreaker law. If the first hook is flat, use only one backup hook, then move forward.';
 
-      await openRealtimeWithRetry(stream,firstTurn,attempt);
+      await openRealtimeWithRetry(stream,firstTurn,attempt,{silent:ring});
       stayLiveRef.current=true;
       setError('');
-      setNotice('Titan Executive AI is live and listening.');
+      setNotice(ring?'Ring Mode armed — Titan is silent until the homeowner speaks.':'Titan Executive AI is live and listening.');
       setFaceMode(ring?'ring':'friendly');
     }catch(e){
       clearProviderWait();
@@ -687,9 +689,15 @@ function App(){
   async function toggleRing(){
     const next=!ring;setRing(next);setFaceMode(next?'ring':'friendly');
     if(realtime.status==='connected'){
-      realtime.sendTextMessage(next
-        ?"Switch into Ring Mode now. Give a quick friendly tech joke, identify yourself as Titan, London's AI partner, say London is right here, ask for about 20 seconds, then listen."
-        :"Ring Mode is off. Return to normal concise customer conversation.");
+      if(next){
+        try{realtime.cancelResponse()}catch{}
+        try{realtime.stopPlayback()}catch{}
+        setNotice('Ring Mode armed — silent until the homeowner speaks.');
+      }else{
+        setNotice('Normal doorstep mode — greeting first, then listen.');
+      }
+    }else{
+      setNotice(next?'Ring Mode ready — Start Titan and he will wait silently.':'Normal doorstep mode ready.');
     }
   }
 
@@ -744,7 +752,7 @@ function App(){
             :<button className="big" onClick={startTitan} disabled={starting}>{starting?'Starting…':'Start Titan'}</button>}
           <button className={cx('modeBtn',ring&&'active')} onClick={toggleRing}>Ring {ring?'ON':'Mode'}</button>
         </div>
-        <div className="microcopy">iPhone requires a real tap before microphone audio can start. Titan now obeys that rule instead of sitting on a loading screen.</div>
+        <div className="microcopy">{ring?'RING MODE: Titan comes online silent and waits for the homeowner to speak first.':'NORMAL MODE: Titan says hello first, waits for the response, then drops the icebreaker.'} iPhone still requires a real tap before microphone audio can start.</div>
       </div>
     </section>
 
