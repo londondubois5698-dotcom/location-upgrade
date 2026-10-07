@@ -234,7 +234,11 @@ function TitanFace({mode,status,isPlaying,isCapturing,level,faceRef,discovery,la
 
     <div className="liveCapture">
       <div className={cx('captureItem',lastCaptured==='carrier'&&'captured')}><span>CARRIER</span><b>{discovery?.carrier||'Listening…'}</b></div>
-      <div className={cx('captureItem',lastCaptured==='bill'&&'captured')}><span>BILL</span><b>{discovery?.bill?'
+      <div className={cx('captureItem',lastCaptured==='bill'&&'captured')}><span>BILL</span><b>{discovery?.bill?('$'+discovery.bill):'—'}</b></div>
+      <div className={cx('captureItem',lastCaptured==='lines'&&'captured')}><span>LINES</span><b>{discovery?.lines||'—'}</b></div>
+    </div>
+    <div className="execLabel"><span>TITAN MAX</span><b>EXECUTIVE INTELLIGENCE</b></div>
+    <div className="stateOrb"/>
   </div>;
 }
 
