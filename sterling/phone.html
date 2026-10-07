@@ -292,11 +292,11 @@ body{padding-bottom:132px;background:
 (function(){
 'use strict';
 var APP='https://sterling-olive.vercel.app';
-var VERSION='17.0-cpr-sales-brain';
+var VERSION='17.1-cpr-sales-brain';
 var tetherId='';
 var currentHouse=null,lastHouseKey='',lastResultId='';
 var contact={first:'',last:'',phone:'',email:''},stage='rapport',mismatch=false;
-var discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',rapportAnchor:'',painPoint:'',motivator:'',objection:'',decisionStyle:'',urgencyTrigger:'',nextClose:'',notes:''};
+var discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',rapportAnchor:'',painPoint:'',motivator:'',objection:'',decisionStyle:'',jonesCue:'',lossAversionCue:'',urgencyTrigger:'',nextClose:'',notes:''};
 var alphaState='idle',alphaTimer=null;
 var gate={noise:.006,open:false,voiced:0,quiet:0,pre:[]};
 var captureHighpass=null,captureLowpass=null,micAnalyser=null;
@@ -357,7 +357,10 @@ function renderDiscovery(){
   var now=$('nowCard'),head=$('nowHeading'),carrier=clean(discovery.carrier).toLowerCase();
   if(now){now.classList.remove('carrier-verizon','carrier-tmobile');if(carrier.indexOf('verizon')>=0){now.classList.add('carrier-verizon');if(head)head.textContent='NOW • VERIZON'}else if(carrier.indexOf('t-mobile')>=0||carrier.indexOf('tmobile')>=0){now.classList.add('carrier-tmobile');if(head)head.textContent='NOW • T-MOBILE'}else if(head)head.textContent='NOW'}
 }
-function noteDiscovery(field,value){if(!Object.prototype.hasOwnProperty.call(discovery,field))return;discovery[field]=clean(value);renderDiscovery();spawnTypingParticles();setAlphaState('typing',900);var labels={carrier:'Carrier',lines:'Lines',bill:'Current bill',phones:'Phones',currentPlan:'Current plan',upgradeInterest:'Upgrade interest',discountEligibility:'Discount fit',internetUse:'Internet use',internetProvider:'Internet provider',internetBill:'Internet bill',decisionMaker:'Decision maker',work:'Work',commute:'Commute',tv:'TV',rapportAnchor:'Rapport anchor',painPoint:'Pain point',motivator:'Motivator',objection:'Objection',decisionStyle:'Decision style',urgencyTrigger:'Urgency trigger',nextClose:'Next close',notes:'Note'};setCaption('Live capture',(labels[field]||field)+': '+discovery[field])}
+function memoryKey(){return currentHouse&&currentHouse.key?'sterling.liveMemory.'+currentHouse.key:''}
+function saveLiveMemory(){try{var k=memoryKey();if(k)sessionStorage.setItem(k,JSON.stringify({discovery:discovery,stage:stage,at:Date.now()}))}catch(e){}}
+function restoreLiveMemory(){try{var k=memoryKey();if(!k)return false;var raw=sessionStorage.getItem(k);if(!raw)return false;var m=JSON.parse(raw);if(m&&m.discovery){discovery=Object.assign(discovery,m.discovery);stage=m.stage||stage;renderDiscovery();setCaption('Sterling','I remember this stop. Picking up where we left off.');return true}}catch(e){}return false}
+function noteDiscovery(field,value){if(!Object.prototype.hasOwnProperty.call(discovery,field))return;discovery[field]=clean(value);saveLiveMemory();renderDiscovery();spawnTypingParticles();setAlphaState('typing',900);var labels={carrier:'Carrier',lines:'Lines',bill:'Current bill',phones:'Phones',currentPlan:'Current plan',upgradeInterest:'Upgrade interest',discountEligibility:'Discount fit',internetUse:'Internet use',internetProvider:'Internet provider',internetBill:'Internet bill',decisionMaker:'Decision maker',work:'Work',commute:'Commute',tv:'TV',rapportAnchor:'Rapport anchor',painPoint:'Pain point',motivator:'Motivator',objection:'Objection',decisionStyle:'Decision style',jonesCue:'Jones cue',lossAversionCue:'Loss aversion cue',urgencyTrigger:'Urgency trigger',nextClose:'Next close',notes:'Note'};setCaption('Live capture',(labels[field]||field)+': '+discovery[field])}
 
 function setVoice(msg,kind){$('voice').textContent=msg;$('voice').className='value status '+(kind||'');$('wave').textContent=msg;var t=String(msg||'').toUpperCase();if(t.indexOf('LISTEN')>=0)setAlphaState('listening');else if(t.indexOf('THINK')>=0)setAlphaState('thinking');else if(t.indexOf('SPEAK')>=0)setAlphaState('speaking');else if(t.indexOf('CONNECT')>=0||t.indexOf('PAIR')>=0)setAlphaState('boot');else if(t.indexOf('STOP')>=0)setAlphaState('idle')}
 function render(){
@@ -408,7 +411,7 @@ async function pollStatus(){
     if(j.house&&j.house.key&&j.house.key!==lastHouseKey){
       var hadHouse=!!lastHouseKey;
       currentHouse=j.house;lastHouseKey=j.house.key;
-      if(hadHouse){contact={first:'',last:'',phone:'',email:''};discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',rapportAnchor:'',painPoint:'',motivator:'',objection:'',decisionStyle:'',urgencyTrigger:'',nextClose:'',notes:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';setCaption('Sterling','New house detected. Starting fresh.');}
+      if(hadHouse){contact={first:'',last:'',phone:'',email:''};discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',rapportAnchor:'',painPoint:'',motivator:'',objection:'',decisionStyle:'',jonesCue:'',lossAversionCue:'',urgencyTrigger:'',nextClose:'',notes:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';if(!restoreLiveMemory())setCaption('Sterling','New house detected. Starting fresh.');}
       render();
       if(connected)send({type:'context-append',content:'The iPad Salesforce record changed. Current live house is now '+j.house.label+'. Reset all assumptions and contact details from the prior household.',delegationId:null});
     }else if(j.house){currentHouse=j.house;render()}
@@ -541,6 +544,8 @@ function continuityContext(){
   if(discovery.motivator)bits.push('motivator '+discovery.motivator);
   if(discovery.objection)bits.push('objection '+discovery.objection);
   if(discovery.decisionStyle)bits.push('decision style '+discovery.decisionStyle);
+  if(discovery.jonesCue)bits.push('truthful social proof cue '+discovery.jonesCue);
+  if(discovery.lossAversionCue)bits.push('loss-aversion cue '+discovery.lossAversionCue);
   if(discovery.urgencyTrigger)bits.push('real urgency '+discovery.urgencyTrigger);
   if(discovery.nextClose)bits.push('next close '+discovery.nextClose);
   return bits.length?'LIVE CONVERSATION MEMORY — preserve this context naturally if this is a reconnect: '+bits.join('; ')+'. Do not recite this list. Use it only to maintain continuity.':'';
@@ -562,7 +567,7 @@ async function connect(){
   if(!active||connecting||connected)return;
   connecting=true;connected=false;render();setVoice('CONNECTING…');setCaption('Sterling','Connecting voice…');
   try{
-    var r=await fetch(APP+'/api/realtime-token?v=17.0&t='+Date.now(),{cache:'no-store'});
+    var r=await fetch(APP+'/api/realtime-token?v=17.1&t='+Date.now(),{cache:'no-store'});
     var setup=await r.json();
     if(!r.ok||!setup.token||!setup.url)throw new Error(setup.error||'Realtime setup failed');
 
@@ -638,8 +643,8 @@ async function startMode(useRing){if(active){if(ringMode===useRing&&connected)re
 function stop(){active=false;connected=false;connecting=false;openingStarted=false;try{if(socket){socket.onclose=null;socket.onerror=null;socket.close()}}catch(e){}socket=null;stopPlayback();releaseMic();render();setVoice('STOPPED');setCaption('Sterling','Paused. Choose Talk or Ring when you are ready.')}
 $('start').onclick=function(){startMode(false)};$('ringMode').onclick=function(){startMode(true)};$('stop').onclick=stop;$('mute').onclick=function(){muted=!muted;var tr=micStream&&micStream.getAudioTracks?micStream.getAudioTracks()[0]:null;if(tr&&!aiSpeaking)tr.enabled=!muted;render();setVoice(muted?'MIC MUTED':'LIVE • LISTENING',muted?'warn':'good')};
 $('outdoorMax').onclick=function(){outdoorMax=!outdoorMax;localStorage.setItem('sterling.outdoorMax.v1',outdoorMax?'1':'0');applyOutdoorMax();render()};
-$('voiceSetup').onclick=function(){location.href=APP+'/voice-setup.html?v=17.0'};
-$('repair').onclick=function(){stop();localStorage.removeItem('sterling.tetherId.v1');tetherId='';currentHouse=null;lastHouseKey='';lastResultId='';contact={first:'',last:'',phone:'',email:''};discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',rapportAnchor:'',painPoint:'',motivator:'',objection:'',decisionStyle:'',urgencyTrigger:'',nextClose:'',notes:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';render();$('pairStatus').textContent='Enter the new six-digit code from the iPad.'};
+$('voiceSetup').onclick=function(){location.href=APP+'/voice-setup.html?v=17.1'};
+$('repair').onclick=function(){stop();localStorage.removeItem('sterling.tetherId.v1');tetherId='';currentHouse=null;lastHouseKey='';lastResultId='';contact={first:'',last:'',phone:'',email:''};discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',rapportAnchor:'',painPoint:'',motivator:'',objection:'',decisionStyle:'',jonesCue:'',lossAversionCue:'',urgencyTrigger:'',nextClose:'',notes:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';render();$('pairStatus').textContent='Enter the new six-digit code from the iPad.'};
 
 tetherId=localStorage.getItem('sterling.tetherId.v1')||'';
 render();if(tetherId){setTimeout(function(){bootAlpha(false)},220);heartbeat();pollStatus()}
