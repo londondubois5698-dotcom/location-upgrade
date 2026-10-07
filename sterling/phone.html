@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#071528">
-<title>Sterling Alpha V15.1 • Outdoor Max</title>
+<title>Sterling Alpha V16 • Cinematic</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#071528;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 .wrap{max-width:680px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 18px calc(30px + env(safe-area-inset-bottom))}
@@ -61,10 +61,66 @@
 @media(max-width:430px){.alpha-hero{height:43vh;min-height:315px}.nownew{grid-template-columns:1fr 22px 1fr}.nn{padding:10px}.nnrow{font-size:11px}.alpha-caption .captext{font-size:14px}}
 @media(prefers-reduced-motion:reduce){.alpha-robot,.alpha-wave i{animation:none!important;transition:none!important}}
 
+
+/* V16 customer-first cinematic layer */
+.wrap{max-width:760px;padding-left:12px;padding-right:12px}
+.modeDock{position:sticky;top:8px;z-index:80;padding:12px;background:#071827f2;backdrop-filter:blur(18px);border-color:#285a7f}
+.modeGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.modeGrid .btn{min-height:58px;font-size:16px}.modeGrid .fullrow{grid-column:1/-1}
+.modeBtnLive{box-shadow:0 0 0 2px #76edb0 inset,0 0 28px #32d58b33!important;background:linear-gradient(135deg,#08734c,#12a56e)!important}
+.modeBtnRing{background:linear-gradient(135deg,#553812,#9a6a17)!important}
+.modeBtnRing.modeBtnLive{box-shadow:0 0 0 2px #ffd978 inset,0 0 30px #ffce5638!important}
+.fieldDrawer{margin-top:10px;border-top:1px solid #173956;padding-top:8px}.fieldDrawer summary{cursor:pointer;color:#8db5d2;font-weight:850;font-size:12px;padding:8px 0}
+.fieldDrawer .row{font-size:12px;padding:7px 0}.fieldDrawer .contact{font-size:11px}
+.alpha-stage{border-radius:30px;background:#02070d;border-color:#245d85}
+.alpha-hero{height:min(62vh,620px);min-height:500px;background:#050b11}
+.alpha-robot{display:none!important}
+.cinemaFrames{position:absolute;inset:0;overflow:hidden;background:#071019;transform:scale(1.01);transition:transform .45s ease,filter .35s ease}
+.cine-frame{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;opacity:0;animation:sterling360 5s steps(1,end) infinite;filter:saturate(1.04) contrast(1.05) brightness(1.03)}
+.cine-frame.f1{animation-delay:0s}.cine-frame.f2{animation-delay:1.25s}.cine-frame.f3{animation-delay:2.5s}.cine-frame.f4{animation-delay:3.75s}
+@keyframes sterling360{0%,24.99%{opacity:1}25%,100%{opacity:0}}
+.alpha-stage[data-state="listening"] .cinemaFrames{transform:scale(1.025)}
+.alpha-stage[data-state="thinking"] .cinemaFrames{transform:scale(1.035) translateX(-4px);filter:brightness(.94)}
+.alpha-stage[data-state="speaking"] .cinemaFrames{animation:sterlingSpeakMotion .7s ease-in-out infinite alternate}
+.alpha-stage[data-state="typing"] .cinemaFrames{transform:scale(1.035) translate(-5px,4px)}
+@keyframes sterlingSpeakMotion{from{transform:scale(1.035) translateY(0)}to{transform:scale(1.045) translateY(-3px)}}
+.alpha-stage.ringview .cine-frame{animation:none!important;opacity:0}
+.alpha-stage.ringview .cine-frame.f1{opacity:1;object-position:center 26%;transform:scale(1.95);transform-origin:50% 30%;animation:ringPortrait 2.8s ease-in-out infinite alternate!important}
+@keyframes ringPortrait{from{transform:scale(1.95) translate(-1px,1px) rotate(-.25deg)}to{transform:scale(2.00) translate(2px,-2px) rotate(.25deg)}}
+.alpha-stage.ringview[data-state="speaking"] .cine-frame.f1{animation:ringTalk .48s ease-in-out infinite alternate!important}
+@keyframes ringTalk{from{transform:scale(1.98) translate(-1px,0)}to{transform:scale(2.03) translate(2px,-3px)}}
+.alpha-shade{background:linear-gradient(180deg,#02070d25 0%,transparent 48%,#03101be8 100%),radial-gradient(circle at 50% 32%,transparent 0 30%,#02070d55 75%)}
+.alpha-top{top:12px}.alpha-nameplate{bottom:14px;font-size:11px}
+.alpha-live{padding:14px;background:linear-gradient(180deg,#061522,#04101a)}
+.alpha-statusline{margin-bottom:8px}.noise-meter{opacity:.55}
+.alpha-caption{min-height:64px;padding:11px 13px;margin:8px 0 12px}.alpha-caption .captext{font-size:16px}
+.nownew{grid-template-columns:minmax(0,1fr) 30px minmax(0,1fr);gap:8px}
+.nn{min-height:270px;padding:15px 14px;border-radius:23px;border-width:1px;box-shadow:0 18px 42px #0005}
+.nn h3{font-size:15px;margin-bottom:12px}.nnrow{grid-template-columns:42% 58%;font-size:15px;padding:11px 0;gap:8px}.nnrow span:first-child{font-size:13px}
+.nnrow strong{font-size:15px}.nn .money{font-size:28px!important;letter-spacing:-1px}
+.nn.now{background:linear-gradient(160deg,#0a1a2a,#06111d);border-color:#2e6388}
+.nn.now.carrier-verizon{background:linear-gradient(160deg,#2b0a0d,#0d1118 65%);border-color:#ee3c4d;box-shadow:0 18px 42px #0005,0 0 34px #e31b3520}
+.nn.now.carrier-verizon h3{color:#ff6e78}
+.nn.now.carrier-tmobile{background:linear-gradient(160deg,#310622,#0c1018 66%);border-color:#e20074;box-shadow:0 18px 42px #0005,0 0 34px #e2007425}
+.nn.now.carrier-tmobile h3{color:#ff69b4}
+.nn.new{position:relative;overflow:hidden;background:radial-gradient(circle at 88% 4%,#35d2ff33,transparent 34%),linear-gradient(155deg,#06385b,#071725 64%);border-color:#26bce9;box-shadow:0 18px 42px #0006,0 0 38px #22c4ff24}
+.nn.new:after{content:"";position:absolute;width:125px;height:125px;border:2px solid #61dcff33;border-radius:50%;right:-52px;top:-44px;box-shadow:0 0 0 10px #61dcff12,0 0 0 22px #61dcff0c;pointer-events:none}
+.nn.new h3{color:#8cecff;font-size:17px}.nn.new .money{color:#86f1bd!important}
+.nnarrow{font-size:28px;color:#69dfff}
+.alpha-fit,.alpha-promos,.alpha-controls-note{display:none}
+.customerHint{margin-top:10px;text-align:center;font-size:10px;color:#63849d;letter-spacing:.3px}
+@media(max-width:430px){
+ .alpha-hero{height:55vh;min-height:455px}
+ .nownew{grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr);gap:6px}
+ .nn{min-height:250px;padding:12px 10px}.nnrow{font-size:13px;padding:10px 0;grid-template-columns:40% 60%}.nnrow span:first-child{font-size:12px}.nnrow strong{font-size:13px}.nn .money{font-size:22px!important}
+ .alpha-caption .captext{font-size:15px}
+ .modeGrid .btn{font-size:14px;min-height:54px;padding:10px}
+}
+
 </style>
 </head>
 <body><main class="wrap">
-<div class="brand"><b>Sterling</b> Alpha <span class="alpha-version">V15.1 • OUTDOOR MAX</span></div>
+<div class="brand"><b>Sterling</b> Alpha <span class="alpha-version">V16 • CINEMATIC</span></div>
 <p class="sub">Phone = the conversation. iPad = Salesforce. Sterling keeps both synchronized.</p>
 
 <section class="card pair" id="pairCard">
@@ -76,52 +132,69 @@
 </section>
 
 
-<section class="alpha-stage liveOnly" id="alphaStage" data-state="idle">
-  <div class="alpha-hero">
-    <div class="alpha-robot" id="alphaRobot" aria-hidden="true"></div><div class="alpha-shade"></div>
-    <div class="alpha-wave" id="alphaWave"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i><i style="--i:6"></i><i style="--i:7"></i><i style="--i:8"></i><i style="--i:9"></i><i style="--i:10"></i><i style="--i:11"></i><i style="--i:12"></i><i style="--i:13"></i><i style="--i:14"></i><i style="--i:15"></i><i style="--i:16"></i><i style="--i:17"></i><i style="--i:18"></i><i style="--i:19"></i><i style="--i:20"></i><i style="--i:21"></i><i style="--i:22"></i><i style="--i:23"></i><i style="--i:24"></i><i style="--i:25"></i><i style="--i:26"></i><i style="--i:27"></i><i style="--i:28"></i></div>
-    <div class="alpha-top"><span class="alpha-chip good" id="alphaPair">iPad • linked</span><span class="alpha-chip" id="ringChip">RING • OFF</span><span class="alpha-chip focus" id="alphaFocus">OUTDOOR MAX • ON</span></div>
-    <div class="pair-toast" id="pairToast">✓ Pairing Sync Complete</div><div class="typing-particles" id="typingParticles"></div><div class="alpha-nameplate">STERLING ONE</div>
+<section class="card liveOnly modeDock" id="mainCard">
+  <div class="modeGrid">
+    <button id="start" class="btn outdoor">Talk • Start Live</button>
+    <button id="ringMode" class="btn secondary modeBtnRing">Ring • Listen First</button>
+    <button id="outdoorMax" class="btn secondary fullrow">Outdoor Max • ON</button>
   </div>
-  <div class="alpha-live">
-    <div class="alpha-statusline"><span class="alpha-state" id="alphaState">READY</span><span class="alpha-chip" id="alphaHouse">Waiting for Salesforce…</span></div>
-    <div class="noise-meter"><span id="noiseMeter"></span></div>
-    <div class="alpha-caption"><div class="caplabel" id="captionLabel">Sterling</div><div class="captext" id="liveCaption">Paired and ready. Tap Start Sterling when the customer has your phone.</div></div>
-    <div class="nownew">
-      <div class="nn now"><h3>NOW</h3>
-        <div class="nnrow"><span>Carrier</span><strong class="typing-value" id="dCarrier">—</strong></div><div class="nnrow"><span>Lines</span><strong class="typing-value" id="dLines">—</strong></div>
-        <div class="nnrow"><span>Bill</span><strong class="typing-value" id="dBill">—</strong></div><div class="nnrow"><span>Phones</span><strong class="typing-value" id="dPhones">—</strong></div>
-        <div class="nnrow"><span>Plan</span><strong class="typing-value" id="dPlan">—</strong></div>
-      </div>
-      <div class="nnarrow">→</div>
-      <div class="nn new"><h3>NEW • AT&amp;T</h3>
-        <div class="nnrow"><span>Wireless</span><strong id="nPlan">Extra 2.0</strong></div><div class="nnrow"><span>Est.</span><strong class="money typing-value" id="nPrice">—</strong></div>
-        <div class="nnrow"><span>Savings</span><strong class="money typing-value" id="nSavings">—</strong></div><div class="nnrow"><span>Upgrade</span><strong class="typing-value" id="nUpgrade">Discovering…</strong></div>
-        <div class="nnrow"><span>Discount</span><strong class="typing-value" id="nDiscount">Check fit</strong></div>
-      </div>
-    </div>
-    <div class="alpha-fit" id="internetFit"><strong>Wireless first.</strong> Sterling will only surface Internet Air after learning how the household actually uses home internet.</div>
-    <div class="alpha-promos"><span class="promo">Signature: 20% Premium*</span><span class="promo">Appreciation: 20% Premium / 15% Extra*</span><span class="promo">55+: 2 lines + Air $100*</span><span class="promo">Air: $55 standalone / $35 w wireless*</span></div>
-    <div class="alpha-controls-note">*London's field-sheet snapshot. Final eligibility and pricing are verified in the official AT&amp;T system.</div>
-  </div>
-</section>
-
-<section class="card liveOnly" id="mainCard">
-  <div class="row"><span class="label">iPad tether</span><span class="value status" id="ipad">Waiting…</span></div>
-  <div class="row"><span class="label">Current house</span><span class="value" id="house">Waiting for Salesforce…</span></div>
-  <div class="row"><span class="label">Sterling voice</span><span class="value status" id="voice">Ready</span></div>
-  <div class="wave" id="wave">Tap Start when the customer has your phone</div>
-  <div class="grid">
-    <button id="start" class="btn full outdoor">Start Sterling • Outdoor Max</button>
-    <button id="ringMode" class="btn secondary full">Ring Mode • OFF</button>
+  <div class="wave" id="wave">Choose Talk or Ring</div>
+  <div class="grid" style="margin-top:8px">
     <button id="mute" class="btn secondary" style="display:none">Mute</button>
     <button id="stop" class="btn danger" style="display:none">Stop</button>
   </div>
-  <div class="contact" id="contact" style="margin-top:13px">No confirmed customer details yet.</div>
-  <div id="order" class="good" style="display:none;margin-top:12px;font-weight:900"></div>
-  <button id="voiceSetup" class="btn secondary" style="display:none;margin-top:10px">Fix Voice Connection</button>
-  <button id="repair" class="btn secondary" style="margin-top:10px;font-size:14px;min-height:44px">Re-pair This Phone</button>
+  <details class="fieldDrawer">
+    <summary>London • Field controls & details</summary>
+    <div class="row"><span class="label">iPad tether</span><span class="value status" id="ipad">Waiting…</span></div>
+    <div class="row"><span class="label">Current house</span><span class="value" id="house">Waiting for Salesforce…</span></div>
+    <div class="row"><span class="label">Sterling voice</span><span class="value status" id="voice">Ready</span></div>
+    <div class="contact" id="contact" style="margin-top:10px">No confirmed customer details yet.</div>
+    <div id="order" class="good" style="display:none;margin-top:10px;font-weight:900"></div>
+    <div id="internetFit" class="mini" style="margin-top:10px"></div>
+    <button id="voiceSetup" class="btn secondary" style="display:none;margin-top:10px">Fix Voice Connection</button>
+    <button id="repair" class="btn secondary" style="margin-top:10px;font-size:13px;min-height:42px">Re-pair This Phone</button>
+  </details>
 </section>
+
+<section class="alpha-stage liveOnly" id="alphaStage" data-state="idle">
+  <div class="alpha-hero">
+    <div class="cinemaFrames" id="cinemaFrames" aria-hidden="true">
+      <img class="cine-frame f1" src="/assets/sterling360/f01.webp?v=16" alt="">
+      <img class="cine-frame f2" src="/assets/sterling360/f05.webp?v=16" alt="">
+      <img class="cine-frame f3" src="/assets/sterling360/f07.webp?v=16" alt="">
+      <img class="cine-frame f4" src="/assets/sterling360/f09.webp?v=16" alt="">
+    </div>
+    <div class="alpha-shade"></div>
+    <div class="alpha-wave" id="alphaWave"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i><i style="--i:6"></i><i style="--i:7"></i><i style="--i:8"></i><i style="--i:9"></i><i style="--i:10"></i><i style="--i:11"></i><i style="--i:12"></i><i style="--i:13"></i><i style="--i:14"></i><i style="--i:15"></i><i style="--i:16"></i><i style="--i:17"></i><i style="--i:18"></i><i style="--i:19"></i></div>
+    <div class="alpha-top"><span class="alpha-chip good" id="alphaPair">LIVE VISUAL</span><span class="alpha-chip" id="ringChip">TALK MODE</span><span class="alpha-chip focus" id="alphaFocus">OUTDOOR MAX • ON</span></div>
+    <div class="pair-toast" id="pairToast">✓ Pairing Sync Complete</div><div class="typing-particles" id="typingParticles"></div><div class="alpha-nameplate">STERLING ONE</div>
+  </div>
+  <div class="alpha-live">
+    <div class="alpha-statusline"><span class="alpha-state" id="alphaState">READY</span><span class="alpha-chip" id="customerMode">CUSTOMER VIEW</span></div>
+    <div class="noise-meter"><span id="noiseMeter"></span></div>
+    <div class="alpha-caption"><div class="caplabel" id="captionLabel">Sterling</div><div class="captext" id="liveCaption">Choose Talk or Ring. Sterling will build the comparison live as you speak.</div></div>
+    <div class="nownew">
+      <div class="nn now" id="nowCard"><h3 id="nowHeading">NOW</h3>
+        <div class="nnrow"><span>Carrier</span><strong class="typing-value" id="dCarrier">—</strong></div>
+        <div class="nnrow"><span>Lines</span><strong class="typing-value" id="dLines">—</strong></div>
+        <div class="nnrow"><span>Bill</span><strong class="money typing-value" id="dBill">—</strong></div>
+        <div class="nnrow"><span>Phones</span><strong class="typing-value" id="dPhones">—</strong></div>
+        <div class="nnrow"><span>Plan</span><strong class="typing-value" id="dPlan">—</strong></div>
+      </div>
+      <div class="nnarrow">→</div>
+      <div class="nn new" id="newCard"><h3>NEW • AT&amp;T</h3>
+        <div class="nnrow"><span>Wireless</span><strong id="nPlan">Extra 2.0</strong></div>
+        <div class="nnrow"><span>Est.</span><strong class="money typing-value" id="nPrice">—</strong></div>
+        <div class="nnrow"><span>Savings</span><strong class="money typing-value" id="nSavings">—</strong></div>
+        <div class="nnrow"><span>Upgrade</span><strong class="typing-value" id="nUpgrade">Discovering…</strong></div>
+        <div class="nnrow"><span>Discount</span><strong class="typing-value" id="nDiscount">Check fit</strong></div>
+      </div>
+    </div>
+    <div class="customerHint">Live estimate • London verifies final eligibility, taxes, device condition and promotions in the official AT&amp;T system.</div>
+  </div>
+</section>
+
+
 
 <section class="card liveOnly">
   <div style="font-weight:900;margin-bottom:7px">Field behavior</div>
@@ -133,7 +206,7 @@
 (function(){
 'use strict';
 var APP='https://sterling-olive.vercel.app';
-var VERSION='15.1-outdoor-ring';
+var VERSION='16.0-cinematic';
 var tetherId='';
 var currentHouse=null,lastHouseKey='',lastResultId='';
 var contact={first:'',last:'',phone:'',email:''},stage='rapport',mismatch=false;
@@ -142,7 +215,7 @@ var alphaState='idle',alphaTimer=null;
 var gate={noise:.006,open:false,voiced:0,quiet:0,pre:[]};
 var captureHighpass=null,captureLowpass=null,micAnalyser=null;
 var active=false,connected=false,connecting=false,muted=false,reconnects=0,socket=null,connectWatchdog=null,reconnectTimer=null,connectAttempt=0;
-var ringMode=localStorage.getItem('sterling.ringMode.v1')==='1',openingStarted=false,aiSpeaking=false;
+var ringMode=false,outdoorMax=localStorage.getItem('sterling.outdoorMax.v1')!=='0',openingStarted=false,aiSpeaking=false,micResumeTimer=null;
 var micStream=null,captureCtx=null,captureSource=null,captureProcessor=null,playCtx=null,playTime=0,playingSources=[],outdoorGain=null,outdoorLimiter=null;
 
 function $(id){return document.getElementById(id)}
@@ -194,20 +267,27 @@ function renderDiscovery(){
   typeValue('dCarrier',discovery.carrier);typeValue('dLines',discovery.lines);typeValue('dBill',discovery.bill?(/\$/.test(discovery.bill)?discovery.bill:'$'+discovery.bill):'');typeValue('dPhones',discovery.phones);typeValue('dPlan',discovery.currentPlan);
   typeValue('nUpgrade',discovery.upgradeInterest||'Discovering…');typeValue('nDiscount',discountLabel());
   var est=extraEstimate(discovery.lines),bill=moneyFromText(discovery.bill);typeValue('nPrice',est?'$'+est+'/mo*':'');typeValue('nSavings',(est&&bill)?((bill-est)>0?'$'+Math.round(bill-est)+'/mo less*':'Compare total*'):'');
-  if($('internetFit'))$('internetFit').innerHTML=internetFitText()
+  if($('internetFit'))$('internetFit').innerHTML=internetFitText();
+  var now=$('nowCard'),head=$('nowHeading'),carrier=clean(discovery.carrier).toLowerCase();
+  if(now){now.classList.remove('carrier-verizon','carrier-tmobile');if(carrier.indexOf('verizon')>=0){now.classList.add('carrier-verizon');if(head)head.textContent='NOW • VERIZON'}else if(carrier.indexOf('t-mobile')>=0||carrier.indexOf('tmobile')>=0){now.classList.add('carrier-tmobile');if(head)head.textContent='NOW • T-MOBILE'}else if(head)head.textContent='NOW'}
 }
 function noteDiscovery(field,value){if(!Object.prototype.hasOwnProperty.call(discovery,field))return;discovery[field]=clean(value);renderDiscovery();spawnTypingParticles();setAlphaState('typing',900);var labels={carrier:'Carrier',lines:'Lines',bill:'Current bill',phones:'Phones',currentPlan:'Current plan',upgradeInterest:'Upgrade interest',discountEligibility:'Discount fit',internetUse:'Internet use',internetProvider:'Internet provider',internetBill:'Internet bill',decisionMaker:'Decision maker',work:'Work',commute:'Commute',tv:'TV',notes:'Note'};setCaption('Live capture',(labels[field]||field)+': '+discovery[field])}
 
 function setVoice(msg,kind){$('voice').textContent=msg;$('voice').className='value status '+(kind||'');$('wave').textContent=msg;var t=String(msg||'').toUpperCase();if(t.indexOf('LISTEN')>=0)setAlphaState('listening');else if(t.indexOf('THINK')>=0)setAlphaState('thinking');else if(t.indexOf('SPEAK')>=0)setAlphaState('speaking');else if(t.indexOf('CONNECT')>=0||t.indexOf('PAIR')>=0)setAlphaState('boot');else if(t.indexOf('STOP')>=0)setAlphaState('idle')}
 function render(){
   showPaired();
-  $('house').textContent=currentHouse?currentHouse.label:'Waiting for Salesforce…';if($('alphaHouse'))$('alphaHouse').textContent=currentHouse?currentHouse.label:'Waiting for Salesforce…';
+  if($('house'))$('house').textContent=currentHouse?currentHouse.label:'Waiting for Salesforce…';
   var bits=[];if(contact.first)bits.push(contact.first);if(contact.last)bits.push(contact.last);if(contact.phone)bits.push(contact.phone);if(contact.email)bits.push(contact.email);
-  $('contact').textContent=bits.length?'Confirmed: '+bits.join(' • '):'No confirmed customer details yet.';
-  $('start').style.display=active?'none':'block';$('mute').style.display=active?'block':'none';$('stop').style.display=active?'block':'none';
-  $('mute').textContent=muted?'Unmute':'Mute';$('wave').className='wave'+(connected?' live':'');
-  if($('ringMode')){$('ringMode').textContent=ringMode?'Ring Mode • ON • SILENT UNTIL THEY SPEAK':'Ring Mode • OFF';$('ringMode').className='btn secondary full'+(ringMode?' ringOn':'')}
-  if($('ringChip')){$('ringChip').textContent=ringMode?'RING • ARMED':'RING • OFF';$('ringChip').className='alpha-chip'+(ringMode?' good':'')}
+  if($('contact'))$('contact').textContent=bits.length?'Confirmed: '+bits.join(' • '):'No confirmed customer details yet.';
+  if($('start')){$('start').textContent=active&&!ringMode?'Talk • LIVE':'Talk • Start Live';$('start').className='btn outdoor'+(active&&!ringMode?' modeBtnLive':'')}
+  if($('ringMode')){$('ringMode').textContent=active&&ringMode?'Ring • LIVE':'Ring • Listen First';$('ringMode').className='btn secondary modeBtnRing'+(active&&ringMode?' modeBtnLive':'')}
+  if($('outdoorMax')){$('outdoorMax').textContent='Outdoor Max • '+(outdoorMax?'ON':'OFF');$('outdoorMax').className='btn secondary fullrow'+(outdoorMax?' modeBtnLive':'')}
+  if($('mute'))$('mute').style.display=active?'block':'none';if($('stop'))$('stop').style.display=active?'block':'none';
+  if($('mute'))$('mute').textContent=muted?'Unmute':'Mute';if($('wave'))$('wave').className='wave'+(connected?' live':'');
+  if($('ringChip')){$('ringChip').textContent=ringMode?'RING • LISTEN FIRST':'TALK MODE';$('ringChip').className='alpha-chip'+(ringMode?' good':'')}
+  if($('alphaFocus'))$('alphaFocus').textContent='OUTDOOR MAX • '+(outdoorMax?'ON':'OFF');
+  if($('customerMode'))$('customerMode').textContent=ringMode?'RING VIEW':'CUSTOMER VIEW';
+  if($('alphaStage'))$('alphaStage').classList.toggle('ringview',ringMode);
   renderDiscovery();
 }
 async function apiGet(part){
@@ -259,12 +339,14 @@ async function pollStatus(){
 }
 setInterval(heartbeat,2500);setInterval(pollStatus,700);
 
-function ensurePlay(){if(!playCtx){var AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw new Error('This browser does not support realtime audio.');try{playCtx=new AC({sampleRate:24000})}catch(e){playCtx=new AC()}outdoorGain=playCtx.createGain();outdoorGain.gain.value=2.6;outdoorLimiter=playCtx.createDynamicsCompressor();outdoorLimiter.threshold.value=-8;outdoorLimiter.knee.value=8;outdoorLimiter.ratio.value=12;outdoorLimiter.attack.value=.003;outdoorLimiter.release.value=.12;outdoorGain.connect(outdoorLimiter);outdoorLimiter.connect(playCtx.destination)}return playCtx.resume()}
+function ensurePlay(){if(!playCtx){var AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw new Error('This browser does not support realtime audio.');try{playCtx=new AC({sampleRate:24000})}catch(e){playCtx=new AC()}outdoorGain=playCtx.createGain();outdoorLimiter=playCtx.createDynamicsCompressor();outdoorLimiter.threshold.value=-1.5;outdoorLimiter.knee.value=0;outdoorLimiter.ratio.value=20;outdoorLimiter.attack.value=.001;outdoorLimiter.release.value=.06;outdoorGain.connect(outdoorLimiter);outdoorLimiter.connect(playCtx.destination);applyOutdoorMax()}return playCtx.resume()}
+function applyOutdoorMax(){if(outdoorGain){var target=outdoorMax?2.6:1.0;try{outdoorGain.gain.setTargetAtTime(target,playCtx.currentTime,.015)}catch(e){outdoorGain.gain.value=target}}}
+function speakerPriority(on,immediate){if(micResumeTimer){clearTimeout(micResumeTimer);micResumeTimer=null}var track=micStream&&micStream.getAudioTracks?micStream.getAudioTracks()[0]:null;if(on){aiSpeaking=true;if(track)track.enabled=false}else{var done=function(){aiSpeaking=false;if(track&&active&&!muted)track.enabled=true;if(active&&connected)setVoice('LIVE • LISTENING','good')};if(immediate)done();else micResumeTimer=setTimeout(done,140)}}
 function encodePCM(samples){var b=new ArrayBuffer(samples.length*2),v=new DataView(b);for(var i=0;i<samples.length;i++){var s=Math.max(-1,Math.min(1,samples[i]));v.setInt16(i*2,s<0?s*32768:s*32767,true)}var bytes=new Uint8Array(b),bin='',chunk=0x8000;for(var j=0;j<bytes.length;j+=chunk)bin+=String.fromCharCode.apply(null,bytes.subarray(j,j+chunk));return btoa(bin)}
 function decodePCM(b64){var bin=atob(b64),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);var i16=new Int16Array(u.buffer),out=new Float32Array(i16.length);for(var j=0;j<i16.length;j++)out[j]=i16[j]/32768;return out}
 function resample(input,inRate,outRate){if(inRate===outRate)return new Float32Array(input);var ratio=inRate/outRate,len=Math.round(input.length/ratio),out=new Float32Array(len);for(var i=0;i<len;i++){var x=i*ratio,a=Math.floor(x),b=Math.min(a+1,input.length-1),f=x-a;out[i]=input[a]*(1-f)+input[b]*f}return out}
-function stopPlayback(){for(var i=0;i<playingSources.length;i++)try{playingSources[i].stop()}catch(e){}playingSources=[];aiSpeaking=false;if(playCtx)playTime=playCtx.currentTime}
-function playAudio(b64){try{var samples=decodePCM(b64);if(!samples.length)return;var ctx=playCtx;if(!ctx)return;aiSpeaking=true;var buf=ctx.createBuffer(1,samples.length,24000);buf.getChannelData(0).set(samples);var src=ctx.createBufferSource();src.buffer=buf;src.connect(outdoorGain||ctx.destination);var st=Math.max(playTime,ctx.currentTime);src.start(st);playTime=st+buf.duration;playingSources.push(src);src.onended=function(){playingSources=playingSources.filter(x=>x!==src);if(!playingSources.length){aiSpeaking=false;setVoice(active?'LIVE • LISTENING':'STOPPED',active?'good':'')}}}catch(e){aiSpeaking=false;setVoice('Audio playback error','bad')}}
+function stopPlayback(){for(var i=0;i<playingSources.length;i++)try{playingSources[i].stop()}catch(e){}playingSources=[];if(playCtx)playTime=playCtx.currentTime;speakerPriority(false,true)}
+function playAudio(b64){try{var samples=decodePCM(b64);if(!samples.length)return;var ctx=playCtx;if(!ctx)return;speakerPriority(true);var buf=ctx.createBuffer(1,samples.length,24000);buf.getChannelData(0).set(samples);var src=ctx.createBufferSource();src.buffer=buf;src.connect(outdoorGain||ctx.destination);var st=Math.max(playTime,ctx.currentTime);src.start(st);playTime=st+buf.duration;playingSources.push(src);src.onended=function(){playingSources=playingSources.filter(function(x){return x!==src});if(!playingSources.length)speakerPriority(false,false)}}catch(e){speakerPriority(false,true);setVoice('Audio playback error','bad')}}
 async function prepareMic(){
   await ensurePlay();
   if(micStream&&micStream.getAudioTracks&&micStream.getAudioTracks().some(function(t){return t.readyState==='live'}))return;
@@ -377,7 +459,7 @@ async function connect(){
   if(!active||connecting||connected)return;
   connecting=true;connected=false;render();setVoice('CONNECTING…');setCaption('Sterling','Connecting voice…');
   try{
-    var r=await fetch(APP+'/api/realtime-token?v=15.1&t='+Date.now(),{cache:'no-store'});
+    var r=await fetch(APP+'/api/realtime-token?v=16.0&t='+Date.now(),{cache:'no-store'});
     var setup=await r.json();
     if(!r.ok||!setup.token||!setup.url)throw new Error(setup.error||'Realtime setup failed');
 
@@ -388,11 +470,11 @@ async function connect(){
       connecting=false;
       send({type:'session-update',config:{
         instructions:setup.instructions,
-        voice:'echo',
+        voice:'cedar',
         outputModalities:['audio'],
         inputAudioFormat:{type:'audio/pcm',rate:24000},
         outputAudioFormat:{type:'audio/pcm',rate:24000},
-        turnDetection:{type:'server-vad',threshold:0.75,prefixPaddingMs:250,silenceDurationMs:420},
+        turnDetection:{type:'server-vad',threshold:0.72,prefixPaddingMs:220,silenceDurationMs:300},
         tools:setup.tools||[]
       }})
     };
@@ -447,11 +529,12 @@ async function connect(){
   }
 }
 
-async function start(){if(active&&connected)return;try{openingStarted=false;bootAlpha(false);setCaption('Sterling',ringMode?'Ring Mode arming silently…':'Coming online…');await prepareMic();active=true;muted=false;render();await heartbeat();if(!connected&&!connecting)await connect()}catch(e){active=false;connecting=false;connected=false;render();setVoice(e.message||String(e),'bad');releaseMic()}}
-function stop(){active=false;connected=false;connecting=false;openingStarted=false;try{if(socket){socket.onclose=null;socket.onerror=null;socket.close()}}catch(e){}socket=null;releaseMic();stopPlayback();render();setVoice('STOPPED');setCaption('Sterling','Paused. Tap Start Sterling when you are ready.')}
-$('start').onclick=start;$('stop').onclick=stop;$('mute').onclick=function(){muted=!muted;render();setVoice(muted?'MIC MUTED':'LIVE • LISTENING',muted?'warn':'good')};
-$('ringMode').onclick=function(){ringMode=!ringMode;localStorage.setItem('sterling.ringMode.v1',ringMode?'1':'0');render();if(ringMode){stopPlayback();setCaption('Ring Mode','Armed. Sterling stays silent until the homeowner speaks.');setVoice(active?'RING ARMED • SILENT':'RING MODE READY','good');if(connected)send({type:'context-append',content:'Ring Mode is ON now. Stay silent until the next real homeowner voice, then use one Ring Mode hook and stop to listen.',delegationId:null})}else{setCaption('Sterling','Normal doorstep mode. Greeting first, then wait for their response.');if(connected)send({type:'context-append',content:'Ring Mode is OFF. Return to normal greeting-first doorstep conversation rules.',delegationId:null})}};
-$('voiceSetup').onclick=function(){location.href=APP+'/voice-setup.html?v=15.1'};
+async function start(){if(active&&connected)return;try{openingStarted=false;bootAlpha(false);setCaption('Sterling',ringMode?'Ring Mode arming silently…':'Talk mode coming online…');await prepareMic();active=true;muted=false;render();await heartbeat();if(!connected&&!connecting)await connect()}catch(e){active=false;connecting=false;connected=false;render();setVoice(e.message||String(e),'bad');releaseMic()}}
+async function startMode(useRing){if(active){if(ringMode===useRing&&connected)return;stop();await sleep(180)}ringMode=!!useRing;openingStarted=false;render();await start()}
+function stop(){active=false;connected=false;connecting=false;openingStarted=false;try{if(socket){socket.onclose=null;socket.onerror=null;socket.close()}}catch(e){}socket=null;stopPlayback();releaseMic();render();setVoice('STOPPED');setCaption('Sterling','Paused. Choose Talk or Ring when you are ready.')}
+$('start').onclick=function(){startMode(false)};$('ringMode').onclick=function(){startMode(true)};$('stop').onclick=stop;$('mute').onclick=function(){muted=!muted;var tr=micStream&&micStream.getAudioTracks?micStream.getAudioTracks()[0]:null;if(tr&&!aiSpeaking)tr.enabled=!muted;render();setVoice(muted?'MIC MUTED':'LIVE • LISTENING',muted?'warn':'good')};
+$('outdoorMax').onclick=function(){outdoorMax=!outdoorMax;localStorage.setItem('sterling.outdoorMax.v1',outdoorMax?'1':'0');applyOutdoorMax();render()};
+$('voiceSetup').onclick=function(){location.href=APP+'/voice-setup.html?v=16.0'};
 $('repair').onclick=function(){stop();localStorage.removeItem('sterling.tetherId.v1');tetherId='';currentHouse=null;lastHouseKey='';lastResultId='';contact={first:'',last:'',phone:'',email:''};discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',notes:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';render();$('pairStatus').textContent='Enter the new six-digit code from the iPad.'};
 
 tetherId=localStorage.getItem('sterling.tetherId.v1')||'';
