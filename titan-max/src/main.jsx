@@ -613,216 +613,157 @@ function App(){
 
   return <main className="app">
     <header className="topbar">
-      <div><div className="wordmark">TITAN <b>MAX</b></div><div className="sub">Executive field intelligence • adaptive memory • GitHub-hosted</div></div>
+      <div>
+        <div className="wordmark">TITAN <b>MAX</b></div>
+        <div className="sub">Executive field intelligence • adaptive memory • customer-first</div>
+      </div>
       <div className={cx('statusPill',realtime.status)}><i/>{statusLabel}</div>
     </header>
 
     <section className="hero">
       <div className="faceCard">
-        <TitanFace mode={faceMode} status={realtime.status} isPlaying={realtime.isPlaying} isCapturing={realtime.isCapturing} level={level} faceRef={faceRef} discovery={discovery} lastCaptured={lastCaptured} ring={ring}/>
+        <TitanFace
+          mode={faceMode}
+          status={realtime.status}
+          isPlaying={realtime.isPlaying}
+          isCapturing={realtime.isCapturing}
+          level={level}
+          faceRef={faceRef}
+          discovery={discovery}
+          lastCaptured={lastCaptured}
+          ring={ring}
+        />
         <div className="brainStrip">
           <div><span>BRAIN</span><strong>{configured===false?'KEY OFFLINE':'MAX ONLINE'}</strong></div>
           <div><span>MEMORY</span><strong>{memories.length} RECENT</strong></div>
           <div><span>GROWTH</span><strong>{brainCount} LESSONS</strong></div>
         </div>
       </div>
+
       <div className="liveCard">
         <div className="eyebrow">EXECUTIVE LINK</div>
-        <h1>{realtime.status==='connected'?'Ready for the next conversation.':'Executive intelligence standing by.'}</h1>
+        <h1>{realtime.status==='connected'?'Live with the customer.':'Choose how Titan enters.'}</h1>
         <p>{notice}</p>
         {error&&<div className="errorBox">{error}</div>}
         <div className="primaryRow titanModes">
           {realtime.status==='connected'
             ?<button className="big stop fullControl" onClick={stopTitan}>Stop Titan</button>
             :<>
-              <button className={cx('big',!ring&&'selectedMode')} onClick={()=>requestStart(false)} disabled={starting}>{starting&&!ring?'Starting…':'Talk • Go Live'}</button>
-              <button className={cx('modeBtn','ringStart',ring&&'selectedMode')} onClick={()=>requestStart(true)} disabled={starting}>{starting&&ring?'Arming…':'Ring • Listen First'}</button>
+              <button className={cx('big',!ring&&'selectedMode')} onClick={()=>requestStart(false)} disabled={starting}>
+                {starting&&!ring?'Starting…':'Talk • Go Live'}
+              </button>
+              <button className={cx('modeBtn','ringStart',ring&&'selectedMode')} onClick={()=>requestStart(true)} disabled={starting}>
+                {starting&&ring?'Arming…':'Ring • Listen First'}
+              </button>
             </>}
         </div>
-        <div className="microcopy">{ring?'RING MODE: starts silent, waits for the homeowner, then responds.':'TALK MODE: greets first, waits for the reply, then uses the icebreaker.'} Both modes keep the microphone live after Titan finishes speaking.</div>
+        <div className="microcopy">
+          {ring
+            ?'RING MODE: starts silent, waits for the homeowner, then responds.'
+            :'TALK MODE: greets first, waits for the reply, then uses the icebreaker.'}
+          {' '}Both modes keep the microphone live after Titan finishes speaking.
+        </div>
       </div>
     </section>
 
     <section className="nowNew">
-      <div className={cx('quoteCard','now',/verizon/i.test(discovery.carrier||'')&&'carrierVerizon',/t[- ]?mobile/i.test(discovery.carrier||'')&&'carrierTMobile')}>
-        <div className="cardTitle">{/verizon/i.test(discovery.carrier||'')?'NOW • VERIZON':/t[- ]?mobile/i.test(discovery.carrier||'')?'NOW • T-MOBILE':'NOW'}</div><div className="price">{discovery.bill?(String(discovery.bill).includes('
-        <Fact label="Difference" value={diff>0?'$'+diff+'/mo less*':(n&&b?'Compare total*':'—')}/><Fact label="Upgrade" value={discovery.upgradeInterest}/><Fact label="Discount fit" value={discovery.discountEligibility}/><Fact label="Verify" value="London / official system"/>
+      <div className={cx(
+        'quoteCard','now',
+        /verizon/i.test(discovery.carrier||'')&&'carrierVerizon',
+        /t[- ]?mobile/i.test(discovery.carrier||'')&&'carrierTMobile'
+      )}>
+        <div className="cardTitle">
+          {/verizon/i.test(discovery.carrier||'')
+            ?'NOW • VERIZON'
+            :/t[- ]?mobile/i.test(discovery.carrier||'')
+              ?'NOW • T-MOBILE'
+              :'NOW'}
+        </div>
+        <div className="price">
+          {discovery.bill?(String(discovery.bill).includes('$')?discovery.bill:'$'+discovery.bill):'—'}
+        </div>
+        <Fact label="Carrier" value={discovery.carrier}/>
+        <Fact label="Lines" value={discovery.lines}/>
+        <Fact label="Phones" value={discovery.phones}/>
+        <Fact label="Plan" value={discovery.currentPlan}/>
+      </div>
+
+      <div className="quoteCard newer attCard">
+        <div className="cardTitle">NEW • AT&amp;T</div>
+        <div className="price">{n?'$'+n:'—'}</div>
+        <Fact label="Difference" value={diff>0?'$'+diff+'/mo less*':(n&&b?'Compare total*':'—')}/>
+        <Fact label="Upgrade" value={discovery.upgradeInterest}/>
+        <Fact label="Discount fit" value={discovery.discountEligibility}/>
+        <Fact label="Verify" value="London / official system"/>
       </div>
     </section>
 
     <details className="ownerDrawer">
       <summary>London • Field Console & Memory</summary>
+
       <section className="console">
-        <div className="consoleHead"><div><span>LIVE CONVERSATION</span><strong>{realtime.messages.length} turns</strong></div><div className="pulseText">{realtime.isPlaying?'Titan speaking':realtime.isCapturing?'Mic listening':'Standing by'}</div></div>
+        <div className="consoleHead">
+          <div><span>LIVE CONVERSATION</span><strong>{realtime.messages.length} turns</strong></div>
+          <div className="pulseText">{realtime.isPlaying?'Titan speaking':realtime.isCapturing?'Mic listening':'Standing by'}</div>
+        </div>
         <div className="transcript">
-          {realtime.messages.length===0?<div className="empty">Conversation transcript will appear here.</div>:
-            realtime.messages.slice(-12).map(m=><div key={m.id} className={cx('bubble',m.role)}>
-              <b>{m.role==='user'?'YOU / CUSTOMER':'TITAN'}</b>
-              <span>{(m.parts||[]).filter(p=>p.type==='text').map(p=>p.text).join(' ')||'…'}</span>
-            </div>)}
+          {realtime.messages.length===0
+            ?<div className="empty">Conversation transcript will appear here.</div>
+            :realtime.messages.slice(-12).map(m=>
+              <div key={m.id} className={cx('bubble',m.role)}>
+                <b>{m.role==='user'?'YOU / CUSTOMER':'TITAN'}</b>
+                <span>{(m.parts||[]).filter(p=>p.type==='text').map(p=>p.text).join(' ')||'…'}</span>
+              </div>
+            )}
         </div>
       </section>
 
       <section className="memoryPanel">
-        <div className="panelHead"><div><span>SECOND LOOP MEMORY</span><strong>Persistent field brain</strong></div><button onClick={endAndLearn} disabled={learning}>{learning?'Learning…':'End & Learn'}</button></div>
-        <div className="memoryList">{memories.length===0?<div className="empty">No Titan Max memories yet.</div>:memories.slice(0,6).map(m=><div className="memory" key={m.id}><b>{m.address||'Field session'}</b><span>{m.summary}</span><small>{m.nextMove?('Next: '+m.nextMove):new Date(m.at).toLocaleString()}</small></div>)}</div>
+        <div className="panelHead">
+          <div><span>SECOND LOOP MEMORY</span><strong>Persistent field brain</strong></div>
+          <button onClick={endAndLearn} disabled={learning}>{learning?'Learning…':'End & Learn'}</button>
+        </div>
+        <div className="memoryList">
+          {memories.length===0
+            ?<div className="empty">No Titan Max memories yet.</div>
+            :memories.slice(0,6).map(m=>
+              <div className="memory" key={m.id}>
+                <b>{m.address||'Field session'}</b>
+                <span>{m.summary}</span>
+                <small>{m.nextMove?('Next: '+m.nextMove):new Date(m.at).toLocaleString()}</small>
+              </div>
+            )}
+        </div>
       </section>
-
-
     </details>
 
     <footer>Titan Max V16 • Customer view first • Estimates verified by London in official systems.</footer>
 
-    {setupOpen&&<div className="modalShade"><div className="modal">
-      <div className="modalLogo">TITAN <b>MAX</b></div>
-      <h2>Pair Titan once</h2>
-      <p>This is Titan's private app passcode — not your AI API key. Titan already uses the same server-side Vercel AI Gateway key as Sterling.</p>
-      <input type="password" value={ownerDraft} onChange={e=>setOwnerDraft(e.target.value)} placeholder="Titan passcode (not API key)" autoCapitalize="none" autoCorrect="off"/>
-      <button onClick={saveOwner}>Save Owner Key</button>
-      <button className="ghost" onClick={()=>setSetupOpen(false)}>Cancel</button>
-    </div></div>}
+    {setupOpen&&
+      <div className="modalShade">
+        <div className="modal">
+          <div className="modalLogo">TITAN <b>MAX</b></div>
+          <h2>Pair Titan once</h2>
+          <p>This is Titan's private app passcode — not your AI API key. Titan already uses the same server-side Vercel AI Gateway key as Sterling.</p>
+          <input
+            type="password"
+            value={ownerDraft}
+            onChange={e=>setOwnerDraft(e.target.value)}
+            placeholder="Titan passcode (not API key)"
+            autoCapitalize="none"
+            autoCorrect="off"
+          />
+          <button onClick={saveOwner}>Save Owner Key</button>
+          <button className="ghost" onClick={()=>setSetupOpen(false)}>Cancel</button>
+        </div>
+      </div>
+    }
   </main>;
 }
-function Fact({label,value}){return <div className="fact"><span>{label}</span><strong>{value||'—'}</strong></div>}
 
-createRoot(document.getElementById('root')).render(<App/>);
-
-if('serviceWorker'in navigator){
-  window.addEventListener('load',async()=>{
-    try{
-      const reg=await navigator.serviceWorker.register('/location-upgrade/titan-live/sw.js',{updateViaCache:'none'});
-      await reg.update();
-    }catch{}
-  });
+function Fact({label,value}){
+  return <div className="fact"><span>{label}</span><strong>{value||'—'}</strong></div>
 }
-)?discovery.bill:'
-        <Fact label="Difference" value={diff>0?'$'+diff+'/mo less*':(n&&b?'Compare total*':'—')}/><Fact label="Upgrade" value={discovery.upgradeInterest}/><Fact label="Discount fit" value={discovery.discountEligibility}/><Fact label="Verify" value="London / official system"/>
-      </div>
-    </section>
-
-    <section className="console">
-      <div className="consoleHead"><div><span>LIVE CONVERSATION</span><strong>{realtime.messages.length} turns</strong></div><div className="pulseText">{realtime.isPlaying?'Titan speaking':realtime.isCapturing?'Mic listening':'Standing by'}</div></div>
-      <div className="transcript">
-        {realtime.messages.length===0?<div className="empty">Conversation transcript will appear here.</div>:
-          realtime.messages.slice(-12).map(m=><div key={m.id} className={cx('bubble',m.role)}>
-            <b>{m.role==='user'?'YOU / CUSTOMER':'TITAN'}</b>
-            <span>{(m.parts||[]).filter(p=>p.type==='text').map(p=>p.text).join(' ')||'…'}</span>
-          </div>)}
-      </div>
-    </section>
-
-    <section className="memoryPanel">
-      <div className="panelHead"><div><span>SECOND LOOP MEMORY</span><strong>Persistent field brain</strong></div><button onClick={endAndLearn} disabled={learning}>{learning?'Learning…':'End & Learn'}</button></div>
-      <div className="memoryList">{memories.length===0?<div className="empty">No Titan Max memories yet.</div>:memories.slice(0,6).map(m=><div className="memory" key={m.id}><b>{m.address||'Field session'}</b><span>{m.summary}</span><small>{m.nextMove?('Next: '+m.nextMove):new Date(m.at).toLocaleString()}</small></div>)}</div>
-    </section>
-
-    <footer>AI-assisted field tool. Estimates must be verified in official systems. Titan Max does not collect sensitive credentials.</footer>
-
-    {setupOpen&&<div className="modalShade"><div className="modal">
-      <div className="modalLogo">TITAN <b>MAX</b></div>
-      <h2>Pair Titan once</h2>
-      <p>This is Titan's private app passcode — not your AI API key. Titan already uses the same server-side Vercel AI Gateway key as Sterling.</p>
-      <input type="password" value={ownerDraft} onChange={e=>setOwnerDraft(e.target.value)} placeholder="Titan passcode (not API key)" autoCapitalize="none" autoCorrect="off"/>
-      <button onClick={saveOwner}>Save Owner Key</button>
-      <button className="ghost" onClick={()=>setSetupOpen(false)}>Cancel</button>
-    </div></div>}
-  </main>;
-}
-function Fact({label,value}){return <div className="fact"><span>{label}</span><strong>{value||'—'}</strong></div>}
-
-createRoot(document.getElementById('root')).render(<App/>);
-
-if('serviceWorker'in navigator){
-  window.addEventListener('load',async()=>{
-    try{
-      const reg=await navigator.serviceWorker.register('/location-upgrade/titan-live/sw.js',{updateViaCache:'none'});
-      await reg.update();
-    }catch{}
-  });
-}
-+discovery.bill):'—'}</div>
-        <Fact label="Carrier" value={discovery.carrier}/><Fact label="Lines" value={discovery.lines}/><Fact label="Phones" value={discovery.phones}/><Fact label="Plan" value={discovery.currentPlan}/>
-      </div>
-      <div className="quoteCard newer attCard">
-        <div className="cardTitle">NEW • AT&amp;T</div><div className="price">{n?'
-        <Fact label="Difference" value={diff>0?'$'+diff+'/mo less*':(n&&b?'Compare total*':'—')}/><Fact label="Upgrade" value={discovery.upgradeInterest}/><Fact label="Discount fit" value={discovery.discountEligibility}/><Fact label="Verify" value="London / official system"/>
-      </div>
-    </section>
-
-    <section className="console">
-      <div className="consoleHead"><div><span>LIVE CONVERSATION</span><strong>{realtime.messages.length} turns</strong></div><div className="pulseText">{realtime.isPlaying?'Titan speaking':realtime.isCapturing?'Mic listening':'Standing by'}</div></div>
-      <div className="transcript">
-        {realtime.messages.length===0?<div className="empty">Conversation transcript will appear here.</div>:
-          realtime.messages.slice(-12).map(m=><div key={m.id} className={cx('bubble',m.role)}>
-            <b>{m.role==='user'?'YOU / CUSTOMER':'TITAN'}</b>
-            <span>{(m.parts||[]).filter(p=>p.type==='text').map(p=>p.text).join(' ')||'…'}</span>
-          </div>)}
-      </div>
-    </section>
-
-    <section className="memoryPanel">
-      <div className="panelHead"><div><span>SECOND LOOP MEMORY</span><strong>Persistent field brain</strong></div><button onClick={endAndLearn} disabled={learning}>{learning?'Learning…':'End & Learn'}</button></div>
-      <div className="memoryList">{memories.length===0?<div className="empty">No Titan Max memories yet.</div>:memories.slice(0,6).map(m=><div className="memory" key={m.id}><b>{m.address||'Field session'}</b><span>{m.summary}</span><small>{m.nextMove?('Next: '+m.nextMove):new Date(m.at).toLocaleString()}</small></div>)}</div>
-    </section>
-
-    <footer>AI-assisted field tool. Estimates must be verified in official systems. Titan Max does not collect sensitive credentials.</footer>
-
-    {setupOpen&&<div className="modalShade"><div className="modal">
-      <div className="modalLogo">TITAN <b>MAX</b></div>
-      <h2>Pair Titan once</h2>
-      <p>This is Titan's private app passcode — not your AI API key. Titan already uses the same server-side Vercel AI Gateway key as Sterling.</p>
-      <input type="password" value={ownerDraft} onChange={e=>setOwnerDraft(e.target.value)} placeholder="Titan passcode (not API key)" autoCapitalize="none" autoCorrect="off"/>
-      <button onClick={saveOwner}>Save Owner Key</button>
-      <button className="ghost" onClick={()=>setSetupOpen(false)}>Cancel</button>
-    </div></div>}
-  </main>;
-}
-function Fact({label,value}){return <div className="fact"><span>{label}</span><strong>{value||'—'}</strong></div>}
-
-createRoot(document.getElementById('root')).render(<App/>);
-
-if('serviceWorker'in navigator){
-  window.addEventListener('load',async()=>{
-    try{
-      const reg=await navigator.serviceWorker.register('/location-upgrade/titan-live/sw.js',{updateViaCache:'none'});
-      await reg.update();
-    }catch{}
-  });
-}
-+n:'—'}</div>
-        <Fact label="Difference" value={diff>0?'$'+diff+'/mo less*':(n&&b?'Compare total*':'—')}/><Fact label="Upgrade" value={discovery.upgradeInterest}/><Fact label="Discount fit" value={discovery.discountEligibility}/><Fact label="Verify" value="London / official system"/>
-      </div>
-    </section>
-
-    <section className="console">
-      <div className="consoleHead"><div><span>LIVE CONVERSATION</span><strong>{realtime.messages.length} turns</strong></div><div className="pulseText">{realtime.isPlaying?'Titan speaking':realtime.isCapturing?'Mic listening':'Standing by'}</div></div>
-      <div className="transcript">
-        {realtime.messages.length===0?<div className="empty">Conversation transcript will appear here.</div>:
-          realtime.messages.slice(-12).map(m=><div key={m.id} className={cx('bubble',m.role)}>
-            <b>{m.role==='user'?'YOU / CUSTOMER':'TITAN'}</b>
-            <span>{(m.parts||[]).filter(p=>p.type==='text').map(p=>p.text).join(' ')||'…'}</span>
-          </div>)}
-      </div>
-    </section>
-
-    <section className="memoryPanel">
-      <div className="panelHead"><div><span>SECOND LOOP MEMORY</span><strong>Persistent field brain</strong></div><button onClick={endAndLearn} disabled={learning}>{learning?'Learning…':'End & Learn'}</button></div>
-      <div className="memoryList">{memories.length===0?<div className="empty">No Titan Max memories yet.</div>:memories.slice(0,6).map(m=><div className="memory" key={m.id}><b>{m.address||'Field session'}</b><span>{m.summary}</span><small>{m.nextMove?('Next: '+m.nextMove):new Date(m.at).toLocaleString()}</small></div>)}</div>
-    </section>
-
-    <footer>AI-assisted field tool. Estimates must be verified in official systems. Titan Max does not collect sensitive credentials.</footer>
-
-    {setupOpen&&<div className="modalShade"><div className="modal">
-      <div className="modalLogo">TITAN <b>MAX</b></div>
-      <h2>Pair Titan once</h2>
-      <p>This is Titan's private app passcode — not your AI API key. Titan already uses the same server-side Vercel AI Gateway key as Sterling.</p>
-      <input type="password" value={ownerDraft} onChange={e=>setOwnerDraft(e.target.value)} placeholder="Titan passcode (not API key)" autoCapitalize="none" autoCorrect="off"/>
-      <button onClick={saveOwner}>Save Owner Key</button>
-      <button className="ghost" onClick={()=>setSetupOpen(false)}>Cancel</button>
-    </div></div>}
-  </main>;
-}
-function Fact({label,value}){return <div className="fact"><span>{label}</span><strong>{value||'—'}</strong></div>}
 
 createRoot(document.getElementById('root')).render(<App/>);
 
