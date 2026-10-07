@@ -24,7 +24,7 @@ const ALLOWED_ORIGINS = new Set([
 
 const tools = {
   saveContact: tool({
-    description: 'Save one customer contact field only after the customer explicitly confirms it is correct.',
+    description: 'Save one clearly heard contact-card field. The full card is reviewed once after all four fields are present.',
     inputSchema: z.object({
       field: z.enum(['first','last','phone','email']),
       value: z.string().min(1).max(254),
@@ -51,7 +51,7 @@ const tools = {
     })
   }),
   commitContact: tool({
-    description: 'Call exactly once after first name, last name, phone, and email have all been explicitly confirmed. This sends the confirmed contact packet to the paired iPad, which verifies the current Salesforce house before updating it.',
+    description: 'Call once after the customer has reviewed the complete on-screen contact card and said it is correct.',
     inputSchema: z.object({reviewed:z.boolean().optional()})
   }),
   flagAddressMismatch: tool({
