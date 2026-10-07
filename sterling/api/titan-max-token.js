@@ -51,7 +51,7 @@ export default async function handler(req,res){
     const gateway=createGateway({apiKey,teamIdOrSlug:TEAM_SCOPE});
     const token=await gateway.experimental_realtime.getToken({model:MODEL,expiresAfterSeconds:300});
     const toolsDef=await getRealtimeToolDefinitions({tools});
-    return res.status(200).json({...token,tools:toolsDef,model:MODEL,version:'titan-max-1'});
+    return res.status(200).json({...token,tools:toolsDef,model:MODEL,version: '16.0-cinematic'});
   }catch(e){
     console.error('[titan-max:token]',e);
     return res.status(500).json({error:e?.message||'Could not start Titan Max'});
