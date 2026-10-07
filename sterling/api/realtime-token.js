@@ -28,7 +28,7 @@ const tools = {
     inputSchema: z.object({
       field: z.enum(['first','last','phone','email']),
       value: z.string().min(1).max(254),
-      confirmed: z.boolean()
+      confirmed: z.boolean().optional()
     })
   }),
   setStage: tool({
@@ -52,7 +52,7 @@ const tools = {
   }),
   commitContact: tool({
     description: 'Call exactly once after first name, last name, phone, and email have all been explicitly confirmed. This sends the confirmed contact packet to the paired iPad, which verifies the current Salesforce house before updating it.',
-    inputSchema: z.object({})
+    inputSchema: z.object({reviewed:z.boolean().optional()})
   }),
   flagAddressMismatch: tool({
     description: 'Use when the customer says the house/address/area Sterling has is not correct.',
@@ -95,7 +95,7 @@ export async function mintRealtimeSetup(){
     tools: toolDefs,
     instructions: STERLING_INSTRUCTIONS,
     teamScope: TEAM_SCOPE,
-    version: '17.1-cpr-sales-brain'
+    version: '18.0'
   };
 }
 
