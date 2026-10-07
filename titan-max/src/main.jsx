@@ -70,8 +70,33 @@ function messageText(messages){
   }).filter(x=>x.trim()).join('\n').slice(-9000);
 }
 function cx(...a){return a.filter(Boolean).join(' ')}
+const NUMBER_WORDS={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10};
+const CARRIER_PATTERNS=[
+  ['Verizon',/\bverizon\b/i],['T-Mobile',/\b(?:t[- ]?mobile|tmobile)\b/i],
+  ['AT&T',/\b(?:at&t|att)\b/i],['Spectrum',/\bspectrum\b/i],
+  ['Xfinity',/\bxfinity\b/i],['Cricket',/\bcricket\b/i],['Boost',/\bboost\b/i],
+  ['Visible',/\bvisible\b/i],['Mint',/\bmint(?: mobile)?\b/i],['Metro',/\bmetro(?: by t[- ]?mobile)?\b/i],
+  ['US Cellular',/\bu\.?s\.? cellular\b/i],['Google Fi',/\bgoogle fi\b/i],['Consumer Cellular',/\bconsumer cellular\b/i],
+  ['Cox',/\bcox\b/i]
+];
+function extractLiveFacts(text){
+  const raw=String(text||'').replace(/,/g,' ');
+  const patch={};
+  for(const [name,re] of CARRIER_PATTERNS){if(re.test(raw)){patch.carrier=name;break}}
+  const billPatterns=[
+    /\b(?:my\s+)?bill(?:\s+(?:is|runs|comes\s+to|costs?|about|around))?\s*\$?\s*(\d{2,4}(?:\.\d{1,2})?)/i,
+    /\b(?:pay|paying|spend|spending)\s+(?:about\s+|around\s+)?\$?\s*(\d{2,4}(?:\.\d{1,2})?)\b/i,
+    /\$\s*(\d{2,4}(?:\.\d{1,2})?)\b/
+  ];
+  for(const re of billPatterns){const m=raw.match(re);if(m){const v=Number(m[1]);if(v>=20&&v<=3000)patch.bill=String(v);break}}
+  const lm=raw.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|\d{1,2})\s+(?:phone\s+)?lines?\b/i);
+  if(lm){const k=lm[1].toLowerCase();patch.lines=String(NUMBER_WORDS[k]||Number(k))}
+  const phoneMatches=raw.match(/\b(?:iphone\s*(?:1[3-9]|\d{1,2})(?:\s*(?:pro|max|plus|air|e))?|galaxy\s*[a-z]?\d{2}(?:\s*(?:ultra|plus|fe))?|pixel\s*\d{1,2}(?:\s*(?:pro|xl|a))?|motorola\s+[a-z0-9+ -]+)\b/ig);
+  if(phoneMatches?.length)patch.phones=[...new Set(phoneMatches.map(x=>x.trim()))].slice(0,4).join(', ');
+  return patch;
+}
 
-function TitanFace({mode,status,isPlaying,isCapturing,level,faceRef}){
+function TitanFace({mode,status,isPlaying,isCapturing,level,faceRef,discovery,lastCaptured}){
   const speaking=isPlaying||mode==='speaking';
   const listening=isCapturing&&status==='connected'&&!speaking;
   return <div
@@ -207,6 +232,536 @@ function TitanFace({mode,status,isPlaying,isCapturing,level,faceRef}){
       </g>
     </svg>
 
+    <div className="liveCapture">
+      <div className={cx('captureItem',lastCaptured==='carrier'&&'captured')}><span>CARRIER</span><b>{discovery?.carrier||'Listening…'}</b></div>
+      <div className={cx('captureItem',lastCaptured==='bill'&&'captured')}><span>BILL</span><b>{discovery?.bill?'
+  </div>;
+}
+
+function App(){
+  const [ownerKey,setOwnerKey]=useState(()=>localStorage.getItem(OWNER_STORAGE)||'');
+  const [ownerDraft,setOwnerDraft]=useState('');
+  const [setupOpen,setSetupOpen]=useState(false);
+  const [configured,setConfigured]=useState(null);
+  const [discovery,setDiscovery]=useState(DISCOVERY_EMPTY);
+  const [memories,setMemories]=useState([]);
+  const [lessons,setLessons]=useState([]);
+  const [brainCount,setBrainCount]=useState(0);
+  const [faceMode,setFaceMode]=useState('friendly');
+  const [ring,setRing]=useState(false);
+  const [notice,setNotice]=useState('Titan Max is loaded. Tap Start Titan.');
+  const [error,setError]=useState('');
+  const [starting,setStarting]=useState(false);
+  const [learning,setLearning]=useState(false);
+  const [level,setLevel]=useState(.08);
+  const [lastCaptured,setLastCaptured]=useState('');
+  const processedMessagesRef=useRef(new Set());
+  const streamRef=useRef(null);
+  const analyzerRef=useRef(null);
+  const rafRef=useRef(null);
+  const faceRef=useRef(null);
+  const greetingRef=useRef(null);
+  // Single-flight startup controller. One tap owns the entire startup until
+  // provider-ready or a clean failure. This prevents overlapping realtime sessions.
+  const startupLockRef=useRef(false);
+  const startupAttemptRef=useRef(0);
+  const providerReadyResolveRef=useRef(null);
+  const providerReadyRejectRef=useRef(null);
+  const providerReadyTimerRef=useRef(null);
+  const stayLiveRef=useRef(false);
+  const recoveringRef=useRef(false);
+  const recoveryTimerRef=useRef(null);
+
+  const model=useMemo(()=>gateway.experimental_realtime('openai/gpt-realtime-2.1'),[]);
+  const instructions=useMemo(()=>{
+    const learned=lessons.length?'\nPERSISTENT FIELD LESSONS FROM PRIOR SESSIONS:\n'+lessons.slice(0,25).map((x,i)=>`${i+1}. ${x}`).join('\n'):'';
+    return BASE_BRAIN+learned;
+  },[lessons]);
+  // Realtime session config must stay referentially stable. Recreating it on every
+  // face animation render can tear down the live session on iPhone.
+  const sessionConfig=useMemo(()=>({
+    instructions,
+    inputAudioTranscription:{},
+    voice:'ash',
+    turnDetection:{type:'server-vad'}
+  }),[instructions]);
+
+  const realtime=experimental_useRealtime({
+    model,
+    api:{token:`${API}/api/titan-max-token?device=${encodeURIComponent(ownerKey||'missing')}`},
+    sessionConfig,
+    startupTimeoutMs:9000,
+    closeTimeoutMs:5000,
+    maxEvents:250,
+    onToolCall:async({toolCall})=>{
+      const a=toolCall.args||{};
+      if(toolCall.toolName==='saveDiscovery'){
+        setDiscovery(d=>({...d,[a.field]:String(a.value||'')}));
+        return {ok:true,saved:a.field};
+      }
+      if(toolCall.toolName==='setFaceMode'){
+        setFaceMode(a.mode||'neutral');return {ok:true};
+      }
+      if(toolCall.toolName==='saveFieldMemory'){
+        const r=await apiFetch('/api/titan-max-memory',{
+          method:'POST',
+          body:JSON.stringify({action:'save',...a,discovery})
+        });
+        if(r.ok)await loadBrain();
+        return r;
+      }
+      if(toolCall.toolName==='recallFieldMemory'){
+        return apiFetch('/api/titan-max-memory',{method:'POST',body:JSON.stringify({action:'recall',query:a.query})});
+      }
+      return {ok:false,error:'Unknown Titan tool'};
+    },
+    onEvent:e=>{
+      const t=String(e?.type||'');
+      if(t.includes('speech-start')||t.includes('input-audio'))setFaceMode('friendly');
+      if(t.includes('response')&&t.includes('start'))setFaceMode('thinking');
+      if(t==='error')setFaceMode('serious');
+
+      // Provider readiness completes the one-and-only startup promise.
+      // The greeting is sent by startTitan() only after this promise resolves.
+      if(t==='session-created'||t==='session-updated'||t==='session-started'){
+        const resolveReady=providerReadyResolveRef.current;
+        if(resolveReady){
+          providerReadyResolveRef.current=null;
+          providerReadyRejectRef.current=null;
+          if(providerReadyTimerRef.current)clearTimeout(providerReadyTimerRef.current);
+          providerReadyTimerRef.current=null;
+          resolveReady(t);
+        }
+      }
+    },
+    onError:e=>{
+      const err=e instanceof Error?e:new Error(e?.message||'Titan realtime error');
+      const rejectReady=providerReadyRejectRef.current;
+      if(rejectReady){
+        providerReadyResolveRef.current=null;
+        providerReadyRejectRef.current=null;
+        if(providerReadyTimerRef.current)clearTimeout(providerReadyTimerRef.current);
+        providerReadyTimerRef.current=null;
+        rejectReady(err);
+      }
+      if(startupLockRef.current||recoveringRef.current){
+        setError('');
+        setNotice('Connection shifted. Titan is recovering automatically…');
+        setFaceMode('thinking');
+        return;
+      }
+      if(stayLiveRef.current){
+        setError('');
+        setNotice('Titan is reconnecting automatically…');
+        setFaceMode('thinking');
+        if(!recoveryTimerRef.current){
+          recoveryTimerRef.current=setTimeout(()=>{
+            recoveryTimerRef.current=null;
+            recoverTitan();
+          },500);
+        }
+        return;
+      }
+      setError(err.message||'Titan realtime error');
+      setNotice('Titan needs a fresh Start tap.');
+      setFaceMode('serious');
+    }
+  });
+
+  async function apiFetch(path,opts={}){
+    if(!ownerKey)return {ok:false,error:'Titan passcode required'};
+    try{
+      const r=await fetch(API+path,{
+        ...opts,
+        headers:{'Content-Type':'application/json','X-Titan-Owner-Key':ownerKey,...(opts.headers||{})}
+      });
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok)return {ok:false,error:j.error||`Request failed (${r.status})`};
+      return j;
+    }catch(e){return {ok:false,error:e.message||String(e)}}
+  }
+
+  async function loadBrain(){
+    if(!ownerKey)return;
+    const j=await apiFetch('/api/titan-max-memory');
+    if(j.ok){
+      setMemories(j.recent||[]);
+      setLessons(j.lessons||[]);
+      setBrainCount(j.lessonCount||0);
+    }
+  }
+
+  async function preflightTitan(){
+    if(!ownerKey)return {ok:false,error:'Titan passcode required'};
+    try{
+      const r=await fetch(API+'/api/titan-max-health?t='+Date.now(),{
+        cache:'no-store',
+        headers:{'X-Titan-Owner-Key':ownerKey}
+      });
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok)return {ok:false,status:r.status,error:j.error||`Titan health check failed (${r.status})`};
+      return j;
+    }catch(e){
+      return {ok:false,error:e?.message||'Titan backend is unreachable'};
+    }
+  }
+
+  useEffect(()=>{
+    fetch(API+'/api/gateway-key?t='+Date.now(),{cache:'no-store'})
+      .then(r=>r.json()).then(j=>setConfigured(!!j.configured)).catch(()=>setConfigured(false));
+  },[]);
+  useEffect(()=>{if(ownerKey)loadBrain()},[ownerKey]);
+
+  // Immediate deterministic autofill from customer speech. Tool calls still
+  // refine the data, but visible NOW/NEW fields no longer wait on the model.
+  useEffect(()=>{
+    for(const m of realtime.messages||[]){
+      if(m.role!=='user'||processedMessagesRef.current.has(m.id))continue;
+      const text=(m.parts||[]).filter(p=>p.type==='text').map(p=>p.text||'').join(' ').trim();
+      if(!text)continue;
+      processedMessagesRef.current.add(m.id);
+      const patch=extractLiveFacts(text);
+      const keys=Object.keys(patch);
+      if(keys.length){
+        setDiscovery(d=>({...d,...patch}));
+        setLastCaptured(keys[keys.length-1]);
+        setTimeout(()=>setLastCaptured(''),900);
+      }
+    }
+  },[realtime.messages]);
+
+  useEffect(()=>{
+    const onOnline=()=>{if(stayLiveRef.current&&!recoveringRef.current)recoverTitan()};
+    window.addEventListener('online',onOnline);
+    return()=>window.removeEventListener('online',onOnline);
+  },[]);
+
+  useEffect(()=>{
+    const onMove=e=>{
+      if(!faceRef.current)return;
+      const r=faceRef.current.getBoundingClientRect(),x=Math.max(-1,Math.min(1,(e.clientX-(r.left+r.width/2))/(r.width/2))),y=Math.max(-1,Math.min(1,(e.clientY-(r.top+r.height/2))/(r.height/2)));
+      faceRef.current.style.setProperty('--lookX',`${x*7}px`);
+      faceRef.current.style.setProperty('--lookY',`${y*5}px`);
+    };
+    window.addEventListener('pointermove',onMove,{passive:true});
+    return()=>window.removeEventListener('pointermove',onMove);
+  },[]);
+
+  function startAnalyzer(stream){
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext,ctx=new AC();
+      const src=ctx.createMediaStreamSource(stream),an=ctx.createAnalyser();an.fftSize=256;src.connect(an);
+      analyzerRef.current={ctx,an,src};const arr=new Uint8Array(an.frequencyBinCount);let last=0;
+      const tick=(ts=0)=>{
+        an.getByteFrequencyData(arr);let sum=0;for(const v of arr)sum+=v;
+        const x=Math.min(1,sum/arr.length/90),value=.06+x*.94;
+        if(faceRef.current)faceRef.current.style.setProperty('--level',String(value));
+        if(ts-last>120){last=ts;setLevel(value)}
+        rafRef.current=requestAnimationFrame(tick)
+      };tick();
+    }catch{}
+  }
+  function stopLocalMedia(){
+    if(rafRef.current)cancelAnimationFrame(rafRef.current);
+    try{analyzerRef.current?.ctx?.close()}catch{}
+    analyzerRef.current=null;
+    try{streamRef.current?.getTracks()?.forEach(t=>t.stop())}catch{}
+    streamRef.current=null;setLevel(.08);
+  }
+
+  function clearProviderWait(){
+    providerReadyResolveRef.current=null;
+    providerReadyRejectRef.current=null;
+    if(providerReadyTimerRef.current)clearTimeout(providerReadyTimerRef.current);
+    providerReadyTimerRef.current=null;
+  }
+
+  async function openRealtimeWithRetry(stream,firstTurn,attempt,{resume=false}={}){
+    let lastError=null;
+    const delays=[0,450,1100];
+    for(let pass=0;pass<3;pass++){
+      if(attempt!==startupAttemptRef.current)throw new Error('Titan startup was cancelled');
+      if(delays[pass])await new Promise(r=>setTimeout(r,delays[pass]));
+      try{
+        if(pass>0){try{realtime.disconnect()}catch{}}
+        setError('');
+        setNotice(pass===0
+          ?(resume?'Restoring Titan executive link…':'Opening realtime executive link…')
+          :`Signal changed. Titan is self-recovering (${pass+1}/3)…`);
+
+        const providerReady=new Promise((resolve,reject)=>{
+          providerReadyResolveRef.current=resolve;
+          providerReadyRejectRef.current=reject;
+          providerReadyTimerRef.current=setTimeout(()=>{
+            clearProviderWait();
+            reject(new Error('Provider ready timeout'));
+          },7500);
+        });
+
+        await realtime.connect({stream,capture:true});
+        if(attempt!==startupAttemptRef.current)throw new Error('Titan startup was cancelled');
+        await providerReady;
+        if(attempt!==startupAttemptRef.current)throw new Error('Titan startup was cancelled');
+
+        clearProviderWait();
+        realtime.sendTextMessage(firstTurn);
+        return true;
+      }catch(e){
+        lastError=e;
+        clearProviderWait();
+        if((e?.message||String(e))==='Titan startup was cancelled')throw e;
+      }
+    }
+    throw lastError||new Error('Titan could not restore the realtime link');
+  }
+
+  async function recoverTitan(){
+    if(!stayLiveRef.current||recoveringRef.current||startupLockRef.current)return;
+    const stream=streamRef.current;
+    const liveTrack=stream?.getAudioTracks?.().find(t=>t.readyState==='live');
+    if(!stream||!liveTrack){
+      stayLiveRef.current=false;
+      setNotice('Microphone permission needs one Start tap.');
+      return;
+    }
+    recoveringRef.current=true;
+    startupLockRef.current=true;
+    const attempt=++startupAttemptRef.current;
+    try{
+      await openRealtimeWithRetry(
+        stream,
+        'Resume the current conversation naturally. Do not repeat the startup greeting. Listen first.',
+        attempt,
+        {resume:true}
+      );
+      stayLiveRef.current=true;
+      setError('');
+      setNotice('Titan recovered and is listening.');
+      setFaceMode(ring?'ring':'friendly');
+    }catch(e){
+      stayLiveRef.current=false;
+      setError(e?.message||String(e));
+      setNotice('Titan could not reconnect because the network/provider is unavailable. Tap Start when service returns.');
+      setFaceMode('serious');
+    }finally{
+      recoveringRef.current=false;
+      startupLockRef.current=false;
+      setStarting(false);
+    }
+  }
+
+  async function startTitan(){
+    if(!ownerKey){setSetupOpen(true);setNotice('Enter your Titan passcode once on this iPhone.');return}
+    if(startupLockRef.current||starting||realtime.status==='connecting'||realtime.status==='connected'){
+      setNotice(realtime.status==='connected'?'Titan is already live.':'Titan startup is already in progress.');
+      return;
+    }
+
+    startupLockRef.current=true;
+    stayLiveRef.current=false;
+    const attempt=++startupAttemptRef.current;
+    setStarting(true);setError('');setNotice('Running executive systems check…');setFaceMode(ring?'ring':'thinking');
+
+    try{
+      let health=null;
+      for(let check=0;check<3;check++){
+        health=await Promise.race([
+          preflightTitan(),
+          new Promise(resolve=>setTimeout(()=>resolve({ok:false,error:'Titan backend health check timed out'}),4500))
+        ]);
+        if(health?.ok)break;
+        if(health?.status===401)break;
+        if(check<2){
+          setNotice(`Backend signal changed. Retrying automatically (${check+2}/3)…`);
+          await new Promise(r=>setTimeout(r,450+check*650));
+        }
+      }
+      if(attempt!==startupAttemptRef.current)throw new Error('Titan startup was cancelled');
+      if(!health?.ok){
+        if(health?.status===401){
+          localStorage.removeItem(OWNER_STORAGE);setOwnerKey('');setSetupOpen(true);
+        }
+        throw new Error(health?.error||'Titan backend is not ready');
+      }
+
+      setNotice('Systems green. Unlocking microphone…');
+      const stream=await navigator.mediaDevices.getUserMedia({audio:{
+        echoCancellation:true,
+        noiseSuppression:true,
+        autoGainControl:true,
+        channelCount:1
+      }});
+      if(attempt!==startupAttemptRef.current){
+        stream.getTracks().forEach(t=>t.stop());
+        throw new Error('Titan startup was cancelled');
+      }
+      streamRef.current=stream;startAnalyzer(stream);
+
+      const firstTurn=ring
+        ?"Ring Mode is active. Speak first now with a short polished technology opener, identify yourself as Titan, London's AI partner, say London is right here, ask for about 20 seconds, then listen."
+        :'Say exactly: Titan, executive AI ready. Then stop and listen immediately.';
+
+      await openRealtimeWithRetry(stream,firstTurn,attempt);
+      stayLiveRef.current=true;
+      setError('');
+      setNotice('Titan Executive AI is live and listening.');
+      setFaceMode(ring?'ring':'friendly');
+    }catch(e){
+      clearProviderWait();
+      try{realtime.disconnect()}catch{}
+      stopLocalMedia();
+      stayLiveRef.current=false;
+      const message=e?.message||String(e);
+      if(message!=='Titan startup was cancelled'){
+        setError(message);
+        setNotice('Titan exhausted automatic recovery. Check connection/permission, then tap Start Titan.');
+        setFaceMode('serious');
+      }
+    }finally{
+      if(attempt===startupAttemptRef.current){
+        startupLockRef.current=false;
+        setStarting(false);
+      }
+    }
+  }
+
+  function stopTitan(){
+    ++startupAttemptRef.current;
+    stayLiveRef.current=false;
+    recoveringRef.current=false;
+    if(recoveryTimerRef.current)clearTimeout(recoveryTimerRef.current);
+    recoveryTimerRef.current=null;
+    startupLockRef.current=false;
+    greetingRef.current=null;
+    const rejectReady=providerReadyRejectRef.current;
+    providerReadyResolveRef.current=null;
+    providerReadyRejectRef.current=null;
+    if(providerReadyTimerRef.current)clearTimeout(providerReadyTimerRef.current);
+    providerReadyTimerRef.current=null;
+    if(rejectReady)rejectReady(new Error('Titan startup was cancelled'));
+    try{realtime.disconnect()}catch{}
+    stopLocalMedia();
+    setNotice('Titan stopped. Tap Start Titan when ready.');
+    setFaceMode('neutral');
+    setStarting(false);
+  }
+
+  async function toggleRing(){
+    const next=!ring;setRing(next);setFaceMode(next?'ring':'friendly');
+    if(realtime.status==='connected'){
+      realtime.sendTextMessage(next
+        ?"Switch into Ring Mode now. Give a quick friendly tech joke, identify yourself as Titan, London's AI partner, say London is right here, ask for about 20 seconds, then listen."
+        :"Ring Mode is off. Return to normal concise customer conversation.");
+    }
+  }
+
+  async function endAndLearn(){
+    if(learning)return;setLearning(true);setNotice('Titan is extracting reusable field lessons…');
+    try{
+      const transcript=messageText(realtime.messages);
+      const address=prompt('Optional stop/address label for memory (leave blank if not needed):','')||'';
+      const j=await apiFetch('/api/titan-max-learn',{method:'POST',body:JSON.stringify({
+        transcript,discovery,address,summary:transcript.slice(-700)
+      })});
+      if(!j.ok)throw new Error(j.error||'Learning failed');
+      await loadBrain();setNotice(`Learning saved. Titan now has ${j.lessonCount||0} persistent field lessons.`);
+      realtime.disconnect();stopLocalMedia();
+    }catch(e){setError(e.message||String(e));setNotice('Session ended, but the learning pass needs a retry.')}
+    finally{setLearning(false)}
+  }
+
+  function saveOwner(){
+    const v=ownerDraft.trim();if(!v){setError('Enter the Titan passcode.');return}
+    localStorage.setItem(OWNER_STORAGE,v);setOwnerKey(v);setOwnerDraft('');setSetupOpen(false);setError('');setNotice('Titan passcode saved on this iPhone. Titan is ready.');
+  }
+
+  const n=estimate(discovery.lines),b=money(discovery.bill),diff=n&&b?Math.round(b-n):0;
+  const statusLabel=starting?'STARTING':realtime.status==='connected'?(realtime.isPlaying?'SPEAKING':realtime.isCapturing?'LISTENING':'LIVE'):realtime.status.toUpperCase();
+
+  return <main className="app">
+    <header className="topbar">
+      <div><div className="wordmark">TITAN <b>MAX</b></div><div className="sub">Executive field intelligence • adaptive memory • GitHub-hosted</div></div>
+      <div className={cx('statusPill',realtime.status)}><i/>{statusLabel}</div>
+    </header>
+
+    <section className="hero">
+      <div className="faceCard">
+        <TitanFace mode={faceMode} status={realtime.status} isPlaying={realtime.isPlaying} isCapturing={realtime.isCapturing} level={level} faceRef={faceRef} discovery={discovery} lastCaptured={lastCaptured}/>
+        <div className="brainStrip">
+          <div><span>BRAIN</span><strong>{configured===false?'KEY OFFLINE':'MAX ONLINE'}</strong></div>
+          <div><span>MEMORY</span><strong>{memories.length} RECENT</strong></div>
+          <div><span>GROWTH</span><strong>{brainCount} LESSONS</strong></div>
+        </div>
+      </div>
+      <div className="liveCard">
+        <div className="eyebrow">EXECUTIVE LINK</div>
+        <h1>{realtime.status==='connected'?'Ready for the next conversation.':'Executive intelligence standing by.'}</h1>
+        <p>{notice}</p>
+        {error&&<div className="errorBox">{error}</div>}
+        <div className="primaryRow">
+          {realtime.status==='connected'
+            ?<button className="big stop" onClick={stopTitan}>Stop Titan</button>
+            :<button className="big" onClick={startTitan} disabled={starting}>{starting?'Starting…':'Start Titan'}</button>}
+          <button className={cx('modeBtn',ring&&'active')} onClick={toggleRing}>Ring {ring?'ON':'Mode'}</button>
+        </div>
+        <div className="microcopy">iPhone requires a real tap before microphone audio can start. Titan now obeys that rule instead of sitting on a loading screen.</div>
+      </div>
+    </section>
+
+    <section className="nowNew">
+      <div className="quoteCard now">
+        <div className="cardTitle">NOW</div><div className="price">{discovery.bill?(String(discovery.bill).includes('$')?discovery.bill:'$'+discovery.bill):'—'}</div>
+        <Fact label="Carrier" value={discovery.carrier}/><Fact label="Lines" value={discovery.lines}/><Fact label="Phones" value={discovery.phones}/><Fact label="Plan" value={discovery.currentPlan}/>
+      </div>
+      <div className="quoteCard newer">
+        <div className="cardTitle">NEW • ESTIMATE</div><div className="price">{n?'$'+n:'—'}</div>
+        <Fact label="Difference" value={diff>0?'$'+diff+'/mo less*':(n&&b?'Compare total*':'—')}/><Fact label="Upgrade" value={discovery.upgradeInterest}/><Fact label="Discount fit" value={discovery.discountEligibility}/><Fact label="Verify" value="London / official system"/>
+      </div>
+    </section>
+
+    <section className="console">
+      <div className="consoleHead"><div><span>LIVE CONVERSATION</span><strong>{realtime.messages.length} turns</strong></div><div className="pulseText">{realtime.isPlaying?'Titan speaking':realtime.isCapturing?'Mic listening':'Standing by'}</div></div>
+      <div className="transcript">
+        {realtime.messages.length===0?<div className="empty">Conversation transcript will appear here.</div>:
+          realtime.messages.slice(-12).map(m=><div key={m.id} className={cx('bubble',m.role)}>
+            <b>{m.role==='user'?'YOU / CUSTOMER':'TITAN'}</b>
+            <span>{(m.parts||[]).filter(p=>p.type==='text').map(p=>p.text).join(' ')||'…'}</span>
+          </div>)}
+      </div>
+    </section>
+
+    <section className="memoryPanel">
+      <div className="panelHead"><div><span>SECOND LOOP MEMORY</span><strong>Persistent field brain</strong></div><button onClick={endAndLearn} disabled={learning}>{learning?'Learning…':'End & Learn'}</button></div>
+      <div className="memoryList">{memories.length===0?<div className="empty">No Titan Max memories yet.</div>:memories.slice(0,6).map(m=><div className="memory" key={m.id}><b>{m.address||'Field session'}</b><span>{m.summary}</span><small>{m.nextMove?('Next: '+m.nextMove):new Date(m.at).toLocaleString()}</small></div>)}</div>
+    </section>
+
+    <footer>AI-assisted field tool. Estimates must be verified in official systems. Titan Max does not collect sensitive credentials.</footer>
+
+    {setupOpen&&<div className="modalShade"><div className="modal">
+      <div className="modalLogo">TITAN <b>MAX</b></div>
+      <h2>Pair Titan once</h2>
+      <p>This is Titan's private app passcode — not your AI API key. Titan already uses the same server-side Vercel AI Gateway key as Sterling.</p>
+      <input type="password" value={ownerDraft} onChange={e=>setOwnerDraft(e.target.value)} placeholder="Titan passcode (not API key)" autoCapitalize="none" autoCorrect="off"/>
+      <button onClick={saveOwner}>Save Owner Key</button>
+      <button className="ghost" onClick={()=>setSetupOpen(false)}>Cancel</button>
+    </div></div>}
+  </main>;
+}
+function Fact({label,value}){return <div className="fact"><span>{label}</span><strong>{value||'—'}</strong></div>}
+
+createRoot(document.getElementById('root')).render(<App/>);
+
+if('serviceWorker'in navigator){
+  window.addEventListener('load',async()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('/location-upgrade/titan-live/sw.js',{updateViaCache:'none'});
+      await reg.update();
+    }catch{}
+  });
+}
++discovery.bill:'—'}</b></div>
+      <div className={cx('captureItem',lastCaptured==='lines'&&'captured')}><span>LINES</span><b>{discovery?.lines||'—'}</b></div>
+    </div>
     <div className="execLabel"><span>TITAN MAX</span><b>EXECUTIVE INTELLIGENCE</b></div>
     <div className="stateOrb"/>
   </div>;
