@@ -93,10 +93,38 @@ function saveSessionLine(){
   updateStats();
 }
 
+async function prepareOfflineVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const status=$('voicePackStatus');
+  if(!SR){status.textContent='This browser does not expose Web Speech recognition. Type + quick buttons remain fully offline.';return}
+  if(typeof SR.available!=='function'||typeof SR.install!=='function'){
+    status.textContent='This iPhone/browser does not expose downloadable on-device speech packs. Titan Light will still use local brain + local speech output, with Type as the guaranteed offline input.';
+    return;
+  }
+  try{
+    status.textContent='Checking the English on-device speech pack…';
+    const availability=await SR.available({langs:['en-US'],processLocally:true});
+    if(availability==='available'){
+      status.textContent='On-device English recognition is installed. Titan Light voice input can run locally on supported browser builds.';
+      return;
+    }
+    if(availability==='unavailable'){
+      status.textContent='On-device English speech recognition is unavailable on this browser/device.';
+      return;
+    }
+    status.textContent='Downloading the on-device English speech pack… keep data/Wi-Fi on for this one-time setup.';
+    const ok=await SR.install({langs:['en-US'],processLocally:true});
+    status.textContent=ok?'Offline English speech pack installed.':'The browser could not install the speech pack. Type mode remains available offline.';
+  }catch(e){
+    status.textContent='Offline speech-pack setup is not supported here. Type + quick buttons remain the guaranteed offline input.';
+  }
+}
+
 function initRecognition(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR)return false;
   recognition=new SR();recognition.lang='en-US';recognition.interimResults=false;recognition.continuous=false;recognition.maxAlternatives=1;
+  if('processLocally' in recognition)recognition.processLocally=true;
   recognition.onresult=e=>{const t=e.results?.[0]?.[0]?.transcript;if(t)hear(t)};
   recognition.onerror=e=>{
     if(['aborted','no-speech'].includes(e.error))return;
@@ -274,6 +302,7 @@ function startMode(mode){
 }
 function stop(){state.active=false;stopListening();speechSynthesis?.cancel();$('statusText').textContent='Standing by';$('liveText').textContent='Offline brain saved on this phone';render()}
 
+$('offlineVoiceBtn').onclick=prepareOfflineVoice;
 $('talkBtn').onclick=()=>startMode('talk');$('ringBtn').onclick=()=>startMode('ring');$('stopBtn').onclick=stop;
 $('outdoorBtn').onclick=()=>{state.outdoor=!state.outdoor;render()};
 $('typeBtn').onclick=()=>{document.querySelector('.repDrawer').open=true;$('manualInput').focus()};
