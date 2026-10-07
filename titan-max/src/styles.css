@@ -428,3 +428,204 @@ footer{text-align:center;color:#526e84;font-size:9px;padding:18px 8px}
 }
 
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
+
+
+/* TITAN V17 — customer-first flagship-equivalent layout */
+html,body{background:#020811}
+body{padding-bottom:132px}
+.app.customerFirst{
+  max-width:760px;
+  padding:calc(12px + env(safe-area-inset-top)) 10px calc(150px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 88% 7%,#0d558432,transparent 26%),
+    linear-gradient(180deg,#061422,#020811 50%,#01050a);
+}
+.compactTopbar{padding:5px 4px 8px;margin-bottom:7px}
+.compactTopbar .wordmark{font-size:31px}
+.compactTopbar .sub{font-size:9px;letter-spacing:.7px}
+.compactTopbar .statusPill{font-size:9px;padding:7px 9px}
+
+.titanCustomerHero{
+  position:relative;
+  min-height:150px;
+  overflow:hidden;
+  border:1px solid #1f5d82;
+  border-radius:27px;
+  background:
+    linear-gradient(90deg,#061425 0 54%,#061425c9 68%,transparent 100%),
+    radial-gradient(circle at 82% 38%,#0d8ad94d,transparent 36%),
+    #06111d;
+  box-shadow:0 22px 60px #0008;
+  margin-bottom:10px;
+}
+.heroCopy{position:relative;z-index:5;width:62%;padding:20px 10px 16px 17px}
+.heroCopy .eyebrow{font-size:9px;letter-spacing:1.7px;color:#76d6ff;font-weight:950}
+.heroStatusLine{display:flex;align-items:center;gap:8px;margin-top:24px}
+.heroStatusLine .statusDot{width:10px;height:10px;border-radius:50%;background:#55efa7;box-shadow:0 0 16px #55efa7}
+.heroStatusLine strong{font-size:17px;line-height:1.15;color:#f0f9ff}
+.heroCopy p{font-size:11px;line-height:1.35;color:#8fb0c7;margin:8px 0 0;max-height:46px;overflow:hidden}
+
+.customerAi{
+  position:absolute;
+  right:-7px;
+  bottom:-36px;
+  width:190px;
+  height:218px;
+  z-index:2;
+  overflow:hidden;
+}
+.customerAi .faceStage.cinematicFace{height:218px!important;min-height:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+.customerAi .titanCinema{inset:0!important;transform:none!important;background:transparent!important}
+.customerAi .titanFrame{animation:none!important;opacity:0!important;object-position:center 27%!important}
+.customerAi .titanFrame.tf1{opacity:1!important;transform:scale(1.15)!important}
+.customerAi .cinemaShade{background:radial-gradient(circle at 48% 32%,transparent 0 29%,#06111d2b 50%,#06111dd8 88%)!important}
+.customerAi .cinemaStatus,.customerAi .liveCapture,.customerAi .execLabel,.customerAi .stateOrb{display:none!important}
+
+.nowNew.centerpiece{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr)!important;
+  gap:7px!important;
+  align-items:stretch;
+  margin:0!important;
+}
+.centerpiece .quoteCard{
+  min-height:440px!important;
+  padding:14px 12px 12px!important;
+  border-radius:25px!important;
+  display:flex;
+  flex-direction:column;
+  box-shadow:0 20px 55px #0008;
+}
+.centerpiece .carrierHeader{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  padding:10px 11px;
+  border-radius:15px;
+  margin-bottom:14px;
+  background:#0b1e30;
+  border:1px solid #234f70;
+}
+.centerpiece .carrierHeader .cardTitle{margin:0!important;font-size:16px!important;letter-spacing:.2px!important;color:#fff!important}
+.centerpiece .carrierHeader>span{font-size:9px;font-weight:950;letter-spacing:1px;color:#c4d9e9}
+.centerpiece .billLabel{font-size:11px;color:#89a7bf;margin:1px 3px 2px}
+.centerpiece .price{
+  font-size:42px!important;
+  line-height:1;
+  font-weight:1000;
+  letter-spacing:-2px;
+  margin:6px 2px 18px!important;
+  color:#fff;
+  white-space:nowrap;
+}
+.centerpiece .price small{font-size:13px;letter-spacing:0;color:#9eb7cc;margin-left:4px;font-weight:800}
+.centerpiece .fact{font-size:12px!important;padding:11px 2px!important;margin-top:auto;border-bottom:1px solid #15344b}
+.centerpiece .fact+.fact{margin-top:0}
+.centerpiece .fact span{font-size:11px!important}
+.centerpiece .fact strong{font-size:12px!important;text-align:right;white-space:normal}
+.centerpiece .quoteCard.now{background:linear-gradient(165deg,#091a2a,#050a12 72%)!important;border-color:#315b79!important}
+.centerpiece .quoteCard.now.carrierVerizon{background:linear-gradient(165deg,#36080e,#080a11 72%)!important;border-color:#ff3c58!important;box-shadow:0 20px 55px #0008,0 0 35px #ff244424!important}
+.centerpiece .quoteCard.now.carrierVerizon .carrierHeader{background:linear-gradient(90deg,#a60020,#da1237);border-color:#ff5670}
+.centerpiece .quoteCard.now.carrierTMobile{background:linear-gradient(165deg,#390423,#080a11 72%)!important;border-color:#e20074!important;box-shadow:0 20px 55px #0008,0 0 35px #e2007425!important}
+.centerpiece .quoteCard.now.carrierTMobile .carrierHeader{background:linear-gradient(90deg,#a40058,#e20074);border-color:#ff58ad}
+.centerpiece .attCard{
+  background:
+    radial-gradient(circle at 90% 2%,#49dfff30,transparent 30%),
+    linear-gradient(165deg,#073c63,#06101a 74%)!important;
+  border-color:#36d7ff!important;
+  box-shadow:0 20px 55px #0008,0 0 40px #1ecbff26!important;
+}
+.centerpiece .attHeader{background:linear-gradient(90deg,#0877c8,#0a9feb)!important;border-color:#62dcff!important}
+.centerpiece .attPrice{color:#55e8ff!important;text-shadow:0 0 18px #31ccff35}
+.switchArrow{display:flex;align-items:center;justify-content:center;color:#58d8ff;font-size:28px;font-weight:1000;text-shadow:0 0 15px #22bfff}
+.centerpiece .savingsHero{
+  display:grid;
+  grid-template-columns:42px 1fr;
+  gap:8px;
+  align-items:center;
+  background:linear-gradient(135deg,#063a34,#075c43);
+  border:1px solid #39e6a3;
+  border-radius:17px;
+  padding:11px 10px;
+  margin:0 0 12px;
+  box-shadow:0 0 24px #29e4971c;
+}
+.centerpiece .moneyBag{font-size:30px}
+.centerpiece .savingsHero small{display:block;font-size:9px;color:#8ff4c6;letter-spacing:.8px;font-weight:900}
+.centerpiece .savingsHero strong{display:block;color:#65f1b8;font-size:24px;line-height:1.05;margin-top:2px}
+
+.customerFirst>.valueBanner{
+  margin:10px 0 14px;
+  border:1px solid #1f577d;
+  background:linear-gradient(90deg,#082139,#061524);
+  border-radius:18px;
+  padding:11px 13px;
+  display:flex;
+  gap:11px;
+  align-items:center;
+}
+.customerFirst>.valueBanner .diamond{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:#0b4675;color:#74ddff;font-size:18px}
+.customerFirst>.valueBanner strong{display:block;font-size:13px}
+.customerFirst>.valueBanner small{display:block;color:#8eabc0;font-size:10px;margin-top:2px}
+
+.titanDock{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:300;
+  display:grid;
+  grid-template-columns:1.1fr 1.1fr 1.15fr .9fr .9fr;
+  gap:6px;
+  padding:9px 7px calc(9px + env(safe-area-inset-bottom));
+  background:#04111df4;
+  border-top:1px solid #1d5276;
+  box-shadow:0 -14px 42px #000a;
+  backdrop-filter:blur(20px);
+}
+.titanDock .dockBtn{
+  border:0;
+  min-height:68px;
+  border-radius:18px;
+  color:#fff;
+  font:inherit;
+  font-size:20px;
+  font-weight:950;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  background:#17354e;
+  opacity:.72;
+}
+.titanDock .dockBtn span{font-size:10px;line-height:1}.titanDock .dockBtn small{display:block;font-size:7px;margin-top:4px;opacity:.82}
+.titanDock .dockBtn.talk{background:linear-gradient(160deg,#0872cb,#08a4f0)}
+.titanDock .dockBtn.ring{background:linear-gradient(160deg,#8a5a0e,#c58b1a)}
+.titanDock .dockBtn.outdoor{background:linear-gradient(160deg,#087b53,#0cad74)}
+.titanDock .dockBtn.mute{background:linear-gradient(160deg,#173b5b,#20557a)}
+.titanDock .dockBtn.stop{background:linear-gradient(160deg,#8f2833,#b63140)}
+.titanDock .dockBtn.active{opacity:1;box-shadow:inset 0 0 0 2px #9af6c4,0 0 25px #4ff0a92a}
+.titanDock .dockBtn:disabled{opacity:.48}
+
+.customerFirst .ownerDrawer{margin-top:18px;opacity:.82}
+.customerFirst footer{margin-bottom:10px}
+
+@media(max-width:430px){
+  body{padding-bottom:122px}
+  .app.customerFirst{padding-left:7px;padding-right:7px;padding-bottom:148px}
+  .compactTopbar .wordmark{font-size:27px}.compactTopbar .sub{font-size:8px}
+  .titanCustomerHero{min-height:138px}
+  .heroCopy{padding:17px 8px 14px 13px;width:64%}.heroStatusLine{margin-top:20px}.heroStatusLine strong{font-size:14px}.heroCopy p{font-size:9px}
+  .customerAi{width:150px;height:185px;right:-8px;bottom:-34px}.customerAi .faceStage.cinematicFace{height:185px!important}
+  .nowNew.centerpiece{grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr)!important;gap:5px!important}
+  .centerpiece .quoteCard{min-height:405px!important;padding:10px 8px!important;border-radius:20px!important}
+  .centerpiece .carrierHeader{padding:8px 7px;margin-bottom:12px}.centerpiece .carrierHeader .cardTitle{font-size:13px!important}.centerpiece .carrierHeader>span{font-size:7px}
+  .centerpiece .billLabel{font-size:9px}.centerpiece .price{font-size:34px!important;margin-bottom:14px!important}.centerpiece .price small{font-size:10px}
+  .centerpiece .fact{padding:9px 1px!important}.centerpiece .fact span,.centerpiece .fact strong{font-size:9px!important}
+  .centerpiece .savingsHero{grid-template-columns:31px 1fr;padding:9px 7px}.centerpiece .moneyBag{font-size:24px}.centerpiece .savingsHero strong{font-size:19px}.centerpiece .savingsHero small{font-size:7px}
+  .customerFirst>.valueBanner{padding:9px}.customerFirst>.valueBanner strong{font-size:11px}.customerFirst>.valueBanner small{font-size:8px}
+  .titanDock{gap:4px;padding:7px 5px calc(7px + env(safe-area-inset-bottom))}
+  .titanDock .dockBtn{min-height:62px;font-size:18px;border-radius:16px}.titanDock .dockBtn span{font-size:9px}.titanDock .dockBtn small{font-size:7px}
+}
