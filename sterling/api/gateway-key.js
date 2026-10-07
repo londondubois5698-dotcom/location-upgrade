@@ -36,6 +36,7 @@ async function verifyGatewayKey(apiKey){
 }
 
 export async function loadStoredGatewayKey(){
+  if(process.env.VERCEL_OIDC_TOKEN) return process.env.VERCEL_OIDC_TOKEN;
   if(process.env.AI_GATEWAY_API_KEY) return process.env.AI_GATEWAY_API_KEY;
   const cfg=await readConfig();
   return cfg?.apiKey||'';
