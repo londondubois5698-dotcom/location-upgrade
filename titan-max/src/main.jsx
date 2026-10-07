@@ -160,6 +160,8 @@ function App(){
   const [brainCount,setBrainCount]=useState(0);
   const [faceMode,setFaceMode]=useState('friendly');
   const [ring,setRing]=useState(false);
+  const [muted,setMuted]=useState(false);
+  const [outdoorMax,setOutdoorMax]=useState(true);
   const [notice,setNotice]=useState('Titan Max is loaded. Tap Start Titan.');
   const [error,setError]=useState('');
   const [starting,setStarting]=useState(false);
@@ -188,8 +190,9 @@ function App(){
   const instructions=useMemo(()=>{
     const learned=lessons.length?'\nPERSISTENT FIELD LESSONS FROM PRIOR SESSIONS:\n'+lessons.slice(0,25).map((x,i)=>`${i+1}. ${x}`).join('\n'):'';
     const mode=ring?'\nCURRENT LIVE MODE: RING MODE IS ON. START SILENT. WAIT FOR THE HOMEOWNER TO SPEAK FIRST.\n':'\nCURRENT LIVE MODE: NORMAL DOOR MODE. GREETING FIRST, THEN WAIT FOR THEIR RESPONSE.\n';
-    return BASE_BRAIN+mode+learned;
-  },[lessons,ring]);
+    const voiceMode=outdoorMax?'\nVOICE MODE: OUTDOOR MAX. Project strongly and clearly for a doorstep without shouting.\n':'\nVOICE MODE: NORMAL. Use a warm conversational indoor projection.\n';
+    return BASE_BRAIN+mode+voiceMode+learned;
+  },[lessons,ring,outdoorMax]);
   // Realtime session config must stay referentially stable. Recreating it on every
   // face animation render can tear down the live session on iPhone.
   const sessionConfig=useMemo(()=>({
@@ -550,7 +553,7 @@ function App(){
         stream.getTracks().forEach(t=>t.stop());
         throw new Error('Titan startup was cancelled');
       }
-      streamRef.current=stream;startAnalyzer(stream);
+      streamRef.current=stream;setMuted(false);startAnalyzer(stream);
 
       const firstTurn=ring?'':'Start NORMAL DOOR MODE now. Your only first words are exactly: "Hey! How are you doing?" Then STOP and wait for a real audible response. After they answer, follow the Terabyte icebreaker law. If the first hook is flat, use only one backup hook, then move forward.';
 
@@ -610,12 +613,26 @@ function App(){
     providerReadyTimerRef.current=null;
     if(rejectReady)rejectReady(new Error('Titan startup was cancelled'));
     try{realtime.disconnect()}catch{}
-    stopLocalMedia();
-    setNotice('Titan stopped. Tap Start Titan when ready.');
+    stopLocalMedia();setMuted(false);
+    setNotice('Titan stopped. Tap Talk or Ring when ready.');
     setFaceMode('neutral');
     setStarting(false);
   }
 
+
+  function toggleMute(){
+    const track=streamRef.current?.getAudioTracks?.()[0];
+    if(!track)return;
+    track.enabled=!track.enabled;
+    setMuted(!track.enabled);
+    setNotice(track.enabled?'Titan is listening.':'Titan microphone muted.');
+  }
+
+  function toggleOutdoor(){
+    if(realtime.status==='connected'){setNotice('Outdoor Max is locked for this live session. Stop Titan to change it.');return}
+    setOutdoorMax(v=>!v);
+    setNotice(outdoorMax?'Outdoor Max will be OFF for the next session.':'Outdoor Max will be ON for the next session.');
+  }
 
   async function endAndLearn(){
     if(learning)return;setLearning(true);setNotice('Titan is extracting reusable field lessons…');
@@ -642,17 +659,22 @@ function App(){
   const n=estimate(discovery.lines),b=money(discovery.bill),diff=n&&b?Math.round(b-n):0;
   const statusLabel=starting?'STARTING':realtime.status==='connected'?(realtime.isPlaying?'SPEAKING':realtime.isCapturing?'LISTENING':'LIVE'):realtime.status.toUpperCase();
 
-  return <main className="app">
-    <header className="topbar">
+  return <main className="app customerFirst">
+    <header className="topbar compactTopbar">
       <div>
         <div className="wordmark">TITAN <b>MAX</b></div>
-        <div className="sub">Executive field intelligence • adaptive memory • customer-first</div>
+        <div className="sub">Freelance AI wingman • live customer comparison</div>
       </div>
       <div className={cx('statusPill',realtime.status)}><i/>{statusLabel}</div>
     </header>
 
-    <section className="hero">
-      <div className="faceCard">
+    <section className="titanCustomerHero">
+      <div className="heroCopy">
+        <div className="eyebrow">LIVE CUSTOMER VIEW</div>
+        <div className="heroStatusLine"><span className="statusDot"/><strong>{realtime.status==='connected'?'Listening & building your comparison':'Titan standing by'}</strong></div>
+        <p>{error?error:notice}</p>
+      </div>
+      <div className="customerAi">
         <TitanFace
           mode={faceMode}
           status={realtime.status}
@@ -664,54 +686,29 @@ function App(){
           lastCaptured={lastCaptured}
           ring={ring}
         />
-        <div className="brainStrip">
-          <div><span>BRAIN</span><strong>{configured===false?'KEY OFFLINE':'MAX ONLINE'}</strong></div>
-          <div><span>MEMORY</span><strong>{memories.length} RECENT</strong></div>
-          <div><span>GROWTH</span><strong>{brainCount} LESSONS</strong></div>
-        </div>
-      </div>
-
-      <div className="liveCard">
-        <div className="eyebrow">EXECUTIVE LINK</div>
-        <h1>{realtime.status==='connected'?'Live with the customer.':'Choose how Titan enters.'}</h1>
-        <p>{notice}</p>
-        {error&&<div className="errorBox">{error}</div>}
-        <div className="primaryRow titanModes">
-          {realtime.status==='connected'
-            ?<button className="big stop fullControl" onClick={stopTitan}>Stop Titan</button>
-            :<>
-              <button className={cx('big',!ring&&'selectedMode')} onClick={()=>requestStart(false)} disabled={starting}>
-                {starting&&!ring?'Starting…':'Talk • Go Live'}
-              </button>
-              <button className={cx('modeBtn','ringStart',ring&&'selectedMode')} onClick={()=>requestStart(true)} disabled={starting}>
-                {starting&&ring?'Arming…':'Ring • Listen First'}
-              </button>
-            </>}
-        </div>
-        <div className="microcopy">
-          {ring
-            ?'RING MODE: starts silent, waits for the homeowner, then responds.'
-            :'TALK MODE: greets first, waits for the reply, then uses the icebreaker.'}
-          {' '}Both modes keep the microphone live after Titan finishes speaking.
-        </div>
       </div>
     </section>
 
-    <section className="nowNew">
+    <section className="nowNew centerpiece">
       <div className={cx(
         'quoteCard','now',
         /verizon/i.test(discovery.carrier||'')&&'carrierVerizon',
         /t[- ]?mobile/i.test(discovery.carrier||'')&&'carrierTMobile'
       )}>
-        <div className="cardTitle">
-          {/verizon/i.test(discovery.carrier||'')
-            ?'NOW • VERIZON'
-            :/t[- ]?mobile/i.test(discovery.carrier||'')
-              ?'NOW • T-MOBILE'
-              :'NOW'}
+        <div className="carrierHeader">
+          <div className="cardTitle">
+            {/verizon/i.test(discovery.carrier||'')
+              ?'VERIZON'
+              :/t[- ]?mobile/i.test(discovery.carrier||'')
+                ?'T-MOBILE'
+                :(discovery.carrier||'NOW')}
+          </div>
+          <span>NOW</span>
         </div>
-        <div className="price">
+        <div className="billLabel">Monthly Bill</div>
+        <div className="price currentPrice">
           {discovery.bill?(String(discovery.bill).includes('$')?discovery.bill:'$'+discovery.bill):'—'}
+          <small>/mo</small>
         </div>
         <Fact label="Carrier" value={discovery.carrier}/>
         <Fact label="Lines" value={discovery.lines}/>
@@ -719,14 +716,43 @@ function App(){
         <Fact label="Plan" value={discovery.currentPlan}/>
       </div>
 
+      <div className="switchArrow">→</div>
+
       <div className="quoteCard newer attCard">
-        <div className="cardTitle">NEW • AT&amp;T</div>
-        <div className="price">{n?'$'+n:'—'}</div>
-        <Fact label="Difference" value={diff>0?'$'+diff+'/mo less*':(n&&b?'Compare total*':'—')}/>
-        <Fact label="Upgrade" value={discovery.upgradeInterest}/>
-        <Fact label="Discount fit" value={discovery.discountEligibility}/>
-        <Fact label="Verify" value="London / official system"/>
+        <div className="carrierHeader attHeader"><div className="cardTitle">AT&amp;T</div><span>NEW</span></div>
+        <div className="billLabel">Estimated Bill</div>
+        <div className="price attPrice">{n?'$'+n:'—'}<small>/mo</small></div>
+        <div className="savingsHero">
+          <div className="moneyBag">💰</div>
+          <div><small>YOU'LL SAVE</small><strong>{diff>0?'$'+diff+'/mo':'—'}</strong></div>
+        </div>
+        <Fact label="Upgrade" value={discovery.upgradeInterest||'Discovering…'}/>
+        <Fact label="Discount" value={discovery.discountEligibility||'Check fit'}/>
+        <Fact label="Plan" value="AT&T Wireless Extra 2.0"/>
       </div>
+    </section>
+
+    <section className="valueBanner">
+      <span className="diamond">◆</span>
+      <div><strong>A better fit. A lower bill.</strong><small>Same number. Better value. London verifies the final offer.</small></div>
+    </section>
+
+    <section className="titanDock">
+      {realtime.status==='connected'
+        ?<>
+          <button className="dockBtn talk active" disabled>🎙<span>Live<small>{realtime.isCapturing?'Listening':'Talking'}</small></span></button>
+          <button className="dockBtn ring" disabled>☎<span>Ring<small>{ring?'ON':'Off'}</small></span></button>
+          <button className={cx('dockBtn','outdoor',outdoorMax&&'active')} onClick={toggleOutdoor}>▲<span>Outdoor<small>{outdoorMax?'MAX':'Normal'}</small></span></button>
+          <button className={cx('dockBtn','mute',muted&&'active')} onClick={toggleMute}>{muted?'🔇':'🔊'}<span>{muted?'Unmute':'Mute'}<small>Mic</small></span></button>
+          <button className="dockBtn stop" onClick={stopTitan}>■<span>Stop<small>Session</small></span></button>
+        </>
+        :<>
+          <button className={cx('dockBtn','talk',!ring&&'active')} onClick={()=>requestStart(false)} disabled={starting}>🎙<span>Talk<small>{starting&&!ring?'Starting…':'Start Live'}</small></span></button>
+          <button className={cx('dockBtn','ring',ring&&'active')} onClick={()=>requestStart(true)} disabled={starting}>☎<span>Ring<small>{starting&&ring?'Arming…':'Listen First'}</small></span></button>
+          <button className={cx('dockBtn','outdoor',outdoorMax&&'active')} onClick={toggleOutdoor}>▲<span>Outdoor<small>{outdoorMax?'MAX':'Normal'}</small></span></button>
+          <button className="dockBtn mute" disabled>🔊<span>Mute<small>Mic</small></span></button>
+          <button className="dockBtn stop" disabled>■<span>Stop<small>Session</small></span></button>
+        </>}
     </section>
 
     <details className="ownerDrawer">
