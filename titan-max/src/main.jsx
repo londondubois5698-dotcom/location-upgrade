@@ -7,6 +7,25 @@ import './styles.css';
 
 const API='https://sterling-olive.vercel.app';
 const OWNER_STORAGE='titan.max.owner.v1';
+const OWNER_COOKIE='titan_max_owner';
+function readOwnerCredential(){
+  try{
+    const local=localStorage.getItem(OWNER_STORAGE);
+    if(local)return local;
+  }catch{}
+  try{
+    const m=document.cookie.match(new RegExp('(?:^|; )'+OWNER_COOKIE+'=([^;]*)'));
+    return m?decodeURIComponent(m[1]):'';
+  }catch{return ''}
+}
+function persistOwnerCredential(value){
+  try{localStorage.setItem(OWNER_STORAGE,value)}catch{}
+  try{document.cookie=OWNER_COOKIE+'='+encodeURIComponent(value)+'; Max-Age=31536000; Path=/; SameSite=Lax; Secure'}catch{}
+}
+function clearOwnerCredential(){
+  try{localStorage.removeItem(OWNER_STORAGE)}catch{}
+  try{document.cookie=OWNER_COOKIE+'=; Max-Age=0; Path=/; SameSite=Lax; Secure'}catch{}
+}
 const DISCOVERY_EMPTY={
   carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',
   discountEligibility:'',internetProvider:'',internetBill:'',internetUse:'',
@@ -223,7 +242,7 @@ function TitanFace({mode,status,isPlaying,isCapturing,level,faceRef,discovery,la
 }
 
 function App(){
-  const [ownerKey,setOwnerKey]=useState(()=>localStorage.getItem(OWNER_STORAGE)||'');
+  const [ownerKey,setOwnerKey]=useState(()=>readOwnerCredential());
   const [ownerDraft,setOwnerDraft]=useState('');
   const [setupOpen,setSetupOpen]=useState(false);
   const [configured,setConfigured]=useState(null);
@@ -677,7 +696,7 @@ function App(){
       if(!health?.ok){
         stream.getTracks().forEach(t=>t.stop());
         if(health?.status===401){
-          localStorage.removeItem(OWNER_STORAGE);setOwnerKey('');setSetupOpen(true);
+          clearOwnerCredential();setOwnerKey('');setSetupOpen(true);
         }
         throw new Error(health?.error||'Titan backend is not ready');
       }
@@ -821,7 +840,7 @@ function App(){
 
   function saveOwner(){
     const v=ownerDraft.trim();if(!v){setError('Enter the Titan passcode.');return}
-    localStorage.setItem(OWNER_STORAGE,v);setOwnerKey(v);setOwnerDraft('');setSetupOpen(false);setError('');
+    persistOwnerCredential(v);setOwnerKey(v);setOwnerDraft('');setSetupOpen(false);setError('');
     setFaceMode('pairing');setNotice('Pairing complete. Titan is entering the office…');
     setTimeout(()=>{setFaceMode('friendly');setNotice('Titan passcode saved on this iPhone. Titan is ready.')},1350);
   }
