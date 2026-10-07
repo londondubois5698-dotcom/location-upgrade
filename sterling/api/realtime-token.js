@@ -93,7 +93,7 @@ export async function mintRealtimeSetup(){
     tools: toolDefs,
     instructions: STERLING_INSTRUCTIONS,
     teamScope: TEAM_SCOPE,
-    version: '15.1-outdoor-ring'
+    version: '16.0-cinematic'
   };
 }
 
