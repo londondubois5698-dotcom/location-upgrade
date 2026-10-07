@@ -253,7 +253,7 @@ body{padding-bottom:132px;background:
 
 <section class="card pair" id="pairCard">
   <div style="font-size:22px;font-weight:900;margin-bottom:10px">Pair this phone to your iPad</div>
-  <p class="mini">On the iPad, open Salesforce, tap the Sterling ONE bookmark, then tap Pair Phone. Enter the six-digit code here once. This phone remembers the tether after pairing.</p>
+  <p class="mini">Enter the six-digit code from the iPad to pair normally. Or enter <b>000000</b> for Solo Mode with no iPad tether. Solo Mode lasts only for this open session; reopen Sterling later to pair normally.</p>
   <input id="pairCode" class="field" inputmode="numeric" maxlength="6" placeholder="000000">
   <button id="claim" class="btn" style="margin-top:10px">Pair Phone</button>
   <div id="pairStatus" class="mini" style="margin-top:10px"></div>
@@ -364,6 +364,7 @@ body{padding-bottom:132px;background:
 var APP='https://sterling-olive.vercel.app';
 var VERSION='18.0-banter-card';
 var tetherId='';
+var soloMode=false;
 var currentHouse=null,lastHouseKey='',lastResultId='';
 var contact={first:'',last:'',phone:'',email:''},contactReviewed=false,stage='rapport',mismatch=false;
 var discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',rapportAnchor:'',painPoint:'',motivator:'',objection:'',decisionStyle:'',jonesCue:'',lossAversionCue:'',urgencyTrigger:'',nextClose:'',notes:''};
@@ -387,8 +388,9 @@ function showContactReview(){renderContactReview();if($('contactReview'))$('cont
 function hideContactReview(){if($('contactReview'))$('contactReview').hidden=true}
 function contactComplete(){return !!(contact.first&&contact.last&&contact.phone&&contact.email)}
 function showPaired(){
-  $('pairCard').style.display=tetherId?'none':'block';
-  document.querySelectorAll('.liveOnly').forEach(el=>el.style.display=tetherId?'block':'none');
+  var ready=!!tetherId||soloMode;
+  $('pairCard').style.display=ready?'none':'block';
+  document.querySelectorAll('.liveOnly').forEach(el=>el.style.display=ready?'block':'none');
 }
 
 function alphaEl(){return $('alphaStage')}
@@ -444,7 +446,8 @@ function noteDiscovery(field,value){if(!Object.prototype.hasOwnProperty.call(dis
 function setVoice(msg,kind){$('voice').textContent=msg;$('voice').className='value status '+(kind||'');$('wave').textContent=msg;var t=String(msg||'').toUpperCase();if(t.indexOf('LISTEN')>=0)setAlphaState('listening');else if(t.indexOf('THINK')>=0)setAlphaState('thinking');else if(t.indexOf('SPEAK')>=0)setAlphaState('speaking');else if(t.indexOf('CONNECT')>=0||t.indexOf('PAIR')>=0)setAlphaState('boot');else if(t.indexOf('STOP')>=0)setAlphaState('idle')}
 function render(){
   showPaired();
-  if($('house'))$('house').textContent=currentHouse?currentHouse.label:'Waiting for Salesforce…';
+  if($('house'))$('house').textContent=soloMode?'Solo Mode • no Salesforce tether':(currentHouse?currentHouse.label:'Waiting for Salesforce…');
+  if(soloMode&&$('ipad')){$('ipad').textContent='SOLO MODE';$('ipad').className='value status good'}
   var bits=[];if(contact.first)bits.push(contact.first);if(contact.last)bits.push(contact.last);if(contact.phone)bits.push(contact.phone);if(contact.email)bits.push(contact.email);
   if($('contact'))$('contact').textContent=bits.length?'Confirmed: '+bits.join(' • '):'No confirmed customer details yet.';
   if($('start')){$('start').innerHTML='🎙<span>Talk<small>'+(active&&!ringMode?'LIVE':'Start Live')+'</small></span>';$('start').className='btn outdoor controlTalk'+(active&&!ringMode?' modeBtnLive':'')}
@@ -466,19 +469,34 @@ async function apiPost(body){
 }
 $('claim').onclick=async function(){
   var code=$('pairCode').value.replace(/\D/g,'').slice(0,6);
-  if(code.length!==6){$('pairStatus').textContent='Enter the six-digit code from the iPad.';return}
+  if(code.length!==6){$('pairStatus').textContent='Enter the six-digit iPad code, or 000000 for Solo Mode.';return}
+
+  if(code==='000000'){
+    stop();
+    soloMode=true;
+    tetherId='';
+    localStorage.removeItem('sterling.tetherId.v1');
+    currentHouse=null;lastHouseKey='';lastResultId='';
+    $('pairCode').value='';
+    $('pairStatus').textContent='Solo Mode ready.';
+    render();bootAlpha(true);
+    setCaption('Sterling','Solo Mode ready. iPad tether is off for this session.');
+    return;
+  }
+
   $('claim').disabled=true;$('pairStatus').textContent='Pairing…';
   try{
     var j=await apiPost({action:'pair-claim',code:code});
+    soloMode=false;
     tetherId=j.tetherId;localStorage.setItem('sterling.tetherId.v1',tetherId);$('pairCode').value='';$('pairStatus').textContent='Paired.';
     render();bootAlpha(true);await heartbeat();await pollStatus();
   }catch(e){$('pairStatus').textContent=e.message||String(e)}
   finally{$('claim').disabled=false}
 };
 
-async function heartbeat(){if(!tetherId)return;try{await apiPost({action:'phone-heartbeat',tetherId:tetherId,active:active,version:VERSION})}catch(e){}}
+async function heartbeat(){if(soloMode||!tetherId)return;try{await apiPost({action:'phone-heartbeat',tetherId:tetherId,active:active,version:VERSION})}catch(e){}}
 async function pollStatus(){
-  if(!tetherId)return;
+  if(soloMode||!tetherId)return;
   try{
     var j=await apiGet('status'),server=j.serverTime||Date.now();
     var ipadFresh=j.ipad&&server-j.ipad.lastSeen<7000;
@@ -636,7 +654,7 @@ async function handleTool(m){
     if(m.name==='saveDiscovery'){if(!a.field||!Object.prototype.hasOwnProperty.call(discovery,a.field))throw new Error('Unknown discovery field');noteDiscovery(a.field,a.value);toolReply(m.callId,m.name,{ok:true,saved:a.field,value:discovery[a.field]});return}
     if(m.name==='setStage'){stage=a.stage||stage;if(stage==='qualification')setCaption('Sterling','Qualification mode — confirming the details that matter.');toolReply(m.callId,m.name,{ok:true,stage:stage});return}
     if(m.name==='flagAddressMismatch'){mismatch=true;setCaption('Address check','The address needs London to confirm the correct Salesforce record.');toolReply(m.callId,m.name,{ok:true,blocked:true,current:currentHouse?currentHouse.label:null});return}
-    if(m.name==='commitContact'){if(!contactComplete())throw new Error('All four contact-card fields are required');if(a.reviewed!==true)throw new Error('The full contact card must be reviewed first');contactReviewed=true;hideContactReview();if(!currentHouse||!currentHouse.key)throw new Error('The iPad has not supplied a current Salesforce house yet');if(mismatch)throw new Error('Address mismatch is blocking the Salesforce update');var id=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random());await apiPost({action:'command',tetherId:tetherId,id:id,command:{type:'commitContact',contact:contact,expectedHouseKey:currentHouse.key,expectedHouseLabel:currentHouse.label}});setCaption('Salesforce','Confirmed details sent securely to the paired iPad.');toolReply(m.callId,m.name,{ok:true,started:true,currentHouse:currentHouse.label});return}
+    if(m.name==='commitContact'){if(!contactComplete())throw new Error('All four contact-card fields are required');if(a.reviewed!==true)throw new Error('The full contact card must be reviewed first');contactReviewed=true;hideContactReview();if(soloMode){setCaption('Solo Mode','Contact card reviewed. No iPad handoff was attempted.');toolReply(m.callId,m.name,{ok:true,reviewed:true,solo:true});return}if(!currentHouse||!currentHouse.key)throw new Error('The iPad has not supplied a current Salesforce house yet');if(mismatch)throw new Error('Address mismatch is blocking the Salesforce update');var id=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random());await apiPost({action:'command',tetherId:tetherId,id:id,command:{type:'commitContact',contact:contact,expectedHouseKey:currentHouse.key,expectedHouseLabel:currentHouse.label}});setCaption('Salesforce','Confirmed details sent securely to the paired iPad.');toolReply(m.callId,m.name,{ok:true,started:true,currentHouse:currentHouse.label});return}
     toolReply(m.callId,m.name,{ok:false,error:'Unknown tool'})
   }catch(e){toolReply(m.callId,m.name,{ok:false,error:e.message||String(e)})}
 }
@@ -723,9 +741,10 @@ $('faceClose').onclick=function(){if($('faceFullscreen')){$('faceFullscreen').hi
 $('start').onclick=function(){startMode(false)};$('ringMode').onclick=function(){startMode(true)};$('stop').onclick=stop;$('mute').onclick=function(){muted=!muted;var tr=micStream&&micStream.getAudioTracks?micStream.getAudioTracks()[0]:null;if(tr&&!aiSpeaking)tr.enabled=!muted;render();setVoice(muted?'MIC MUTED':'LIVE • LISTENING',muted?'warn':'good')};
 $('outdoorMax').onclick=function(){outdoorMax=!outdoorMax;localStorage.setItem('sterling.outdoorMax.v1',outdoorMax?'1':'0');applyOutdoorMax();render()};
 $('voiceSetup').onclick=function(){location.href=APP+'/voice-setup.html?v=17.1'};
-$('repair').onclick=function(){stop();localStorage.removeItem('sterling.tetherId.v1');tetherId='';currentHouse=null;lastHouseKey='';lastResultId='';contact={first:'',last:'',phone:'',email:''};discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',rapportAnchor:'',painPoint:'',motivator:'',objection:'',decisionStyle:'',jonesCue:'',lossAversionCue:'',urgencyTrigger:'',nextClose:'',notes:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';render();$('pairStatus').textContent='Enter the new six-digit code from the iPad.'};
+$('repair').onclick=function(){stop();localStorage.removeItem('sterling.tetherId.v1');soloMode=false;tetherId='';currentHouse=null;lastHouseKey='';lastResultId='';contact={first:'',last:'',phone:'',email:''};discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',rapportAnchor:'',painPoint:'',motivator:'',objection:'',decisionStyle:'',jonesCue:'',lossAversionCue:'',urgencyTrigger:'',nextClose:'',notes:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';render();$('pairStatus').textContent='Enter the new six-digit code from the iPad.'};
 
 tetherId=localStorage.getItem('sterling.tetherId.v1')||'';
+soloMode=false;
 render();if(tetherId){setTimeout(function(){bootAlpha(false)},220);heartbeat();pollStatus()}
 })();
 </script>
