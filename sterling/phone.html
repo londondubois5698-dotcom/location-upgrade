@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#071528">
+<meta name="theme-color" content="#071528">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n<meta name="apple-mobile-web-app-title" content="Sterling Alpha">
 <title>Sterling Alpha V18</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#071528;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -362,7 +362,7 @@ body{padding-bottom:132px;background:
 (function(){
 'use strict';
 var APP='https://sterling-olive.vercel.app';
-var VERSION='18.0-banter-card';
+var VERSION='18.2-standalone-audio';
 var tetherId='';
 var currentHouse=null,lastHouseKey='',lastResultId='';
 var contact={first:'',last:'',phone:'',email:''},contactReviewed=false,stage='rapport',mismatch=false;
@@ -372,7 +372,7 @@ var gate={noise:.006,open:false,voiced:0,quiet:0,pre:[]};
 var captureHighpass=null,captureLowpass=null,micAnalyser=null;
 var active=false,connected=false,connecting=false,muted=false,reconnects=0,socket=null,connectWatchdog=null,reconnectTimer=null,connectAttempt=0;
 var ringMode=false,outdoorMax=localStorage.getItem('sterling.outdoorMax.v1')!=='0',openingStarted=false,aiSpeaking=false,micResumeTimer=null;
-var micStream=null,captureCtx=null,captureSource=null,captureProcessor=null,playCtx=null,playTime=0,playingSources=[],outdoorGain=null,outdoorLimiter=null;
+var micStream=null,captureCtx=null,captureSource=null,captureProcessor=null,playCtx=null,playTime=0,playingSources=[],outdoorGain=null,outdoorLimiter=null;\nvar pendingMicPromise=null,lastUserAudioGesture=0;\nvar standaloneMode=(navigator.standalone===true)||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);
 
 function $(id){return document.getElementById(id)}
 function clean(v){return String(v==null?'':v).trim()}
@@ -506,6 +506,19 @@ async function pollStatus(){
 }
 setInterval(heartbeat,2500);setInterval(pollStatus,700);
 
+function micConstraints(){return {audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}}}
+function primeSterlingHardware(){
+  lastUserAudioGesture=Date.now();
+  try{var p=ensurePlay();if(p&&p.catch)p.catch(function(){})}catch(e){}
+  if(!micStream&&!pendingMicPromise&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+    try{
+      pendingMicPromise=navigator.mediaDevices.getUserMedia(micConstraints());
+      pendingMicPromise.catch(function(){});
+    }catch(e){
+      pendingMicPromise=Promise.reject(e);pendingMicPromise.catch(function(){});
+    }
+  }
+}
 function ensurePlay(){if(!playCtx){var AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw new Error('This browser does not support realtime audio.');try{playCtx=new AC({sampleRate:24000})}catch(e){playCtx=new AC()}outdoorGain=playCtx.createGain();outdoorLimiter=playCtx.createDynamicsCompressor();outdoorLimiter.threshold.value=-1.5;outdoorLimiter.knee.value=0;outdoorLimiter.ratio.value=20;outdoorLimiter.attack.value=.001;outdoorLimiter.release.value=.06;outdoorGain.connect(outdoorLimiter);outdoorLimiter.connect(playCtx.destination);applyOutdoorMax()}return playCtx.resume()}
 function applyOutdoorMax(){if(outdoorGain){var target=outdoorMax?2.6:1.0;try{outdoorGain.gain.setTargetAtTime(target,playCtx.currentTime,.015)}catch(e){outdoorGain.gain.value=target}}}
 function speakerPriority(on,immediate){if(micResumeTimer){clearTimeout(micResumeTimer);micResumeTimer=null}var track=micStream&&micStream.getAudioTracks?micStream.getAudioTracks()[0]:null;if(on){aiSpeaking=true;if(track)track.enabled=false}else{var done=function(){aiSpeaking=false;if(track&&active&&!muted)track.enabled=true;if(active&&connected)setVoice('LIVE • LISTENING','good')};if(immediate)done();else micResumeTimer=setTimeout(done,140)}}
@@ -513,25 +526,32 @@ function encodePCM(samples){var b=new ArrayBuffer(samples.length*2),v=new DataVi
 function decodePCM(b64){var bin=atob(b64),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);var i16=new Int16Array(u.buffer),out=new Float32Array(i16.length);for(var j=0;j<i16.length;j++)out[j]=i16[j]/32768;return out}
 function resample(input,inRate,outRate){if(inRate===outRate)return new Float32Array(input);var ratio=inRate/outRate,len=Math.round(input.length/ratio),out=new Float32Array(len);for(var i=0;i<len;i++){var x=i*ratio,a=Math.floor(x),b=Math.min(a+1,input.length-1),f=x-a;out[i]=input[a]*(1-f)+input[b]*f}return out}
 function stopPlayback(){for(var i=0;i<playingSources.length;i++)try{playingSources[i].stop()}catch(e){}playingSources=[];if(playCtx)playTime=playCtx.currentTime;speakerPriority(false,true)}
-function playAudio(b64){try{var samples=decodePCM(b64);if(!samples.length)return;var ctx=playCtx;if(!ctx)return;speakerPriority(true);var buf=ctx.createBuffer(1,samples.length,24000);buf.getChannelData(0).set(samples);var src=ctx.createBufferSource();src.buffer=buf;src.connect(outdoorGain||ctx.destination);var st=Math.max(playTime,ctx.currentTime);src.start(st);playTime=st+buf.duration;playingSources.push(src);src.onended=function(){playingSources=playingSources.filter(function(x){return x!==src});if(!playingSources.length)speakerPriority(false,false)}}catch(e){speakerPriority(false,true);setVoice('Audio playback error','bad')}}
+function playAudio(b64){try{var samples=decodePCM(b64);if(!samples.length)return;var ctx=playCtx;if(!ctx)return;if(ctx.state==='suspended'){try{var rp=ctx.resume();if(rp&&rp.catch)rp.catch(function(){})}catch(e){}}speakerPriority(true);var buf=ctx.createBuffer(1,samples.length,24000);buf.getChannelData(0).set(samples);var src=ctx.createBufferSource();src.buffer=buf;src.connect(outdoorGain||ctx.destination);var st=Math.max(playTime,ctx.currentTime);src.start(st);playTime=st+buf.duration;playingSources.push(src);src.onended=function(){playingSources=playingSources.filter(function(x){return x!==src});if(!playingSources.length)speakerPriority(false,false)}}catch(e){speakerPriority(false,true);setVoice('Audio playback error','bad')}}
 async function prepareMic(){
-  await ensurePlay();
-  if(micStream&&micStream.getAudioTracks&&micStream.getAudioTracks().some(function(t){return t.readyState==='live'}))return;
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Microphone access is unavailable.');
 
-  // Use the SAME AudioContext for playback and capture on iPhone.
-  // iOS Safari can intermittently fail when a second hardware audio context is started.
+  // In iPhone Home Screen mode, begin microphone + speaker activation from
+  // the same physical tap before awaiting network or UI work.
+  var playReady;
+  try{playReady=ensurePlay()}catch(e){throw e}
+  var firstMic=pendingMicPromise;
+  pendingMicPromise=null;
+  if(!firstMic&&!micStream){
+    try{firstMic=navigator.mediaDevices.getUserMedia(micConstraints())}
+    catch(e){firstMic=Promise.reject(e)}
+  }
+
+  await playReady;
+  if(micStream&&micStream.getAudioTracks&&micStream.getAudioTracks().some(function(t){return t.readyState==='live'}))return;
+
   captureCtx=playCtx;
   if(!captureCtx)throw new Error('Audio engine is unavailable.');
   if(captureCtx.state==='suspended')await captureCtx.resume();
 
-  var attempts=[
-    {audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}},
-    {audio:true}
-  ];
   var lastError=null;
-  for(var a=0;a<attempts.length&&!micStream;a++){
-    try{micStream=await navigator.mediaDevices.getUserMedia(attempts[a])}
+  try{micStream=await firstMic}catch(e){lastError=e;micStream=null}
+  if(!micStream){
+    try{micStream=await navigator.mediaDevices.getUserMedia({audio:true})}
     catch(e){lastError=e;micStream=null}
   }
   if(!micStream)throw lastError||new Error('Failed to start the microphone.');
@@ -540,15 +560,12 @@ async function prepareMic(){
   if(!tracks.length){releaseMic();throw new Error('No microphone audio track was returned.')}
   var track=tracks[0];track.enabled=true;
   track.onended=function(){
-    if(active){setVoice('MICROPHONE DISCONNECTED','bad');setCaption('Sterling','The iPhone microphone disconnected. Tap Start Sterling to reconnect.')}
+    if(active){setVoice('MICROPHONE DISCONNECTED','bad');setCaption('Sterling','Tap Talk or Ring once to reconnect the iPhone microphone.')}
   };
 
   try{
     captureSource=captureCtx.createMediaStreamSource(micStream);
     captureProcessor=captureCtx.createScriptProcessor(1024,1,1);
-
-    // Keep the capture graph as close as possible to the proven V13 build.
-    // Handling-noise protection is software-only so it cannot prevent the iPhone audio device from opening.
     captureSource.connect(captureProcessor);
     captureProcessor.connect(captureCtx.destination);
 
@@ -567,8 +584,6 @@ async function prepareMic(){
 
       if(!gate.open)gate.noise=gate.noise*.99+Math.min(rms,.05)*.01;
       var threshold=Math.max(.0075,gate.noise*1.9);
-
-      // Aggressive handling-noise suppression: finger taps/rubs should not open the local gate.
       var hardTap=peak>.90&&rms>threshold*2.7;
       var harshRub=zcr>.34&&rms>threshold*2.1;
       var voiceLike=!hardTap&&!harshRub&&rms>threshold&&zcr>.003&&zcr<.32;
@@ -578,25 +593,21 @@ async function prepareMic(){
 
       var openedNow=false;
       if(!gate.open&&gate.voiced>=2){
-        gate.open=true;gate.quiet=0;openedNow=true;
-        setAlphaState('listening');
+        gate.open=true;gate.quiet=0;openedNow=true;setAlphaState('listening');
         if(connected&&socket&&socket.readyState===WebSocket.OPEN){
           for(var p=0;p<gate.pre.length;p++)send({type:'input-audio-append',audio:encodePCM(gate.pre[p])})
         }
         gate.pre=[]
       }
-
       if(gate.open){
         if(!openedNow&&connected&&socket&&socket.readyState===WebSocket.OPEN)send({type:'input-audio-append',audio:encodePCM(samples)});
         if(voiceLike||rms>threshold*.82)gate.quiet=0;else gate.quiet++;
         if(gate.quiet>46){gate.open=false;gate.voiced=0;gate.quiet=0;gate.pre=[]}
       }
     };
-  }catch(e){
-    releaseMic();
-    throw e;
-  }
+  }catch(e){releaseMic();throw e}
 }
+
 function releaseMic(){
   try{if(captureProcessor)captureProcessor.onaudioprocess=null}catch(e){}
   try{if(captureProcessor)captureProcessor.disconnect()}catch(e){}
@@ -644,12 +655,21 @@ async function connect(){
   if(!active||connecting||connected)return;
   connecting=true;connected=false;render();setVoice('CONNECTING…');setCaption('Sterling','Connecting voice…');
   try{
-    var r=await fetch(APP+'/api/realtime-token?v=18.0&t='+Date.now(),{cache:'no-store'});
+    var r=await fetch(APP+'/api/realtime-token?v=18.2&t='+Date.now(),{cache:'no-store'});
     var setup=await r.json();
     if(!r.ok||!setup.token||!setup.url)throw new Error(setup.error||'Realtime setup failed');
 
     var protocols=(setup.protocols&&setup.protocols.length)?setup.protocols:['ai-gateway-realtime.v1','ai-gateway-auth.'+setup.token];
     var ws=new WebSocket(setup.url,protocols);socket=ws;var greeted=false,sterlingTranscript='';
+    if(connectWatchdog)clearTimeout(connectWatchdog);
+    connectWatchdog=setTimeout(function(){
+      if(active&&connecting&&!connected){
+        try{ws.close()}catch(e){}
+        connecting=false;
+        setVoice('RETRYING VOICE LINK…','warn');
+        setTimeout(function(){if(active&&!connected&&!connecting)connect()},350);
+      }
+    },9000);
 
     ws.onopen=function(){
       connecting=false;
@@ -716,16 +736,44 @@ async function connect(){
 }
 
 async function start(){if(active&&connected)return;try{openingStarted=false;bootAlpha(false);setCaption('Sterling',ringMode?'Ring Mode arming silently…':'Talk mode coming online…');await prepareMic();active=true;muted=false;render();await heartbeat();if(!connected&&!connecting)await connect()}catch(e){active=false;connecting=false;connected=false;render();setVoice(e.message||String(e),'bad');releaseMic()}}
-async function startMode(useRing){if(active){if(ringMode===useRing&&connected)return;stop();await sleep(180)}ringMode=!!useRing;openingStarted=false;render();await start()}
+async function startMode(useRing){
+  primeSterlingHardware();
+  if(active){
+    if(ringMode===useRing&&connected)return;
+    stop();await sleep(180);primeSterlingHardware();
+  }
+  ringMode=!!useRing;openingStarted=false;render();await start()
+}
 function stop(){active=false;connected=false;connecting=false;openingStarted=false;try{if(socket){socket.onclose=null;socket.onerror=null;socket.close()}}catch(e){}socket=null;stopPlayback();releaseMic();render();setVoice('STOPPED');setCaption('Sterling','Paused. Choose Talk or Ring when you are ready.')}
 $('faceExpand').onclick=function(){if($('faceFullscreen')){$('faceFullscreen').hidden=false;document.body.style.overflow='hidden';if($('fullFaceState'))$('fullFaceState').textContent=alphaState==='speaking'?'SPEAKING':alphaState==='listening'?'LISTENING':'LIVE'}};
 $('faceClose').onclick=function(){if($('faceFullscreen')){$('faceFullscreen').hidden=true;document.body.style.overflow=''}};
+['start','ringMode'].forEach(function(id){var el=$(id);if(el)el.addEventListener('pointerdown',primeSterlingHardware,{passive:true})});
 $('start').onclick=function(){startMode(false)};$('ringMode').onclick=function(){startMode(true)};$('stop').onclick=stop;$('mute').onclick=function(){muted=!muted;var tr=micStream&&micStream.getAudioTracks?micStream.getAudioTracks()[0]:null;if(tr&&!aiSpeaking)tr.enabled=!muted;render();setVoice(muted?'MIC MUTED':'LIVE • LISTENING',muted?'warn':'good')};
 $('outdoorMax').onclick=function(){outdoorMax=!outdoorMax;localStorage.setItem('sterling.outdoorMax.v1',outdoorMax?'1':'0');applyOutdoorMax();render()};
 $('voiceSetup').onclick=function(){location.href=APP+'/voice-setup.html?v=17.1'};
 $('repair').onclick=function(){stop();localStorage.removeItem('sterling.tetherId.v1');tetherId='';currentHouse=null;lastHouseKey='';lastResultId='';contact={first:'',last:'',phone:'',email:''};discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',rapportAnchor:'',painPoint:'',motivator:'',objection:'',decisionStyle:'',jonesCue:'',lossAversionCue:'',urgencyTrigger:'',nextClose:'',notes:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';render();$('pairStatus').textContent='Enter the new six-digit code from the iPad.'};
 
 tetherId=localStorage.getItem('sterling.tetherId.v1')||'';
+
+function resumeSterlingAfterForeground(){
+  if(document.visibilityState&&document.visibilityState!=='visible')return;
+  try{
+    if(playCtx&&playCtx.state==='suspended'){
+      var p=playCtx.resume();if(p&&p.catch)p.catch(function(){});
+    }
+  }catch(e){}
+  if(active){
+    var tr=micStream&&micStream.getAudioTracks?micStream.getAudioTracks()[0]:null;
+    if(!tr||tr.readyState!=='live'){
+      setVoice('TAP TALK OR RING TO RESTART MIC','warn');
+    }else if(!connected&&!connecting){
+      connect();
+    }
+  }
+}
+document.addEventListener('visibilitychange',function(){if(!document.hidden)setTimeout(resumeSterlingAfterForeground,120)});
+window.addEventListener('pageshow',function(){setTimeout(resumeSterlingAfterForeground,120)});
+
 render();if(tetherId){setTimeout(function(){bootAlpha(false)},220);heartbeat();pollStatus()}
 })();
 </script>
