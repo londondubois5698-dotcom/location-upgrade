@@ -227,6 +227,204 @@ footer{text-align:center;color:#526e84;font-size:9px;padding:18px 8px}
   .topbar{align-items:center}
   .sub{max-width:215px}
 }
-@media(prefers-reduced-motion:reduce){
-  *,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}
+
+/* TITAN V16 — exact customer-supplied Sterling/Titan cinematic visual */
+.faceStage.cinematicFace{
+  height:560px;
+  background:#050a0f;
+  overflow:hidden;
 }
+.titanCinema{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  overflow:hidden;
+  background:#050a0f;
+  transform:scale(1.012);
+  transition:transform .4s ease,filter .35s ease;
+}
+.titanFrame{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+  opacity:0;
+  animation:titan360 5s steps(1,end) infinite;
+  filter:saturate(1.04) contrast(1.05) brightness(1.03);
+}
+.titanFrame.tf1{animation-delay:0s}
+.titanFrame.tf2{animation-delay:1.25s}
+.titanFrame.tf3{animation-delay:2.5s}
+.titanFrame.tf4{animation-delay:3.75s}
+@keyframes titan360{0%,24.99%{opacity:1}25%,100%{opacity:0}}
+.cinemaShade{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+  background:
+    linear-gradient(180deg,#02070d22 0%,transparent 48%,#03101be8 100%),
+    radial-gradient(circle at 50% 32%,transparent 0 30%,#02070d55 75%);
+}
+.cinematicFace.listening .titanCinema{transform:scale(1.025)}
+.cinematicFace.thinking .titanCinema{transform:scale(1.035) translateX(-4px);filter:brightness(.94)}
+.cinematicFace.speaking .titanCinema{animation:titanSpeakMove .62s ease-in-out infinite alternate}
+@keyframes titanSpeakMove{from{transform:scale(1.035) translateY(0)}to{transform:scale(1.047) translateY(-3px)}}
+.cinematicFace.ringPortrait .titanFrame{animation:none!important;opacity:0}
+.cinematicFace.ringPortrait .titanFrame.tf1{
+  opacity:1;
+  object-position:center 26%;
+  transform:scale(1.95);
+  transform-origin:50% 30%;
+  animation:ringPortraitMove 2.8s ease-in-out infinite alternate!important;
+}
+@keyframes ringPortraitMove{
+  from{transform:scale(1.95) translate(-1px,1px) rotate(-.25deg)}
+  to{transform:scale(2.00) translate(2px,-2px) rotate(.25deg)}
+}
+.cinematicFace.ringPortrait.speaking .titanFrame.tf1{
+  animation:ringPortraitTalk .46s ease-in-out infinite alternate!important;
+}
+@keyframes ringPortraitTalk{
+  from{transform:scale(1.98) translate(-1px,0)}
+  to{transform:scale(2.03) translate(2px,-3px)}
+}
+.cinemaStatus{
+  position:absolute;
+  z-index:9;
+  top:15px;
+  left:15px;
+  right:15px;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+  pointer-events:none;
+}
+.cinemaStatus span,.cinemaStatus b{
+  backdrop-filter:blur(12px);
+  background:#03111dcc;
+  border:1px solid #28536c;
+  border-radius:999px;
+  padding:8px 11px;
+  font-size:9px;
+  letter-spacing:1px;
+  font-weight:950;
+  color:#c9edff;
+}
+.cinemaStatus b{color:#7ef0b1}
+.cinematicFace .liveCapture,.cinematicFace .execLabel,.cinematicFace .stateOrb{z-index:9}
+.cinematicFace .liveCapture{width:min(270px,58%)}
+
+/* Customer-first mode controls */
+.primaryRow.titanModes{
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+}
+.titanModes .big,.titanModes .modeBtn{min-height:60px;font-size:15px}
+.ringStart{background:linear-gradient(135deg,#5f4112,#9b6d18)}
+.selectedMode{
+  box-shadow:inset 0 0 0 2px #81f3b8,0 0 28px #3ee29a30!important;
+}
+.ringStart.selectedMode{
+  box-shadow:inset 0 0 0 2px #ffdc7d,0 0 30px #ffc94b34!important;
+}
+.fullControl{grid-column:1/-1}
+
+/* Bigger customer comparison */
+.nowNew{gap:10px}
+.quoteCard{
+  min-height:285px;
+  padding:20px;
+  border-radius:25px;
+}
+.cardTitle{font-size:13px;letter-spacing:1.6px}
+.price{font-size:48px;margin:10px 0 14px}
+.fact{font-size:14px;padding:12px 0}
+.fact span{font-size:13px}
+.fact strong{font-size:14px}
+.quoteCard.now{
+  background:linear-gradient(155deg,#0a1a2a,#06111d);
+  border-color:#2e6388;
+}
+.quoteCard.now.carrierVerizon{
+  background:linear-gradient(155deg,#2d090d,#0d1118 66%);
+  border-color:#ef3c4e;
+  box-shadow:0 20px 55px #0007,0 0 38px #e31b3526;
+}
+.quoteCard.now.carrierVerizon .cardTitle{color:#ff727d}
+.quoteCard.now.carrierTMobile{
+  background:linear-gradient(155deg,#320620,#0b1017 66%);
+  border-color:#e20074;
+  box-shadow:0 20px 55px #0007,0 0 38px #e2007428;
+}
+.quoteCard.now.carrierTMobile .cardTitle{color:#ff68b4}
+.quoteCard.attCard{
+  position:relative;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 88% 5%,#55dcff32,transparent 34%),
+    linear-gradient(150deg,#073a5c,#071725 68%);
+  border-color:#27c6f1;
+  box-shadow:0 20px 55px #0008,0 0 42px #23c9ff2b;
+}
+.quoteCard.attCard:after{
+  content:"";
+  position:absolute;
+  right:-65px;
+  top:-58px;
+  width:155px;
+  height:155px;
+  border-radius:50%;
+  border:2px solid #73e4ff38;
+  box-shadow:0 0 0 12px #73e4ff13,0 0 0 27px #73e4ff0b;
+  pointer-events:none;
+}
+.quoteCard.attCard .cardTitle{color:#8deeff;font-size:15px}
+.quoteCard.attCard .price{color:#82f2b8}
+
+/* Rep-only controls stay out of the customer's primary view */
+.ownerDrawer{
+  margin-top:12px;
+  border:1px solid #17394f;
+  border-radius:18px;
+  background:#06131d;
+  overflow:hidden;
+}
+.ownerDrawer>summary{
+  cursor:pointer;
+  list-style:none;
+  padding:14px 16px;
+  color:#7faac4;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.8px;
+}
+.ownerDrawer>summary::-webkit-details-marker{display:none}
+.ownerDrawer[open]>summary{border-bottom:1px solid #17394f;color:#a7daf3}
+.ownerDrawer .console,.ownerDrawer .memoryPanel{
+  margin:10px;
+  border-radius:18px;
+}
+
+@media(max-width:700px){
+  .faceStage.cinematicFace{height:510px}
+  .quoteCard{min-height:270px;padding:17px}
+  .price{font-size:42px}
+}
+@media(max-width:420px){
+  .faceStage.cinematicFace{height:475px}
+  .cinematicFace.ringPortrait .titanFrame.tf1{object-position:center 27%}
+  .cinematicFace .liveCapture{width:58%;right:10px;bottom:10px}
+  .primaryRow.titanModes{grid-template-columns:1fr 1fr}
+  .titanModes .big,.titanModes .modeBtn{font-size:13px;padding:12px 9px;min-height:56px}
+  .quoteCard{min-height:250px;padding:13px}
+  .cardTitle{font-size:11px}
+  .price{font-size:35px}
+  .fact{font-size:12px;padding:10px 0}
+  .fact span,.fact strong{font-size:12px}
+}
+
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
