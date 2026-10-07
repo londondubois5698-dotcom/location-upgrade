@@ -44,7 +44,7 @@ const tools = {
         'carrier','lines','bill','phones','currentPlan','upgradeInterest',
         'internetProvider','internetBill','internetUse','discountEligibility',
         'work','commute','decisionMaker','tv',
-        'rapportAnchor','painPoint','motivator','objection','decisionStyle','urgencyTrigger','nextClose',
+        'rapportAnchor','painPoint','motivator','objection','decisionStyle','jonesCue','lossAversionCue','urgencyTrigger','nextClose',
         'notes'
       ]),
       value: z.string().min(1).max(280)
@@ -95,7 +95,7 @@ export async function mintRealtimeSetup(){
     tools: toolDefs,
     instructions: STERLING_INSTRUCTIONS,
     teamScope: TEAM_SCOPE,
-    version: '17.0-cpr-sales-brain'
+    version: '17.1-cpr-sales-brain'
   };
 }
 
