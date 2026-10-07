@@ -682,3 +682,28 @@ body{padding-bottom:132px}
   .contactReviewOverlay{padding-left:8px;padding-right:8px}
   .contactReviewCard{padding:16px}
 }
+
+
+/* V18.2 — expanded Titan is a portrait, not a 360 spinner */
+.fullTitanFace .titanFrame,
+.fullTitanFace .cinematicFace.ringPortrait .titanFrame{
+  animation:none!important;
+  opacity:0!important;
+  transform:none!important;
+}
+.fullTitanFace .titanFrame.tf1,
+.fullTitanFace .cinematicFace.ringPortrait .titanFrame.tf1{
+  opacity:1!important;
+  object-position:center 22%!important;
+  transform:scale(1.08)!important;
+  transform-origin:center 30%!important;
+  animation:none!important;
+}
+.fullTitanFace .titanCinema,
+.fullTitanFace .cinematicFace.speaking .titanCinema,
+.fullTitanFace .cinematicFace.listening .titanCinema,
+.fullTitanFace .cinematicFace.thinking .titanCinema{
+  animation:none!important;
+  transform:none!important;
+  filter:none!important;
+}
