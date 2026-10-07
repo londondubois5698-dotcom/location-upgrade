@@ -1,0 +1,33 @@
+name: Validate Titan Light Offline
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'titan-light/**'
+      - '.github/workflows/titan-light-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check local brain
+        run: |
+          node --check titan-light/app.js
+          node --check titan-light/brain.js
+      - name: Verify zero backend dependencies
+        run: |
+          ! grep -R "sterling-olive.vercel.app/api\|fetch(.*api\|gpt-realtime\|AI_GATEWAY" titan-light/*.js
+      - name: Verify offline assets
+        run: |
+          test -f titan-light/index.html
+          test -f titan-light/sw.js
+          test -f titan-light/manifest.webmanifest
+          test -f titan-light/icon.svg
