@@ -20,7 +20,14 @@ let speaking=false;
 function rand(arr,key=''){
   const pool=arr.filter((_,i)=>!state.used.has(key+i));
   const use=pool.length?pool:arr;
-  const item=use[Math.floor(Math.random()*use.length)];
+  const win=winners();
+  let weighted=[];
+  for(const item of use){
+    const bonus=typeof item==='string'?Math.min(4,Number(win[item]||0)):0;
+    weighted.push(item);
+    for(let i=0;i<bonus;i++)weighted.push(item);
+  }
+  const item=weighted[Math.floor(Math.random()*weighted.length)]||use[0];
   const idx=arr.indexOf(item);state.used.add(key+idx);
   return item;
 }
@@ -173,6 +180,10 @@ function nextPrompt(){
 
 function contactFlow(text){
   const c=state.contact;
+  if(state.stage==='contactFirst'&&!c.first){
+    const n=text.trim().match(/^([A-Za-z][A-Za-z'-]{1,24})(?:\s+.*)?$/);
+    if(n){c.first=n[1];save();state.stage='contactLast';return pickFn(NAME_RIFFS,c.first,'name')+" Okay "+c.first+", what's your last name?"}
+  }
   if(!c.first)return null;
   if(state.stage==='idle'||state.stage==='rapport'){
     state.stage='contactLast';
@@ -217,7 +228,7 @@ function respond(text){
   if(it.type==='busy')return rand(OBJECTIONS.busy,'busy')+" "+nextPrompt();
   if(it.type==='banter')return rand(BANTER[it.topic],it.topic)+" "+(Math.random()<.65?nextPrompt():"");
   if(it.type==='objection')return rand(OBJECTIONS[it.topic],it.topic)+" "+(it.topic==='price'||it.topic==='coverage'?nextPrompt():"");
-  if(!state.contact.first&&state.stage!=='contactLast')return rand(OPENERS,'opener')+" By the way, what's your first name?";
+  if(!state.contact.first&&state.stage!=='contactLast'){state.stage='contactFirst';return rand(OPENERS,'opener')+" By the way, what's your first name?"}
   return nextPrompt();
 }
 
@@ -258,7 +269,7 @@ function showContact(){
 
 function startMode(mode){
   state.mode=mode;state.active=true;state.softRejects=0;state.stage=state.contact.first?'rapport':'idle';render();
-  if(mode==='talk'){speak("Hey! How are you doing?")}
+  if(mode==='talk'){state.stage='rapport';speak("Hey! How are you doing?")}
   else{$('statusText').textContent='Ring armed • listening';$('liveText').textContent='Silent until the homeowner speaks';startListening()}
 }
 function stop(){state.active=false;stopListening();speechSynthesis?.cancel();$('statusText').textContent='Standing by';$('liveText').textContent='Offline brain saved on this phone';render()}
