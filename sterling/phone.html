@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#071528">
-<title>Sterling Alpha V17 • CPR Sales Brain</title>
+<title>Sterling Alpha V18</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#071528;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 .wrap{max-width:680px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 18px calc(30px + env(safe-area-inset-bottom))}
@@ -193,10 +193,62 @@ body{padding-bottom:132px;background:
  .modeGrid{gap:5px!important}.modeGrid .btn{min-height:62px!important;font-size:18px!important}.modeGrid .btn span{font-size:9px}.modeGrid .btn small{font-size:7px}
 }
 
+
+/* V18 TITAN-MATCH CUSTOMER HERO + FULL FACE */
+.alpha-version{display:none!important}
+.sub{display:block!important;font-size:11px!important;letter-spacing:1.1px!important;color:#7fa5bf!important;margin:3px 2px 10px!important}
+.brand{font-size:39px!important;letter-spacing:-1.5px!important;white-space:nowrap!important}
+.customerHero{
+  min-height:255px!important;
+  padding:32px 46% 24px 24px!important;
+  border-radius:27px 27px 0 0;
+  background:
+    linear-gradient(90deg,#071729 0 52%,#071729d9 63%,transparent 78%),
+    radial-gradient(circle at 82% 38%,#0d8ad94d,transparent 36%),
+    #06111d!important;
+}
+.staticAiPortrait{right:0!important;top:0!important;bottom:0!important;width:46%!important;height:100%!important;filter:none!important}
+.staticAiPortrait img{width:100%!important;height:100%!important;object-fit:cover!important;object-position:center 24%!important;transform:scale(1.03)!important;animation:portraitBreathe 5.4s ease-in-out infinite!important}
+.portraitGlow{background:linear-gradient(90deg,#071729cf 0%,transparent 28%),radial-gradient(circle at 50% 33%,transparent 0 45%,#06111d42 82%)!important}
+.heroText{max-width:320px}
+.heroText .eyebrow{font-size:11px!important;letter-spacing:2.2px!important}
+.heroStatus{margin-top:42px!important}.heroStatus strong{font-size:31px!important}
+.heroLine{font-size:13px!important;max-width:300px!important}
+.alpha-top{display:none!important}
+.faceExpandBtn{
+  position:absolute;z-index:12;right:13px;bottom:13px;width:42px;height:42px;border-radius:14px;
+  border:1px solid #7bdfff80;background:#041420d9;color:#d9f7ff;font-size:21px;font-weight:900;
+  box-shadow:0 8px 24px #0008;backdrop-filter:blur(10px)
+}
+.faceFullscreen{
+  position:fixed;inset:0;z-index:1000;background:#01060b;display:grid;place-items:center;padding:0;
+}
+.faceFullscreen[hidden]{display:none!important}
+.fullFaceCanvas{position:absolute;inset:0;overflow:hidden;background:#020810}
+.fullFaceCanvas img{width:100%;height:100%;object-fit:cover;object-position:center 22%;animation:fullFaceBreathe 3.8s ease-in-out infinite alternate}
+@keyframes fullFaceBreathe{from{transform:scale(1.02) translateY(0)}to{transform:scale(1.055) translateY(-4px)}}
+.fullFaceShade{position:absolute;inset:0;background:linear-gradient(180deg,#0007 0%,transparent 20%,transparent 65%,#000d 100%)}
+.fullFaceLabel{position:absolute;left:20px;bottom:calc(28px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:3px;color:#fff}
+.fullFaceLabel b{font-size:27px;letter-spacing:-.6px}.fullFaceLabel span{font-size:11px;letter-spacing:2px;color:#63eab1;font-weight:900}
+.faceClose{position:absolute;top:calc(16px + env(safe-area-inset-top));right:16px;width:50px;height:50px;border-radius:17px;border:1px solid #95dfff72;background:#03111ddd;color:#fff;font-size:34px;line-height:1}
+.contactReview{position:fixed;inset:0;z-index:950;background:#01070ccf;backdrop-filter:blur(13px);display:grid;align-items:end;padding:14px 12px calc(120px + env(safe-area-inset-bottom))}
+.contactReview[hidden]{display:none!important}
+.contactSheet{max-width:720px;width:100%;margin:0 auto;border:1px solid #37cfff;border-radius:28px;background:linear-gradient(160deg,#07233a,#04101b);padding:20px;box-shadow:0 24px 80px #000d,0 0 45px #18c6ff24}
+.contactSheetTop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.contactSheetTop small{font-size:9px;letter-spacing:1.7px;color:#80ddff;font-weight:950}.contactSheetTop h2{margin:5px 0 0;font-size:24px}.contactSheetTop>span{font-size:9px;padding:7px 9px;border:1px solid #35dfa0;border-radius:999px;color:#83f2c2;font-weight:900}
+.contactGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px}.contactGrid>div{border:1px solid #244c69;border-radius:16px;background:#061725;padding:12px}.contactGrid small{display:block;font-size:8px;letter-spacing:1.2px;color:#769ab2;font-weight:900}.contactGrid strong{display:block;font-size:16px;margin-top:5px;overflow-wrap:anywhere}.contactSheet p{font-size:11px;line-height:1.45;color:#91b0c5;margin:14px 2px 0}
+.repOnlyInfo{display:none!important}
+@media(max-width:430px){
+ .brand{font-size:34px!important}
+ .customerHero{min-height:238px!important;padding:25px 47% 20px 16px!important}
+ .heroStatus{margin-top:34px!important}.heroStatus strong{font-size:27px!important}
+ .heroLine{font-size:11px!important}.staticAiPortrait{width:48%!important}
+ .contactReview{padding-left:8px;padding-right:8px}.contactSheet{padding:16px}.contactGrid{grid-template-columns:1fr}
+}
+
 </style>
 </head>
 <body><main class="wrap">
-<div class="brand"><b>Sterling</b> Alpha <span class="alpha-version">V17 • CPR SALES BRAIN</span></div>
+<div class="brand"><b>Sterling</b> Alpha <span class="alpha-version">V18</span></div>
 <p class="sub">Phone = the conversation. iPad = Salesforce. Sterling keeps both synchronized.</p>
 
 <section class="card pair" id="pairCard">
@@ -239,14 +291,10 @@ body{padding-bottom:132px;background:
       <div class="caplabel" id="captionLabel" style="display:none">Sterling</div>
     </div>
     <div class="staticAiPortrait" aria-hidden="true">
-      <img src="/assets/sterling360/f01.webp?v=17" alt="">
+      <img src="/assets/sterling360/f01.webp?v=18" alt="">
       <div class="portraitGlow"></div>
     </div>
-    <div class="alpha-top">
-      <span class="alpha-chip good" id="alphaPair">LIVE VISUAL</span>
-      <span class="alpha-chip" id="ringChip">TALK MODE</span>
-      <span class="alpha-chip focus" id="alphaFocus">OUTDOOR MAX • ON</span>
-    </div>
+    <button type="button" id="faceExpand" class="faceExpandBtn" aria-label="Expand Sterling face">⛶</button>
     <div class="pair-toast" id="pairToast">✓ Pairing Sync Complete</div>
     <div class="typing-particles" id="typingParticles"></div>
     <div class="noise-meter"><span id="noiseMeter"></span></div>
@@ -282,7 +330,29 @@ body{padding-bottom:132px;background:
 
 
 
-<section class="card liveOnly">
+<div id="faceFullscreen" class="faceFullscreen" hidden>
+  <div class="fullFaceCanvas">
+    <img src="/assets/sterling360/f01.webp?v=18" alt="Sterling">
+    <div class="fullFaceShade"></div>
+    <div class="fullFaceLabel"><b>STERLING ALPHA</b><span id="fullFaceState">LIVE</span></div>
+    <button type="button" id="faceClose" class="faceClose" aria-label="Close full screen face">×</button>
+  </div>
+</div>
+
+<div id="contactReview" class="contactReview" hidden>
+  <div class="contactSheet">
+    <div class="contactSheetTop"><div><small>STERLING CONTACT CARD</small><h2>Quick accuracy check</h2></div><span>99.2% AI</span></div>
+    <div class="contactGrid">
+      <div><small>FIRST NAME</small><strong id="reviewFirst">—</strong></div>
+      <div><small>LAST NAME</small><strong id="reviewLast">—</strong></div>
+      <div><small>PHONE</small><strong id="reviewPhone">—</strong></div>
+      <div><small>EMAIL</small><strong id="reviewEmail">—</strong></div>
+    </div>
+    <p>Say any correction out loud, or say “looks right.” Sterling will update the card before handing it to London.</p>
+  </div>
+</div>
+
+<section class="card liveOnly repOnlyInfo">
   <div style="font-weight:900;margin-bottom:7px">Field behavior</div>
   <div class="mini">Sterling hears the customer on this phone. Confirmed contact information is sent only to your paired iPad. The iPad verifies the currently open Salesforce house before it edits anything, then returns the Partner Order ID to this phone. SSN, ID numbers, card data, account PINs, passwords, and one-time codes never go through Sterling.</div>
 </section>
@@ -292,10 +362,10 @@ body{padding-bottom:132px;background:
 (function(){
 'use strict';
 var APP='https://sterling-olive.vercel.app';
-var VERSION='17.1-cpr-sales-brain';
+var VERSION='18.0-banter-card';
 var tetherId='';
 var currentHouse=null,lastHouseKey='',lastResultId='';
-var contact={first:'',last:'',phone:'',email:''},stage='rapport',mismatch=false;
+var contact={first:'',last:'',phone:'',email:''},contactReviewed=false,stage='rapport',mismatch=false;
 var discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',rapportAnchor:'',painPoint:'',motivator:'',objection:'',decisionStyle:'',jonesCue:'',lossAversionCue:'',urgencyTrigger:'',nextClose:'',notes:''};
 var alphaState='idle',alphaTimer=null;
 var gate={noise:.006,open:false,voiced:0,quiet:0,pre:[]};
@@ -307,6 +377,15 @@ var micStream=null,captureCtx=null,captureSource=null,captureProcessor=null,play
 function $(id){return document.getElementById(id)}
 function clean(v){return String(v==null?'':v).trim()}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function formatPhone(v){var d=String(v||'').replace(/\D/g,'');return d.length===10?'('+d.slice(0,3)+') '+d.slice(3,6)+'-'+d.slice(6):String(v||'')}
+function renderContactReview(){
+  if(!$('contactReview'))return;
+  $('reviewFirst').textContent=contact.first||'—';$('reviewLast').textContent=contact.last||'—';
+  $('reviewPhone').textContent=formatPhone(contact.phone)||'—';$('reviewEmail').textContent=contact.email||'—';
+}
+function showContactReview(){renderContactReview();if($('contactReview'))$('contactReview').hidden=false}
+function hideContactReview(){if($('contactReview'))$('contactReview').hidden=true}
+function contactComplete(){return !!(contact.first&&contact.last&&contact.phone&&contact.email)}
 function showPaired(){
   $('pairCard').style.display=tetherId?'none':'block';
   document.querySelectorAll('.liveOnly').forEach(el=>el.style.display=tetherId?'block':'none');
@@ -374,9 +453,6 @@ function render(){
   if($('mute')){$('mute').style.display='flex';$('mute').disabled=!active;$('mute').innerHTML=(muted?'🔇':'🔊')+'<span>'+(muted?'Unmute':'Mute')+'</span>'}
   if($('stop')){$('stop').style.display='flex';$('stop').disabled=!active;$('stop').innerHTML='■<span>Stop</span>'}
   if($('wave'))$('wave').className='wave'+(connected?' live':'');
-  if($('ringChip')){$('ringChip').textContent=ringMode?'RING • LISTEN FIRST':'TALK MODE';$('ringChip').className='alpha-chip'+(ringMode?' good':'')}
-  if($('alphaFocus'))$('alphaFocus').textContent='OUTDOOR MAX • '+(outdoorMax?'ON':'OFF');
-  if($('customerMode'))$('customerMode').textContent=ringMode?'RING VIEW':'CUSTOMER VIEW';
   if($('alphaStage'))$('alphaStage').classList.toggle('ringview',ringMode);
   renderDiscovery();
 }
@@ -411,7 +487,7 @@ async function pollStatus(){
     if(j.house&&j.house.key&&j.house.key!==lastHouseKey){
       var hadHouse=!!lastHouseKey;
       currentHouse=j.house;lastHouseKey=j.house.key;
-      if(hadHouse){contact={first:'',last:'',phone:'',email:''};discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',rapportAnchor:'',painPoint:'',motivator:'',objection:'',decisionStyle:'',jonesCue:'',lossAversionCue:'',urgencyTrigger:'',nextClose:'',notes:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';if(!restoreLiveMemory())setCaption('Sterling','New house detected. Starting fresh.');}
+      if(hadHouse){contact={first:'',last:'',phone:'',email:''};contactReviewed=false;hideContactReview();discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',rapportAnchor:'',painPoint:'',motivator:'',objection:'',decisionStyle:'',jonesCue:'',lossAversionCue:'',urgencyTrigger:'',nextClose:'',notes:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';if(!restoreLiveMemory())setCaption('Sterling','New house detected. Starting fresh.');}
       else{restoreLiveMemory()}
       render();
       if(connected)send({type:'context-append',content:'The iPad Salesforce record changed. Current live house is now '+j.house.label+'. Reset all assumptions and contact details from the prior household.',delegationId:null});
@@ -556,11 +632,11 @@ function normalizeContact(field,value){var v=clean(value);if(field==='phone'){va
 async function handleTool(m){
   var a={};try{a=JSON.parse(m.arguments||'{}')}catch(e){}
   try{
-    if(m.name==='saveContact'){if(a.confirmed!==true)throw new Error('Customer has not confirmed that field yet');var f=a.field;if(['first','last','phone','email'].indexOf(f)<0)throw new Error('Unknown contact field');contact[f]=normalizeContact(f,a.value);render();spawnTypingParticles();setAlphaState('typing',850);setCaption('Confirmed',(f==='first'?'First name':f==='last'?'Last name':f==='phone'?'Phone':'Email')+': '+contact[f]);toolReply(m.callId,m.name,{ok:true,saved:f});return}
+    if(m.name==='saveContact'){var f=a.field;if(['first','last','phone','email'].indexOf(f)<0)throw new Error('Unknown contact field');contact[f]=normalizeContact(f,a.value);contactReviewed=false;render();renderContactReview();spawnTypingParticles();setAlphaState('typing',850);setCaption('Contact card',(f==='first'?'First name':f==='last'?'Last name':f==='phone'?'Phone':'Email')+' captured');if(contactComplete())showContactReview();toolReply(m.callId,m.name,{ok:true,saved:f,cardReady:contactComplete()});return}
     if(m.name==='saveDiscovery'){if(!a.field||!Object.prototype.hasOwnProperty.call(discovery,a.field))throw new Error('Unknown discovery field');noteDiscovery(a.field,a.value);toolReply(m.callId,m.name,{ok:true,saved:a.field,value:discovery[a.field]});return}
     if(m.name==='setStage'){stage=a.stage||stage;if(stage==='qualification')setCaption('Sterling','Qualification mode — confirming the details that matter.');toolReply(m.callId,m.name,{ok:true,stage:stage});return}
     if(m.name==='flagAddressMismatch'){mismatch=true;setCaption('Address check','The address needs London to confirm the correct Salesforce record.');toolReply(m.callId,m.name,{ok:true,blocked:true,current:currentHouse?currentHouse.label:null});return}
-    if(m.name==='commitContact'){if(!(contact.first&&contact.last&&contact.phone&&contact.email))throw new Error('All four confirmed contact fields are required');if(!currentHouse||!currentHouse.key)throw new Error('The iPad has not supplied a current Salesforce house yet');if(mismatch)throw new Error('Address mismatch is blocking the Salesforce update');var id=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random());await apiPost({action:'command',tetherId:tetherId,id:id,command:{type:'commitContact',contact:contact,expectedHouseKey:currentHouse.key,expectedHouseLabel:currentHouse.label}});setCaption('Salesforce','Confirmed details sent securely to the paired iPad.');toolReply(m.callId,m.name,{ok:true,started:true,currentHouse:currentHouse.label});return}
+    if(m.name==='commitContact'){if(!contactComplete())throw new Error('All four contact-card fields are required');if(a.reviewed!==true)throw new Error('The full contact card must be reviewed first');contactReviewed=true;hideContactReview();if(!currentHouse||!currentHouse.key)throw new Error('The iPad has not supplied a current Salesforce house yet');if(mismatch)throw new Error('Address mismatch is blocking the Salesforce update');var id=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random());await apiPost({action:'command',tetherId:tetherId,id:id,command:{type:'commitContact',contact:contact,expectedHouseKey:currentHouse.key,expectedHouseLabel:currentHouse.label}});setCaption('Salesforce','Confirmed details sent securely to the paired iPad.');toolReply(m.callId,m.name,{ok:true,started:true,currentHouse:currentHouse.label});return}
     toolReply(m.callId,m.name,{ok:false,error:'Unknown tool'})
   }catch(e){toolReply(m.callId,m.name,{ok:false,error:e.message||String(e)})}
 }
@@ -568,7 +644,7 @@ async function connect(){
   if(!active||connecting||connected)return;
   connecting=true;connected=false;render();setVoice('CONNECTING…');setCaption('Sterling','Connecting voice…');
   try{
-    var r=await fetch(APP+'/api/realtime-token?v=17.1&t='+Date.now(),{cache:'no-store'});
+    var r=await fetch(APP+'/api/realtime-token?v=18.0&t='+Date.now(),{cache:'no-store'});
     var setup=await r.json();
     if(!r.ok||!setup.token||!setup.url)throw new Error(setup.error||'Realtime setup failed');
 
@@ -603,7 +679,7 @@ async function connect(){
             setCaption('Ring Mode','Armed and silent. Waiting for the homeowner to speak.');
             setVoice('RING ARMED • SILENT','good');
           }else{
-            send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Start the NORMAL DOOR OPENING now. Your only first words are exactly: Hey! How are you doing? Then STOP and wait for a real audible response. After they answer, follow the greeting-first Terabyte icebreaker law. If the first hook does not land, use only one backup hook, then move forward."}});
+            send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Start TALK MODE now. Your only first words are exactly: Hey! How are you doing? Then STOP and wait for a real audible response. After they answer, choose one strong opener from the rotating TOP 20 bank based on the moment. Do not default to Terabyte. Banter first; ask one question at a time."}});
             send({type:'response-create',options:{modalities:['audio']}})
           }
         }
@@ -642,6 +718,8 @@ async function connect(){
 async function start(){if(active&&connected)return;try{openingStarted=false;bootAlpha(false);setCaption('Sterling',ringMode?'Ring Mode arming silently…':'Talk mode coming online…');await prepareMic();active=true;muted=false;render();await heartbeat();if(!connected&&!connecting)await connect()}catch(e){active=false;connecting=false;connected=false;render();setVoice(e.message||String(e),'bad');releaseMic()}}
 async function startMode(useRing){if(active){if(ringMode===useRing&&connected)return;stop();await sleep(180)}ringMode=!!useRing;openingStarted=false;render();await start()}
 function stop(){active=false;connected=false;connecting=false;openingStarted=false;try{if(socket){socket.onclose=null;socket.onerror=null;socket.close()}}catch(e){}socket=null;stopPlayback();releaseMic();render();setVoice('STOPPED');setCaption('Sterling','Paused. Choose Talk or Ring when you are ready.')}
+$('faceExpand').onclick=function(){if($('faceFullscreen')){$('faceFullscreen').hidden=false;document.body.style.overflow='hidden';if($('fullFaceState'))$('fullFaceState').textContent=alphaState==='speaking'?'SPEAKING':alphaState==='listening'?'LISTENING':'LIVE'}};
+$('faceClose').onclick=function(){if($('faceFullscreen')){$('faceFullscreen').hidden=true;document.body.style.overflow=''}};
 $('start').onclick=function(){startMode(false)};$('ringMode').onclick=function(){startMode(true)};$('stop').onclick=stop;$('mute').onclick=function(){muted=!muted;var tr=micStream&&micStream.getAudioTracks?micStream.getAudioTracks()[0]:null;if(tr&&!aiSpeaking)tr.enabled=!muted;render();setVoice(muted?'MIC MUTED':'LIVE • LISTENING',muted?'warn':'good')};
 $('outdoorMax').onclick=function(){outdoorMax=!outdoorMax;localStorage.setItem('sterling.outdoorMax.v1',outdoorMax?'1':'0');applyOutdoorMax();render()};
 $('voiceSetup').onclick=function(){location.href=APP+'/voice-setup.html?v=17.1'};
