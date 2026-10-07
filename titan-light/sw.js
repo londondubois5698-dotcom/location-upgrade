@@ -1,4 +1,4 @@
-const CACHE='titan-light-v1';
+const CACHE='titan-light-v2';
 const ASSETS=[
   './','./index.html','./styles.css','./app.js','./brain.js','./manifest.webmanifest','./icon.svg',
   '../sterling/assets/sterling360/f01.webp'
