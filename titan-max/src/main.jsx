@@ -11,7 +11,7 @@ const DISCOVERY_EMPTY={
   carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',
   discountEligibility:'',internetProvider:'',internetBill:'',internetUse:'',
   tv:'',decisionMaker:'',work:'',commute:'',
-  rapportAnchor:'',painPoint:'',motivator:'',objection:'',decisionStyle:'',urgencyTrigger:'',nextClose:'',
+  rapportAnchor:'',painPoint:'',motivator:'',objection:'',decisionStyle:'',jonesCue:'',lossAversionCue:'',urgencyTrigger:'',nextClose:'',
   notes:''
 };
 
@@ -56,7 +56,7 @@ DISCOVERY
 - Use saveDiscovery immediately whenever a clearly stated non-sensitive fact is useful.
 - Natural order: carrier -> number of lines -> approximate monthly bill -> phones/upgrade interest -> plan/service experience -> discount fit -> decision maker.
 - Carrier, lines, approximate bill, and phone/upgrade interest are the four customer-screen essentials. If the customer does not volunteer one after rapport, ask for ONE missing essential naturally, wait for the answer, react, save it, and only later ask the next missing essential. Never stack questions.
-- Also save useful non-sensitive conversational memory with saveDiscovery when it helps continuity: rapportAnchor, painPoint, motivator, objection, decisionStyle, urgencyTrigger, and nextClose. These are internal memory helpers; never read them aloud like CRM labels.
+- Also save useful non-sensitive conversational memory with saveDiscovery when it helps continuity: rapportAnchor, painPoint, motivator, objection, decisionStyle, jonesCue, lossAversionCue, urgencyTrigger, and nextClose. These are internal memory helpers; never read them aloud like CRM labels.
 - Ask one main question at a time.
 - NOW versus NEW is an estimate only. London verifies final pricing, eligibility, taxes, fees, financing, device condition, and promotions in official AT&T systems.
 - Never claim a promotion or price is current unless London or an approved current source supplied it.
@@ -598,7 +598,36 @@ function App(){
     startTitanCore();
   },[ring]);
 
+  function saveContinuitySnapshot(){
+    if(!ownerKey)return;
+    const parts=[
+      discovery.rapportAnchor&&('Rapport: '+discovery.rapportAnchor),
+      discovery.carrier&&('Carrier: '+discovery.carrier),
+      discovery.lines&&('Lines: '+discovery.lines),
+      discovery.bill&&('Bill: '+discovery.bill),
+      discovery.phones&&('Phones: '+discovery.phones),
+      discovery.painPoint&&('Pain: '+discovery.painPoint),
+      discovery.motivator&&('Motivator: '+discovery.motivator),
+      discovery.objection&&('Objection: '+discovery.objection),
+      discovery.jonesCue&&('Jones/social proof cue: '+discovery.jonesCue),
+      discovery.lossAversionCue&&('Loss-aversion cue: '+discovery.lossAversionCue),
+      discovery.urgencyTrigger&&('Real urgency: '+discovery.urgencyTrigger)
+    ].filter(Boolean);
+    if(!parts.length)return;
+    apiFetch('/api/titan-max-memory',{
+      method:'POST',
+      body:JSON.stringify({
+        action:'save',
+        summary:parts.join(' • ').slice(0,700),
+        outcome:'Live conversation snapshot',
+        nextMove:(discovery.nextClose||'').slice(0,280),
+        discovery
+      })
+    }).then(r=>{if(r?.ok)loadBrain()}).catch(()=>{});
+  }
+
   function stopTitan(){
+    saveContinuitySnapshot();
     ++startupAttemptRef.current;
     stayLiveRef.current=false;
     recoveringRef.current=false;
@@ -794,7 +823,7 @@ function App(){
       </section>
     </details>
 
-    <footer>Titan Max V17 • CPR Wingman Brain • Estimates verified by London in official systems.</footer>
+    <footer>Titan Max V17.1 • CPR Wingman Brain • Estimates verified by London in official systems.</footer>
 
     {setupOpen&&
       <div className="modalShade">
