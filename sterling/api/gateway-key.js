@@ -36,8 +36,10 @@ async function verifyGatewayKey(apiKey){
 }
 
 export async function loadStoredGatewayKey(){
-  if(process.env.VERCEL_OIDC_TOKEN) return process.env.VERCEL_OIDC_TOKEN;
+  // Follow Vercel's documented precedence: explicit AI Gateway key first,
+  // then deployment OIDC, then the previously verified private-store key.
   if(process.env.AI_GATEWAY_API_KEY) return process.env.AI_GATEWAY_API_KEY;
+  if(process.env.VERCEL_OIDC_TOKEN) return process.env.VERCEL_OIDC_TOKEN;
   const cfg=await readConfig();
   return cfg?.apiKey||'';
 }
@@ -52,11 +54,12 @@ export default async function handler(req,res){
   if(req.method==='OPTIONS')return res.status(204).end();
   if(req.method==='GET'){
     const env=!!process.env.AI_GATEWAY_API_KEY;
-    const cfg=env?null:await readConfig();
+    const oidc=!!process.env.VERCEL_OIDC_TOKEN;
+    const cfg=(env||oidc)?null:await readConfig();
     return res.status(200).json({
       ok:true,
-      configured:env||!!cfg?.apiKey,
-      source:env?'environment':(cfg?.apiKey?'private-store':'none'),
+      configured:env||oidc||!!cfg?.apiKey,
+      source:env?'environment':(oidc?'vercel-oidc':(cfg?.apiKey?'private-store':'none')),
       verifiedAt:cfg?.verifiedAt||null
     });
   }
