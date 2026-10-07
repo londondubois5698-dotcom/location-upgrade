@@ -629,3 +629,56 @@ body{padding-bottom:132px}
   .titanDock{gap:4px;padding:7px 5px calc(7px + env(safe-area-inset-bottom))}
   .titanDock .dockBtn{min-height:62px;font-size:18px;border-radius:16px}.titanDock .dockBtn span{font-size:9px}.titanDock .dockBtn small{font-size:7px}
 }
+
+
+/* V18 FULL-FACE + CONTACT REVIEW */
+.customerAi{overflow:visible!important}
+.customerAi .faceExpandBtn{
+  position:absolute;z-index:30;right:8px;bottom:38px;width:40px;height:40px;border-radius:13px;
+  border:1px solid #79dfff88;background:#03131fdb;color:#e8fbff;font-size:20px;font-weight:900;
+  box-shadow:0 8px 25px #0009;backdrop-filter:blur(10px)
+}
+.faceFullscreenOverlay{
+  position:fixed;inset:0;z-index:1200;background:#01060b;display:grid;place-items:center;
+}
+.fullTitanFace{position:absolute;inset:0;overflow:hidden;background:#020810}
+.fullTitanFace>.faceStage.cinematicFace{
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  min-height:100%!important;border:0!important;border-radius:0!important;background:#020810!important;
+}
+.fullTitanFace .titanCinema{inset:0!important}
+.fullTitanFace .titanFrame{object-position:center 22%!important}
+.fullTitanFace .cinemaShade{background:linear-gradient(180deg,#0006 0%,transparent 20%,transparent 65%,#000d 100%)!important}
+.fullTitanFace .cinemaStatus{top:calc(18px + env(safe-area-inset-top));left:18px;right:78px}
+.fullTitanFace .liveCapture{bottom:calc(22px + env(safe-area-inset-bottom));right:18px;width:min(320px,70%)}
+.fullTitanFace .execLabel{bottom:calc(24px + env(safe-area-inset-bottom));left:18px}
+.faceCloseBtn{
+  position:absolute;z-index:50;top:calc(16px + env(safe-area-inset-top));right:16px;
+  width:52px;height:52px;border-radius:17px;border:1px solid #8ee3ff7a;background:#03111de8;color:#fff;
+  font-size:35px;line-height:1
+}
+
+.contactReviewOverlay{
+  position:fixed;inset:0;z-index:1100;background:#01070ccf;backdrop-filter:blur(13px);
+  display:grid;align-items:end;padding:14px 12px calc(112px + env(safe-area-inset-bottom));
+}
+.contactReviewCard{
+  max-width:720px;width:100%;margin:0 auto;border:1px solid #39d6ff;border-radius:28px;
+  background:linear-gradient(160deg,#07233a,#04101b);padding:20px;box-shadow:0 24px 80px #000d,0 0 45px #18c6ff24
+}
+.reviewTop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.reviewTop small{font-size:9px;letter-spacing:1.7px;color:#80ddff;font-weight:950}
+.reviewTop h2{margin:5px 0 0;font-size:24px}
+.reviewTop>span{font-size:9px;padding:7px 9px;border:1px solid #35dfa0;border-radius:999px;color:#83f2c2;font-weight:900}
+.reviewGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px}
+.reviewGrid>div{border:1px solid #244c69;border-radius:16px;background:#061725;padding:12px}
+.reviewGrid small{display:block;font-size:8px;letter-spacing:1.2px;color:#769ab2;font-weight:900}
+.reviewGrid strong{display:block;font-size:16px;margin-top:5px;overflow-wrap:anywhere}
+.contactReviewCard p{font-size:11px;line-height:1.45;color:#91b0c5;margin:14px 2px 0}
+
+@media(max-width:430px){
+  .customerAi .faceExpandBtn{right:6px;bottom:32px;width:38px;height:38px}
+  .reviewGrid{grid-template-columns:1fr}
+  .contactReviewOverlay{padding-left:8px;padding-right:8px}
+  .contactReviewCard{padding:16px}
+}
