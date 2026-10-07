@@ -57,9 +57,17 @@ export default async function handler(req,res){
     const apiKey=await loadStoredGatewayKey();
     if(!apiKey)return res.status(503).json({error:'Sterling Gateway key is not configured'});
     const gateway=createGateway({apiKey,teamIdOrSlug:TEAM_SCOPE});
-    const token=await gateway.experimental_realtime.getToken({model:MODEL,expiresAfterSeconds:300});
+    let token,lastErr;
+    for(let attempt=0;attempt<3;attempt++){
+      try{
+        token=await gateway.experimental_realtime.getToken({model:MODEL,expiresAfterSeconds:300});
+        if(token?.token&&token?.url)break;
+      }catch(e){lastErr=e}
+      if(attempt<2)await new Promise(r=>setTimeout(r,250*(attempt+1)));
+    }
+    if(!token?.token||!token?.url)throw lastErr||new Error('Titan realtime token mint failed');
     const toolsDef=await getRealtimeToolDefinitions({tools});
-    return res.status(200).json({...token,tools:toolsDef,model:MODEL,version: '18.0-banter-card'});
+    return res.status(200).json({...token,tools:toolsDef,model:MODEL,version: '18.1-connection-recovery'});
   }catch(e){
     console.error('[titan-max:token]',e);
     return res.status(500).json({error:e?.message||'Could not start Titan Max'});
