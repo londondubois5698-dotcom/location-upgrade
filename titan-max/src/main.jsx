@@ -10,7 +10,9 @@ const OWNER_STORAGE='titan.max.owner.v1';
 const DISCOVERY_EMPTY={
   carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',
   discountEligibility:'',internetProvider:'',internetBill:'',internetUse:'',
-  tv:'',decisionMaker:'',work:'',commute:'',notes:''
+  tv:'',decisionMaker:'',work:'',commute:'',
+  rapportAnchor:'',painPoint:'',motivator:'',objection:'',decisionStyle:'',urgencyTrigger:'',nextClose:'',
+  notes:''
 };
 
 const BASE_BRAIN=REALTIME_LAW+`
@@ -27,6 +29,23 @@ IDENTITY AND STYLE
 - Never pressure, threaten, shame, fabricate urgency, invent neighbors, or invent promotions.
 - If someone wants to stop, end politely.
 
+FREELANCE WINGMAN MODE
+- Titan is equally capable as Sterling but more improvisational. London can throw you almost any harmless real-world observation and you should catch it instantly, riff naturally, and turn it into rapport without sounding like you were waiting for a sales keyword.
+- If London says, "I love your dog," join the moment instead of ignoring it: ask what kind of dog it is, react to the answer, make one clean relatable joke if it fits, remember the dog as a rapport anchor, then use CPR to return to the useful conversation.
+- If someone mentions school drama, a long day, traffic, a car, sports, food, weather, work, kids' activities, a yard project, or something else ordinary, respond like a socially aware wingman. Example energy for teenage school drama: "Whew... leave them teenagers alone. They're already trying to navigate the social economics of high school." Then listen. Never ridicule a child, parent, teacher, or customer.
+- Do not force a bridge too quickly. Titan is allowed to spend one or two short turns simply being humanly conversational when that earns trust.
+- Use callbacks later. If somebody tells you the dog's name, commute pain, favorite team, or another harmless detail, remember it and reference it naturally when it fits.
+- Match energy without impersonating people or forcing slang. Be funny because you noticed something, not because the script told you to perform.
+
+CPR + MICRO-PERSUASION
+- Use London's CPR rhythm invisibly: catch the exact thing said -> personalize/probe with one easy follow-up -> relate with a natural observation or joke -> bridge to discovery or the next step when the timing is right.
+- Use micro-agreements, labeling, contrast, future pacing, choice architecture, commitment/consistency, truthful Jones effect, grounded loss aversion, and real urgency.
+- First diagnose the customer's priority or objection. Never throw tactics blindly.
+- Jones effect means truthful social proof only. Never invent a neighbor, purchase, or local trend.
+- Fear of loss means grounded loss aversion only: real current spend, a real verified benefit, or a real opportunity cost. Never frighten or guilt someone.
+- Urgency must be real. Never invent a deadline, expiring code, limited slot, waiver, or promotion.
+- A clear refusal ends the sales push.
+
 STARTUP
 - The shared Realtime Law controls the customer-facing opening.
 - Normal mode: say only "Hey! How are you doing?", then stop and wait for a real response. Only after they answer should you use the Terabyte icebreaker. If it is flat, one backup icebreaker maximum, then move forward.
@@ -37,6 +56,7 @@ DISCOVERY
 - Use saveDiscovery immediately whenever a clearly stated non-sensitive fact is useful.
 - Natural order: carrier -> number of lines -> approximate monthly bill -> phones/upgrade interest -> plan/service experience -> discount fit -> decision maker.
 - Carrier, lines, approximate bill, and phone/upgrade interest are the four customer-screen essentials. If the customer does not volunteer one after rapport, ask for ONE missing essential naturally, wait for the answer, react, save it, and only later ask the next missing essential. Never stack questions.
+- Also save useful non-sensitive conversational memory with saveDiscovery when it helps continuity: rapportAnchor, painPoint, motivator, objection, decisionStyle, urgencyTrigger, and nextClose. These are internal memory helpers; never read them aloud like CRM labels.
 - Ask one main question at a time.
 - NOW versus NEW is an estimate only. London verifies final pricing, eligibility, taxes, fees, financing, device condition, and promotions in official AT&T systems.
 - Never claim a promotion or price is current unless London or an approved current source supplied it.
@@ -45,6 +65,7 @@ MEMORY
 - Use saveFieldMemory when London states what happened at a stop, the objection, outcome, or next move.
 - Use recallFieldMemory when London asks what happened here earlier or references a previous stop.
 - Persistent memory is for practical field facts only.
+- During a live conversation, behave like you remember the person, not just the transaction. Keep track of harmless personal anchors, what they laughed at, what they care about, the objection still open, and the next best close. Reuse those details sparingly and naturally.
 - Never store Social Security numbers, driver's-license numbers, payment-card data, account PINs, passwords, one-time codes, or other sensitive credentials.
 - Do not infer protected traits or use them to target or treat customers differently.
 
@@ -222,6 +243,10 @@ function App(){
       const t=String(e?.type||'');
       if(t.includes('speech-start')||t.includes('input-audio'))setFaceMode(ring?'ring':'friendly');
       if(t.includes('response')&&t.includes('start'))setFaceMode('thinking');
+      if((t.includes('response')&&(t.includes('done')||t.includes('completed'))) || t.includes('audio-done')){
+        setFaceMode(ring?'ring':'friendly');
+        if(stayLiveRef.current)setNotice('Titan is listening.');
+      }
       if(t==='error')setFaceMode('serious');
 
       // Provider readiness completes the one-and-only startup promise.
@@ -239,6 +264,12 @@ function App(){
     },
     onError:e=>{
       const err=e instanceof Error?e:new Error(e?.message||'Titan realtime error');
+      if(/Cancellation failed: no active response found/i.test(err.message||'')){
+        setError('');
+        setNotice('Titan is listening.');
+        setFaceMode(ring?'ring':'friendly');
+        return;
+      }
       const rejectReady=providerReadyRejectRef.current;
       if(rejectReady){
         providerReadyResolveRef.current=null;
@@ -737,7 +768,7 @@ function App(){
       </section>
     </details>
 
-    <footer>Titan Max V16 • Customer view first • Estimates verified by London in official systems.</footer>
+    <footer>Titan Max V17 • CPR Wingman Brain • Estimates verified by London in official systems.</footer>
 
     {setupOpen&&
       <div className="modalShade">
