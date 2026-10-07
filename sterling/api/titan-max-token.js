@@ -23,7 +23,7 @@ const tools={
   saveDiscovery:tool({
     description:'Immediately save a clearly stated, non-sensitive customer fact for the live NOW versus NEW display.',
     inputSchema:z.object({
-      field:z.enum(['carrier','lines','bill','phones','currentPlan','upgradeInterest','discountEligibility','internetProvider','internetBill','internetUse','tv','decisionMaker','work','commute','rapportAnchor','painPoint','motivator','objection','decisionStyle','urgencyTrigger','nextClose','notes']),
+      field:z.enum(['carrier','lines','bill','phones','currentPlan','upgradeInterest','discountEligibility','internetProvider','internetBill','internetUse','tv','decisionMaker','work','commute','rapportAnchor','painPoint','motivator','objection','decisionStyle','jonesCue','lossAversionCue','urgencyTrigger','nextClose','notes']),
       value:z.string().min(1).max(300)
     })
   }),
@@ -51,7 +51,7 @@ export default async function handler(req,res){
     const gateway=createGateway({apiKey,teamIdOrSlug:TEAM_SCOPE});
     const token=await gateway.experimental_realtime.getToken({model:MODEL,expiresAfterSeconds:300});
     const toolsDef=await getRealtimeToolDefinitions({tools});
-    return res.status(200).json({...token,tools:toolsDef,model:MODEL,version: '17.0-cpr-wingman'});
+    return res.status(200).json({...token,tools:toolsDef,model:MODEL,version: '17.1-cpr-wingman'});
   }catch(e){
     console.error('[titan-max:token]',e);
     return res.status(500).json({error:e?.message||'Could not start Titan Max'});
