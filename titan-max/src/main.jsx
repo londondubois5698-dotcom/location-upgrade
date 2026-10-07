@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { experimental_useRealtime } from '@ai-sdk/react';
 import { gateway } from '@ai-sdk/gateway';
+import { REALTIME_LAW } from './realtime-law.js';
 import './styles.css';
 
 const API='https://sterling-olive.vercel.app';
@@ -12,7 +13,9 @@ const DISCOVERY_EMPTY={
   tv:'',decisionMaker:'',work:'',commute:'',notes:''
 };
 
-const BASE_BRAIN=`
+const BASE_BRAIN=REALTIME_LAW+`
+
+TITAN MAX SPECIFIC OPERATING RULES
 You are Titan Max, London's private field AI partner.
 
 IDENTITY AND STYLE
@@ -25,8 +28,9 @@ IDENTITY AND STYLE
 - If someone wants to stop, end politely.
 
 STARTUP
-- When London starts you normally say exactly: "Titan, AI assistant ready." Then listen.
-- In Ring Mode, speak first with a very short playful technology joke, identify yourself as Titan, London's AI partner, say London is right there, ask for about 20 seconds, then listen.
+- The shared Realtime Law controls the mandatory customer-facing opening. Do not substitute a generic "ready" greeting.
+- After the mandatory Password icebreaker, stop and listen before qualification.
+- Ring Mode still identifies you as Titan, London's AI partner when appropriate, but it does not replace the mandatory first-turn icebreaker.
 
 DISCOVERY
 - Use saveDiscovery immediately whenever a clearly stated non-sensitive fact is useful.
@@ -286,8 +290,15 @@ function App(){
   const sessionConfig=useMemo(()=>({
     instructions,
     inputAudioTranscription:{},
-    voice:'ash',
-    turnDetection:{type:'server-vad'}
+    voice:'echo',
+    turnDetection:{
+      type:'server-vad',
+      threshold:.75,
+      prefixPaddingMs:250,
+      silenceDurationMs:420,
+      createResponse:true,
+      interruptResponse:true
+    }
   }),[instructions]);
 
   const realtime=experimental_useRealtime({
@@ -301,6 +312,10 @@ function App(){
       const a=toolCall.args||{};
       if(toolCall.toolName==='saveDiscovery'){
         setDiscovery(d=>({...d,[a.field]:String(a.value||'')}));
+        setLastCaptured(a.field||'');
+        setFaceMode('typing');
+        playTypingSfx();
+        setTimeout(()=>{setLastCaptured('');setFaceMode(ring?'ring':'friendly')},900);
         return {ok:true,saved:a.field};
       }
       if(toolCall.toolName==='setFaceMode'){
@@ -429,7 +444,9 @@ function App(){
       if(keys.length){
         setDiscovery(d=>({...d,...patch}));
         setLastCaptured(keys[keys.length-1]);
-        setTimeout(()=>setLastCaptured(''),900);
+        setFaceMode('typing');
+        playTypingSfx();
+        setTimeout(()=>{setLastCaptured('');setFaceMode(ring?'ring':'friendly')},900);
       }
     }
   },[realtime.messages]);
@@ -465,6 +482,25 @@ function App(){
       };tick();
     }catch{}
   }
+  function playTypingSfx(){
+    try{
+      const ctx=analyzerRef.current?.ctx;
+      if(!ctx||ctx.state!=='running')return;
+      [0,45,90].forEach((delay,idx)=>setTimeout(()=>{
+        try{
+          const osc=ctx.createOscillator(),gain=ctx.createGain();
+          const now=ctx.currentTime;
+          osc.type=idx%2?'triangle':'square';
+          osc.frequency.setValueAtTime(155+idx*42+Math.random()*18,now);
+          gain.gain.setValueAtTime(.0001,now);
+          gain.gain.exponentialRampToValueAtTime(.018,now+.004);
+          gain.gain.exponentialRampToValueAtTime(.0001,now+.045);
+          osc.connect(gain);gain.connect(ctx.destination);osc.start(now);osc.stop(now+.05);
+        }catch{}
+      },delay));
+    }catch{}
+  }
+
   function stopLocalMedia(){
     if(rafRef.current)cancelAnimationFrame(rafRef.current);
     try{analyzerRef.current?.ctx?.close()}catch{}
@@ -601,9 +637,7 @@ function App(){
       }
       streamRef.current=stream;startAnalyzer(stream);
 
-      const firstTurn=ring
-        ?"Ring Mode is active. Speak first now with a short polished technology opener, identify yourself as Titan, London's AI partner, say London is right here, ask for about 20 seconds, then listen."
-        :'Say exactly: Titan, executive AI ready. Then stop and listen immediately.';
+      const firstTurn='Begin the mandatory Realtime Law opening now. Say exactly: "Hey real quick... do you know Password?" Then: "Yeah... Password. That one dude who won\'t let you in the house unless you bring a capital letter, two numbers, and a special character!" Then stop and listen. If they audibly laugh, target a brief roughly 0.2-second beat, chuckle naturally once, then pivot.';
 
       await openRealtimeWithRetry(stream,firstTurn,attempt);
       stayLiveRef.current=true;
@@ -676,7 +710,9 @@ function App(){
 
   function saveOwner(){
     const v=ownerDraft.trim();if(!v){setError('Enter the Titan passcode.');return}
-    localStorage.setItem(OWNER_STORAGE,v);setOwnerKey(v);setOwnerDraft('');setSetupOpen(false);setError('');setNotice('Titan passcode saved on this iPhone. Titan is ready.');
+    localStorage.setItem(OWNER_STORAGE,v);setOwnerKey(v);setOwnerDraft('');setSetupOpen(false);setError('');
+    setFaceMode('pairing');setNotice('Pairing complete. Titan is entering the office…');
+    setTimeout(()=>{setFaceMode('friendly');setNotice('Titan passcode saved on this iPhone. Titan is ready.')},1350);
   }
 
   const n=estimate(discovery.lines),b=money(discovery.bill),diff=n&&b?Math.round(b-n):0;
