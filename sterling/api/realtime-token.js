@@ -76,10 +76,18 @@ function applyCors(req,res){
 export async function mintRealtimeSetup(){
   const toolDefs = await getRealtimeToolDefinitions({tools});
   const realtimeGateway=await getRealtimeGateway();
-  const setup = await realtimeGateway.experimental_realtime.getToken({
-    model: MODEL,
-    expiresAfterSeconds: 240
-  });
+  let setup,lastErr;
+  for(let attempt=0;attempt<3;attempt++){
+    try{
+      setup=await realtimeGateway.experimental_realtime.getToken({
+        model: MODEL,
+        expiresAfterSeconds: 240
+      });
+      if(setup?.token&&setup?.url)break;
+    }catch(e){lastErr=e}
+    if(attempt<2)await new Promise(r=>setTimeout(r,250*(attempt+1)));
+  }
+  if(!setup?.token||!setup?.url)throw lastErr||new Error('Realtime token mint failed');
 
   const model = realtimeGateway.experimental_realtime(MODEL);
   const socket = model.getWebSocketConfig({
@@ -95,7 +103,7 @@ export async function mintRealtimeSetup(){
     tools: toolDefs,
     instructions: STERLING_INSTRUCTIONS,
     teamScope: TEAM_SCOPE,
-    version: '18.0'
+    version: '18.1-connection-recovery'
   };
 }
 
