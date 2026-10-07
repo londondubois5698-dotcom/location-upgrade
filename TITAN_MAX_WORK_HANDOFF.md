@@ -61,3 +61,14 @@ When this project is opened in ChatGPT Work, read this file first, then inspect 
 - Added independent GitHub Action `Titan Max Realtime Simulation`.
 - Verified passing output: `TITAN_REALTIME_SMOKE_OK`, `connected:true`, `providerReady:true`, `firstSubmission:true`, with `session-update`, `conversation-item-create`, and `response-create`.
 - Production frontend build also passed in the same simulation workflow.
+
+## Titan / Sterling Realtime Law
+- Canonical source: `/TITAN_STERLING_REALTIME_LAW.md`.
+- Runtime law modules: `/sterling/realtime-law.js` and `/titan-max/src/realtime-law.js`.
+- This law is higher priority than older personality/opening guidance for both Titan and Sterling.
+- Realtime voice is `echo`; OpenAI Realtime currently supports Echo but not Onyx. Onyx may only be used in a non-Realtime TTS fallback.
+- Server VAD target is threshold 0.75, prefix padding 250 ms, silence duration 420 ms.
+- Fresh customer sessions use the mandatory Password icebreaker.
+- Data capture triggers typing state, visible NOW/NEW updates, particles, and keyboard SFX.
+- Pairing, listening, speaking, and typing are explicit visual states for the cinematic character layer.
+
