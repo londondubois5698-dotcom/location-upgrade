@@ -20,6 +20,14 @@ function cors(req,res){
   res.setHeader('Vary','Origin');res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');res.setHeader('Access-Control-Allow-Headers','Content-Type');res.setHeader('Cache-Control','no-store,max-age=0');
 }
 const tools={
+  saveContact:tool({
+    description:'Save one clearly heard field for the temporary on-screen review card.',
+    inputSchema:z.object({field:z.enum(['first','last','phone','email']),value:z.string().min(1).max(254)})
+  }),
+  commitContact:tool({
+    description:'Mark the temporary on-screen review card complete after the person says the full card looks correct.',
+    inputSchema:z.object({reviewed:z.boolean()})
+  }),
   saveDiscovery:tool({
     description:'Immediately save a clearly stated, non-sensitive customer fact for the live NOW versus NEW display.',
     inputSchema:z.object({
@@ -51,7 +59,7 @@ export default async function handler(req,res){
     const gateway=createGateway({apiKey,teamIdOrSlug:TEAM_SCOPE});
     const token=await gateway.experimental_realtime.getToken({model:MODEL,expiresAfterSeconds:300});
     const toolsDef=await getRealtimeToolDefinitions({tools});
-    return res.status(200).json({...token,tools:toolsDef,model:MODEL,version: '17.1-cpr-wingman'});
+    return res.status(200).json({...token,tools:toolsDef,model:MODEL,version: '18.0-banter-card'});
   }catch(e){
     console.error('[titan-max:token]',e);
     return res.status(500).json({error:e?.message||'Could not start Titan Max'});
