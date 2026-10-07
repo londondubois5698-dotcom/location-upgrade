@@ -16,7 +16,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          URL="https://sterling-olive.vercel.app/api/realtime-diagnostic?t=\${GITHUB_SHA}"
+          URL="https://sterling-olive.vercel.app/api/realtime-diagnostic?t=$GITHUB_SHA"
           echo "Checking $URL"
           for n in $(seq 1 18); do
             CODE=$(curl -sS -o /tmp/diag.json -w "%{http_code}" "$URL" || true)
