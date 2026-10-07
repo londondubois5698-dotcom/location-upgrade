@@ -22,15 +22,9 @@ self.addEventListener('fetch',event=>{
   const url=new URL(event.request.url);
   if(url.origin!==location.origin)return;
 
-  // Never serve a stale HTML shell for Titan startup. GitHub Pages HTML is
-  // network-first/no-store so a Home Screen launch cannot resurrect old JS.
+  // Always fetch the latest Titan HTML shell. If the network is unavailable,
+  // the app fails clearly instead of silently reviving an old realtime build.
   if(event.request.mode==='navigate'){
-    event.respondWith(
-      fetch(event.request,{cache:'no-store'})
-        .catch(()=>caches.match(BASE))
-    );
-    return;
+    event.respondWith(fetch(event.request,{cache:'no-store'}));
   }
-
-  // Hashed assets are safe to cache naturally by the browser/CDN.
 });
