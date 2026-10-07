@@ -377,7 +377,7 @@ async function connect(){
   if(!active||connecting||connected)return;
   connecting=true;connected=false;render();setVoice('CONNECTING…');setCaption('Sterling','Connecting voice…');
   try{
-    var r=await fetch(APP+'/api/realtime-token?v=14.5&t='+Date.now(),{cache:'no-store'});
+    var r=await fetch(APP+'/api/realtime-token?v=15.1&t='+Date.now(),{cache:'no-store'});
     var setup=await r.json();
     if(!r.ok||!setup.token||!setup.url)throw new Error(setup.error||'Realtime setup failed');
 
@@ -451,7 +451,7 @@ async function start(){if(active&&connected)return;try{openingStarted=false;boot
 function stop(){active=false;connected=false;connecting=false;openingStarted=false;try{if(socket){socket.onclose=null;socket.onerror=null;socket.close()}}catch(e){}socket=null;releaseMic();stopPlayback();render();setVoice('STOPPED');setCaption('Sterling','Paused. Tap Start Sterling when you are ready.')}
 $('start').onclick=start;$('stop').onclick=stop;$('mute').onclick=function(){muted=!muted;render();setVoice(muted?'MIC MUTED':'LIVE • LISTENING',muted?'warn':'good')};
 $('ringMode').onclick=function(){ringMode=!ringMode;localStorage.setItem('sterling.ringMode.v1',ringMode?'1':'0');render();if(ringMode){stopPlayback();setCaption('Ring Mode','Armed. Sterling stays silent until the homeowner speaks.');setVoice(active?'RING ARMED • SILENT':'RING MODE READY','good');if(connected)send({type:'context-append',content:'Ring Mode is ON now. Stay silent until the next real homeowner voice, then use one Ring Mode hook and stop to listen.',delegationId:null})}else{setCaption('Sterling','Normal doorstep mode. Greeting first, then wait for their response.');if(connected)send({type:'context-append',content:'Ring Mode is OFF. Return to normal greeting-first doorstep conversation rules.',delegationId:null})}};
-$('voiceSetup').onclick=function(){location.href=APP+'/voice-setup.html?v=14'};
+$('voiceSetup').onclick=function(){location.href=APP+'/voice-setup.html?v=15.1'};
 $('repair').onclick=function(){stop();localStorage.removeItem('sterling.tetherId.v1');tetherId='';currentHouse=null;lastHouseKey='';lastResultId='';contact={first:'',last:'',phone:'',email:''};discovery={carrier:'',lines:'',bill:'',phones:'',currentPlan:'',upgradeInterest:'',internetProvider:'',internetBill:'',internetUse:'',discountEligibility:'',work:'',commute:'',decisionMaker:'',tv:'',notes:''};stage='rapport';mismatch=false;$('order').style.display='none';$('order').textContent='';render();$('pairStatus').textContent='Enter the new six-digit code from the iPad.'};
 
 tetherId=localStorage.getItem('sterling.tetherId.v1')||'';
