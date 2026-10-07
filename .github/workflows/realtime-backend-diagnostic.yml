@@ -1,0 +1,33 @@
+name: Realtime Backend Diagnostic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sterling/api/**'
+      - '.github/workflows/realtime-backend-diagnostic.yml'
+  workflow_dispatch:
+
+jobs:
+  realtime-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Vercel production and verify realtime token mint
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://sterling-olive.vercel.app/api/realtime-diagnostic?t=\${GITHUB_SHA}"
+          echo "Checking $URL"
+          for n in $(seq 1 18); do
+            CODE=$(curl -sS -o /tmp/diag.json -w "%{http_code}" "$URL" || true)
+            echo "Attempt $n HTTP $CODE"
+            cat /tmp/diag.json || true
+            echo
+            if [ "$CODE" = "200" ] && grep -q '"realtimeTokenMint":true' /tmp/diag.json; then
+              echo "Realtime backend healthy."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Realtime backend did not become healthy."
+          exit 1
