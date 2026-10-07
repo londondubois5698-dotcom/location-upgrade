@@ -125,6 +125,11 @@ body{
 .faceStage.excited .humanGlass{filter:drop-shadow(0 32px 45px #000d) drop-shadow(0 0 48px #69e8ff72) brightness(1.06)}
 .faceStage.serious .browHuman{transform:translateY(4px) scaleY(.97)}
 .faceStage.ring .humanGlass{filter:hue-rotate(20deg) saturate(1.12) drop-shadow(0 0 42px #65d9ff55)}
+.faceStage.typing .humanGlass{transform:translateX(-50%) translateY(5px) scale(calc(.995 + var(--level)*.006));filter:drop-shadow(0 32px 45px #000d) drop-shadow(0 0 46px #74e8ff58)}
+.faceStage.typing .speechCore{animation:coreSpeak .12s ease-in-out infinite alternate}
+.faceStage.typing .execAura{animation-duration:.65s}
+.faceStage.pairing .humanGlass{animation:executiveArrival 1.25s cubic-bezier(.2,.8,.2,1) both}
+.faceStage.pairing .execAura{animation-duration:.5s}
 .faceStage.error .stateOrb{background:#ff7474;box-shadow:0 0 16px #ff7474,0 0 34px #ff4d4d88}
 .faceStage.error .humanGlass{filter:saturate(.78) drop-shadow(0 0 30px #ff5f5f44)}
 
@@ -190,6 +195,7 @@ footer{text-align:center;color:#526e84;font-size:9px;padding:18px 8px}
 @keyframes focusPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.14)}}
 @keyframes mouthSpeak{from{transform:scaleY(.75)}to{transform:scaleY(1.35)}}
 @keyframes coreSpeak{from{transform:scale(.8);opacity:.4}to{transform:scale(1.5);opacity:.9}}
+@keyframes executiveArrival{0%{opacity:0;transform:translateX(-50%) translateY(-42px) scale(.91);filter:blur(9px) brightness(1.35)}55%{opacity:1;filter:blur(0) brightness(1.12)}100%{transform:translateX(-50%) translateY(0) scale(1);filter:drop-shadow(0 32px 45px #000d) drop-shadow(0 0 28px #1fc3ff20)}}
 @keyframes typeFlash{0%{opacity:.2;filter:blur(3px)}35%{opacity:1;filter:blur(0)}100%{opacity:1}}
 @media(max-width:700px){
   .hero{grid-template-columns:1fr}
