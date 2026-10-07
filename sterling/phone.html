@@ -117,6 +117,82 @@
  .modeGrid .btn{font-size:14px;min-height:54px;padding:10px}
 }
 
+
+/* V17 flagship customer-first layout */
+body{padding-bottom:132px;background:
+  radial-gradient(circle at 85% 8%,#093b6728,transparent 26%),
+  linear-gradient(180deg,#061423,#020811)}
+.wrap{max-width:760px;padding:calc(14px + env(safe-area-inset-top)) 12px calc(160px + env(safe-area-inset-bottom))}
+.brand{font-size:36px;line-height:1;margin:0 0 4px;letter-spacing:-1.4px}
+.sub{display:none}
+.alpha-version{font-size:12px;padding:5px 8px}
+.alpha-stage{margin:10px 0;border-radius:30px;border-color:#1d628f;background:#030b13;box-shadow:0 28px 75px #000a;overflow:hidden}
+.customerHero{position:relative;min-height:155px;padding:22px 160px 18px 18px;overflow:hidden;background:
+ linear-gradient(90deg,#061425 0 54%,#061425bb 70%,transparent 100%),
+ radial-gradient(circle at 82% 35%,#0c7ec34a,transparent 38%),
+ #06111d}
+.staticAiPortrait{position:absolute;right:-8px;bottom:-30px;width:195px;height:225px;overflow:hidden;filter:saturate(1.05) contrast(1.04)}
+.staticAiPortrait img{width:100%;height:100%;object-fit:cover;object-position:center 28%;transform:scale(1.12);animation:portraitBreathe 4.8s ease-in-out infinite}
+@keyframes portraitBreathe{0%,100%{transform:scale(1.12) translateY(0)}50%{transform:scale(1.14) translateY(-2px)}}
+.portraitGlow{position:absolute;inset:0;background:radial-gradient(circle at 47% 38%,transparent 0 27%,#26b8ff15 50%,#06111dc0 88%)}
+.heroText{position:relative;z-index:3}.eyebrow{font-size:10px;letter-spacing:1.8px;color:#7dcfff;font-weight:950}
+.heroStatus{margin-top:24px;display:flex;align-items:center;gap:9px}.heroStatus strong{font-size:27px;letter-spacing:-.5px}
+.statusDot{width:11px;height:11px;border-radius:50%;background:#4ef0a4;box-shadow:0 0 18px #4ef0a4}
+.heroLine{margin-top:7px;font-size:13px;line-height:1.35;color:#a8c6dc;max-width:320px}
+.alpha-top{top:10px;left:auto;right:10px;display:flex;gap:5px;flex-direction:column;align-items:flex-end}
+.alpha-chip{font-size:8px;padding:5px 7px;background:#03111ddd}
+.noise-meter{position:absolute;left:18px;right:170px;bottom:10px;height:3px}
+.comparisonStage{padding:13px 12px 14px;background:linear-gradient(180deg,#03101b,#020a11)}
+.premiumCompare{grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr);gap:7px;align-items:stretch}
+.premiumCompare .nn{min-height:440px;padding:14px 12px 12px;border-radius:25px;display:flex;flex-direction:column}
+.carrierHeader{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 11px;border-radius:15px;background:#0b1e30;margin-bottom:14px;border:1px solid #234f70}
+.carrierHeader h3{margin:0!important;font-size:16px!important;letter-spacing:.2px!important;color:#fff!important}
+.carrierHeader span{font-size:9px;font-weight:950;letter-spacing:1px;color:#b7cddd}
+.billLabel{font-size:11px;color:#89a7bf;margin:1px 3px 2px}
+.heroMoney{font-size:42px!important;line-height:1;font-weight:1000;letter-spacing:-2px;margin:6px 2px 18px;color:#fff!important;white-space:nowrap}
+.heroMoney:after{content:"/mo";font-size:13px;letter-spacing:0;color:#9eb7cc;margin-left:4px;font-weight:800}
+.attMoney{color:#55e8ff!important;text-shadow:0 0 18px #31ccff35}
+.nnrow{grid-template-columns:42% 58%;gap:7px;padding:11px 2px;border-bottom:1px solid #15344b;font-size:12px;margin-top:auto}
+.nnrow+.nnrow{margin-top:0}.nnrow span:first-child{font-size:11px}.nnrow strong{font-size:12px;white-space:normal;overflow:visible}
+.nn.now{background:linear-gradient(165deg,#091a2a,#050a12 72%);border-color:#315b79}
+.nn.now.carrier-verizon{background:linear-gradient(165deg,#36080e,#080a11 72%);border-color:#ff3c58;box-shadow:0 0 34px #ff244422}
+.nn.now.carrier-verizon .carrierHeader{background:linear-gradient(90deg,#a60020,#da1237);border-color:#ff5670}
+.nn.now.carrier-tmobile{background:linear-gradient(165deg,#390423,#080a11 72%);border-color:#e20074;box-shadow:0 0 34px #e2007425}
+.nn.now.carrier-tmobile .carrierHeader{background:linear-gradient(90deg,#a40058,#e20074);border-color:#ff58ad}
+.nn.new{background:
+ radial-gradient(circle at 90% 2%,#49dfff30,transparent 30%),
+ linear-gradient(165deg,#073c63,#06101a 74%);border-color:#36d7ff;box-shadow:0 0 40px #1ecbff24}
+.attHeader{background:linear-gradient(90deg,#0877c8,#0a9feb);border-color:#62dcff}
+.savingsHero{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center;background:linear-gradient(135deg,#063a34,#075c43);border:1px solid #39e6a3;border-radius:17px;padding:11px 10px;margin:0 0 12px;box-shadow:0 0 24px #29e4971c}
+.moneyBag{font-size:30px}.savingsHero small{display:block;font-size:9px;color:#8ff4c6;letter-spacing:.8px;font-weight:900}.savingsHero strong{display:block;color:#65f1b8;font-size:24px;line-height:1.05;margin-top:2px}
+.valueBanner{margin-top:10px;border:1px solid #1f577d;background:linear-gradient(90deg,#082139,#061524);border-radius:18px;padding:11px 13px;display:flex;gap:11px;align-items:center}
+.diamond{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:#0b4675;color:#74ddff;font-size:18px}
+.valueBanner strong{display:block;font-size:13px}.valueBanner small{display:block;color:#8eabc0;font-size:10px;margin-top:2px}
+.modeDock{position:fixed!important;left:0;right:0;bottom:0;z-index:200;margin:0!important;border-radius:24px 24px 0 0!important;padding:10px 10px calc(10px + env(safe-area-inset-bottom))!important;background:#04111df4!important;backdrop-filter:blur(20px);box-shadow:0 -12px 40px #000a;border-color:#1f4f70!important}
+.modeGrid{max-width:760px;margin:auto;display:grid!important;grid-template-columns:1.15fr 1.15fr 1.2fr .9fr .9fr!important;gap:7px!important}
+.modeGrid .btn{min-height:68px!important;padding:8px 5px!important;font-size:21px!important;border-radius:18px!important;display:flex;align-items:center;justify-content:center;gap:5px;flex-direction:column}
+.modeGrid .btn span{font-size:11px;line-height:1.05}.modeGrid .btn small{display:block;font-size:8px;margin-top:4px;font-weight:800;opacity:.82}
+.controlTalk{background:linear-gradient(160deg,#0872cb,#08a4f0)!important}.modeBtnRing{background:linear-gradient(160deg,#8a5a0e,#c58b1a)!important}.controlOutdoor{background:linear-gradient(160deg,#087b53,#0cad74)!important}.controlStop{background:linear-gradient(160deg,#8f2833,#b63140)!important}
+.wave{display:none!important}.fieldDrawer{display:none!important}
+@media(max-width:430px){
+ body{padding-bottom:122px}
+ .wrap{padding-left:8px;padding-right:8px;padding-bottom:150px}
+ .brand{font-size:31px}
+ .customerHero{min-height:138px;padding:18px 124px 16px 14px}
+ .staticAiPortrait{width:150px;height:190px;right:-9px;bottom:-35px}
+ .heroStatus{margin-top:21px}.heroStatus strong{font-size:24px}.heroLine{font-size:11px}
+ .alpha-top{right:7px;top:7px}.alpha-chip{font-size:7px}
+ .premiumCompare{grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr);gap:5px}
+ .premiumCompare .nn{min-height:405px;padding:10px 8px;border-radius:20px}
+ .carrierHeader{padding:8px 7px;margin-bottom:12px}.carrierHeader h3{font-size:13px!important}.carrierHeader span{font-size:7px}
+ .heroMoney{font-size:34px!important;margin-bottom:14px}.heroMoney:after{font-size:10px}
+ .billLabel{font-size:9px}.nnrow{grid-template-columns:40% 60%;font-size:10px;padding:9px 1px}.nnrow span:first-child,.nnrow strong{font-size:9px}
+ .savingsHero{grid-template-columns:31px 1fr;padding:9px 7px}.moneyBag{font-size:24px}.savingsHero strong{font-size:19px}.savingsHero small{font-size:7px}
+ .valueBanner{padding:9px}.valueBanner strong{font-size:11px}.valueBanner small{font-size:8px}
+ .modeDock{padding:8px 6px calc(8px + env(safe-area-inset-bottom))!important}
+ .modeGrid{gap:5px!important}.modeGrid .btn{min-height:62px!important;font-size:18px!important}.modeGrid .btn span{font-size:9px}.modeGrid .btn small{font-size:7px}
+}
+
 </style>
 </head>
 <body><main class="wrap">
@@ -134,15 +210,13 @@
 
 <section class="card liveOnly modeDock" id="mainCard">
   <div class="modeGrid">
-    <button id="start" class="btn outdoor">Talk • Start Live</button>
-    <button id="ringMode" class="btn secondary modeBtnRing">Ring • Listen First</button>
-    <button id="outdoorMax" class="btn secondary fullrow">Outdoor Max • ON</button>
+    <button id="start" class="btn outdoor controlTalk">🎙<span>Talk<small>Start Live</small></span></button>
+    <button id="ringMode" class="btn secondary modeBtnRing">☎<span>Ring<small>Listen First</small></span></button>
+    <button id="outdoorMax" class="btn secondary controlOutdoor">▲<span>Outdoor Max<small>ON</small></span></button>
+    <button id="mute" class="btn secondary controlMute" style="display:none">🔊<span>Mute</span></button>
+    <button id="stop" class="btn danger controlStop" style="display:none">■<span>Stop</span></button>
   </div>
   <div class="wave" id="wave">Choose Talk or Ring</div>
-  <div class="grid" style="margin-top:8px">
-    <button id="mute" class="btn secondary" style="display:none">Mute</button>
-    <button id="stop" class="btn danger" style="display:none">Stop</button>
-  </div>
   <details class="fieldDrawer">
     <summary>London • Field controls & details</summary>
     <div class="row"><span class="label">iPad tether</span><span class="value status" id="ipad">Waiting…</span></div>
@@ -157,40 +231,52 @@
 </section>
 
 <section class="alpha-stage liveOnly" id="alphaStage" data-state="idle">
-  <div class="alpha-hero">
-    <div class="cinemaFrames" id="cinemaFrames" aria-hidden="true">
-      <img class="cine-frame f1" src="/assets/sterling360/f01.webp?v=16" alt="">
-      <img class="cine-frame f2" src="/assets/sterling360/f05.webp?v=16" alt="">
-      <img class="cine-frame f3" src="/assets/sterling360/f07.webp?v=16" alt="">
-      <img class="cine-frame f4" src="/assets/sterling360/f09.webp?v=16" alt="">
+  <div class="customerHero">
+    <div class="heroText">
+      <div class="eyebrow">STERLING ALPHA • LIVE SALES AI</div>
+      <div class="heroStatus"><span class="statusDot"></span><strong id="alphaState">READY</strong></div>
+      <div class="heroLine" id="liveCaption">Your live comparison builds as we talk.</div>
+      <div class="caplabel" id="captionLabel" style="display:none">Sterling</div>
     </div>
-    <div class="alpha-shade"></div>
-    <div class="alpha-wave" id="alphaWave"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i><i style="--i:6"></i><i style="--i:7"></i><i style="--i:8"></i><i style="--i:9"></i><i style="--i:10"></i><i style="--i:11"></i><i style="--i:12"></i><i style="--i:13"></i><i style="--i:14"></i><i style="--i:15"></i><i style="--i:16"></i><i style="--i:17"></i><i style="--i:18"></i><i style="--i:19"></i></div>
-    <div class="alpha-top"><span class="alpha-chip good" id="alphaPair">LIVE VISUAL</span><span class="alpha-chip" id="ringChip">TALK MODE</span><span class="alpha-chip focus" id="alphaFocus">OUTDOOR MAX • ON</span></div>
-    <div class="pair-toast" id="pairToast">✓ Pairing Sync Complete</div><div class="typing-particles" id="typingParticles"></div><div class="alpha-nameplate">STERLING ONE</div>
-  </div>
-  <div class="alpha-live">
-    <div class="alpha-statusline"><span class="alpha-state" id="alphaState">READY</span><span class="alpha-chip" id="customerMode">CUSTOMER VIEW</span></div>
+    <div class="staticAiPortrait" aria-hidden="true">
+      <img src="/assets/sterling360/f01.webp?v=17" alt="">
+      <div class="portraitGlow"></div>
+    </div>
+    <div class="alpha-top">
+      <span class="alpha-chip good" id="alphaPair">LIVE VISUAL</span>
+      <span class="alpha-chip" id="ringChip">TALK MODE</span>
+      <span class="alpha-chip focus" id="alphaFocus">OUTDOOR MAX • ON</span>
+    </div>
+    <div class="pair-toast" id="pairToast">✓ Pairing Sync Complete</div>
+    <div class="typing-particles" id="typingParticles"></div>
     <div class="noise-meter"><span id="noiseMeter"></span></div>
-    <div class="alpha-caption"><div class="caplabel" id="captionLabel">Sterling</div><div class="captext" id="liveCaption">Choose Talk or Ring. Sterling will build the comparison live as you speak.</div></div>
-    <div class="nownew">
-      <div class="nn now" id="nowCard"><h3 id="nowHeading">NOW</h3>
+  </div>
+
+  <div class="comparisonStage">
+    <div class="nownew premiumCompare">
+      <div class="nn now" id="nowCard">
+        <div class="carrierHeader"><h3 id="nowHeading">NOW</h3><span>YOUR CURRENT</span></div>
+        <div class="billLabel">Monthly Bill</div>
+        <div class="heroMoney typing-value" id="dBill">—</div>
         <div class="nnrow"><span>Carrier</span><strong class="typing-value" id="dCarrier">—</strong></div>
         <div class="nnrow"><span>Lines</span><strong class="typing-value" id="dLines">—</strong></div>
-        <div class="nnrow"><span>Bill</span><strong class="money typing-value" id="dBill">—</strong></div>
         <div class="nnrow"><span>Phones</span><strong class="typing-value" id="dPhones">—</strong></div>
         <div class="nnrow"><span>Plan</span><strong class="typing-value" id="dPlan">—</strong></div>
       </div>
-      <div class="nnarrow">→</div>
-      <div class="nn new" id="newCard"><h3>NEW • AT&amp;T</h3>
+
+      <div class="nnarrow"><span>→</span></div>
+
+      <div class="nn new" id="newCard">
+        <div class="carrierHeader attHeader"><h3>AT&amp;T</h3><span>NEW</span></div>
+        <div class="billLabel">Estimated Bill</div>
+        <div class="heroMoney attMoney typing-value" id="nPrice">—</div>
+        <div class="savingsHero"><div class="moneyBag">💰</div><div><small>YOU'LL SAVE</small><strong class="typing-value" id="nSavings">—</strong></div></div>
         <div class="nnrow"><span>Wireless</span><strong id="nPlan">Extra 2.0</strong></div>
-        <div class="nnrow"><span>Est.</span><strong class="money typing-value" id="nPrice">—</strong></div>
-        <div class="nnrow"><span>Savings</span><strong class="money typing-value" id="nSavings">—</strong></div>
         <div class="nnrow"><span>Upgrade</span><strong class="typing-value" id="nUpgrade">Discovering…</strong></div>
         <div class="nnrow"><span>Discount</span><strong class="typing-value" id="nDiscount">Check fit</strong></div>
       </div>
     </div>
-    <div class="customerHint">Live estimate • London verifies final eligibility, taxes, device condition and promotions in the official AT&amp;T system.</div>
+    <div class="valueBanner"><span class="diamond">◆</span><div><strong>A better fit. A lower bill.</strong><small>Same number. Better value. London verifies the final offer.</small></div></div>
   </div>
 </section>
 
