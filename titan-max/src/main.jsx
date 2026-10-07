@@ -185,6 +185,8 @@ function App(){
   const recoveringRef=useRef(false);
   const recoveryTimerRef=useRef(null);
   const pendingStartModeRef=useRef(null);
+  const pendingMicPromiseRef=useRef(null);
+  const playbackPrimeRef=useRef(false);
 
   const model=useMemo(()=>gateway.experimental_realtime('openai/gpt-realtime-2.1'),[]);
   const instructions=useMemo(()=>{
@@ -386,6 +388,34 @@ function App(){
     return()=>window.removeEventListener('pointermove',onMove);
   },[]);
 
+  function titanMicConstraints(){
+    return {audio:{
+      echoCancellation:true,
+      noiseSuppression:true,
+      autoGainControl:true,
+      channelCount:1
+    }};
+  }
+
+  function primeTitanHardware(){
+    // IMPORTANT FOR IPHONE: start permission/audio work directly inside the button tap.
+    // Do not wait for network preflight first or Safari can lose the user gesture.
+    try{
+      const p=realtime.resumePlayback?.();
+      if(p&&typeof p.catch==='function')p.catch(()=>{});
+      playbackPrimeRef.current=true;
+    }catch{}
+    if(!streamRef.current&&!pendingMicPromiseRef.current){
+      try{
+        pendingMicPromiseRef.current=navigator.mediaDevices.getUserMedia(titanMicConstraints());
+        pendingMicPromiseRef.current.catch(()=>{});
+      }catch(e){
+        pendingMicPromiseRef.current=Promise.reject(e);
+        pendingMicPromiseRef.current.catch(()=>{});
+      }
+    }
+  }
+
   function startAnalyzer(stream){
     try{
       const AC=window.AudioContext||window.webkitAudioContext,ctx=new AC();
@@ -441,10 +471,14 @@ function App(){
       if(attempt!==startupAttemptRef.current)throw new Error('Titan startup was cancelled');
       if(delays[pass])await new Promise(r=>setTimeout(r,delays[pass]));
       try{
-        if(pass>0){try{realtime.disconnect()}catch{}}
+        if(pass>0){
+          try{realtime.stopAudioCapture?.()}catch{}
+          try{realtime.stopPlayback?.()}catch{}
+          try{realtime.disconnect()}catch{}
+        }
         setError('');
         setNotice(pass===0
-          ?(resume?'Restoring Titan executive link…':'Opening realtime executive link…')
+          ?(resume?'Restoring Titan voice link…':'Opening Titan voice link…')
           :`Signal changed. Titan is self-recovering (${pass+1}/3)…`);
 
         const providerReady=new Promise((resolve,reject)=>{
@@ -453,24 +487,29 @@ function App(){
           providerReadyTimerRef.current=setTimeout(()=>{
             clearProviderWait();
             reject(new Error('Provider ready timeout'));
-          },7500);
+          },9000);
         });
 
-        await realtime.connect({stream,capture:true});
+        // Connect transport first, then explicitly attach the already-authorized mic.
+        // This follows the current AI SDK realtime lifecycle and avoids silent capture on iPhone.
+        await realtime.connect({capture:false});
         if(attempt!==startupAttemptRef.current)throw new Error('Titan startup was cancelled');
         await providerReady;
         if(attempt!==startupAttemptRef.current)throw new Error('Titan startup was cancelled');
 
         clearProviderWait();
+        realtime.startAudioCapture(stream);
+        try{await realtime.resumePlayback()}catch{}
         if(!silent&&firstTurn)realtime.sendTextMessage(firstTurn);
         return true;
       }catch(e){
         lastError=e;
         clearProviderWait();
+        try{realtime.stopAudioCapture?.()}catch{}
         if((e?.message||String(e))==='Titan startup was cancelled')throw e;
       }
     }
-    throw lastError||new Error('Titan could not restore the realtime link');
+    throw lastError||new Error('Titan could not restore the realtime voice link');
   }
 
   async function recoverTitan(){
@@ -521,39 +560,33 @@ function App(){
     setStarting(true);setError('');setNotice('Running executive systems check…');setFaceMode(ring?'ring':'thinking');
 
     try{
-      let health=null;
-      for(let check=0;check<3;check++){
-        health=await Promise.race([
-          preflightTitan(),
-          new Promise(resolve=>setTimeout(()=>resolve({ok:false,error:'Titan backend health check timed out'}),4500))
-        ]);
-        if(health?.ok)break;
-        if(health?.status===401)break;
-        if(check<2){
-          setNotice(`Backend signal changed. Retrying automatically (${check+2}/3)…`);
-          await new Promise(r=>setTimeout(r,450+check*650));
-        }
+      setNotice('Unlocking Titan audio…');
+
+      // The mic request was started synchronously from the button tap whenever possible.
+      const micPromise=pendingMicPromiseRef.current||navigator.mediaDevices.getUserMedia(titanMicConstraints());
+      pendingMicPromiseRef.current=null;
+
+      // Validate backend in parallel so we do not make the iPhone wait before requesting audio.
+      const healthPromise=Promise.race([
+        preflightTitan(),
+        new Promise(resolve=>setTimeout(()=>resolve({ok:false,error:'Titan backend health check timed out'}),5000))
+      ]);
+
+      const [stream,health]=await Promise.all([micPromise,healthPromise]);
+      if(attempt!==startupAttemptRef.current){
+        stream.getTracks().forEach(t=>t.stop());
+        throw new Error('Titan startup was cancelled');
       }
-      if(attempt!==startupAttemptRef.current)throw new Error('Titan startup was cancelled');
       if(!health?.ok){
+        stream.getTracks().forEach(t=>t.stop());
         if(health?.status===401){
           localStorage.removeItem(OWNER_STORAGE);setOwnerKey('');setSetupOpen(true);
         }
         throw new Error(health?.error||'Titan backend is not ready');
       }
 
-      setNotice('Systems green. Unlocking microphone…');
-      const stream=await navigator.mediaDevices.getUserMedia({audio:{
-        echoCancellation:true,
-        noiseSuppression:true,
-        autoGainControl:true,
-        channelCount:1
-      }});
-      if(attempt!==startupAttemptRef.current){
-        stream.getTracks().forEach(t=>t.stop());
-        throw new Error('Titan startup was cancelled');
-      }
       streamRef.current=stream;setMuted(false);startAnalyzer(stream);
+      setNotice('Audio ready. Connecting Titan…');
 
       const firstTurn=ring?'':'Start NORMAL DOOR MODE now. Your only first words are exactly: "Hey! How are you doing?" Then STOP and wait for a real audible response. After they answer, follow the Terabyte icebreaker law. If the first hook is flat, use only one backup hook, then move forward.';
 
@@ -570,7 +603,7 @@ function App(){
       const message=e?.message||String(e);
       if(message!=='Titan startup was cancelled'){
         setError(message);
-        setNotice('Titan exhausted automatic recovery. Check connection/permission, then tap Start Titan.');
+        setNotice('Titan voice could not start. Check microphone permission, then tap Talk or Ring again.');
         setFaceMode('serious');
       }
     }finally{
@@ -584,6 +617,7 @@ function App(){
 
   function requestStart(mode){
     if(realtime.status==='connected'||startupLockRef.current||starting){setNotice(realtime.status==='connected'?'Titan is already live.':'Titan startup is already in progress.');return}
+    primeTitanHardware();
     const next=!!mode;
     if(ring===next){startTitanCore();return}
     pendingStartModeRef.current=next;
@@ -641,8 +675,10 @@ function App(){
     if(providerReadyTimerRef.current)clearTimeout(providerReadyTimerRef.current);
     providerReadyTimerRef.current=null;
     if(rejectReady)rejectReady(new Error('Titan startup was cancelled'));
+    try{realtime.stopAudioCapture?.()}catch{}
+    try{realtime.stopPlayback?.()}catch{}
     try{realtime.disconnect()}catch{}
-    stopLocalMedia();setMuted(false);
+    stopLocalMedia();pendingMicPromiseRef.current=null;setMuted(false);
     setNotice('Titan stopped. Tap Talk or Ring when ready.');
     setFaceMode('neutral');
     setStarting(false);
@@ -650,11 +686,19 @@ function App(){
 
 
   function toggleMute(){
-    const track=streamRef.current?.getAudioTracks?.()[0];
-    if(!track)return;
-    track.enabled=!track.enabled;
-    setMuted(!track.enabled);
-    setNotice(track.enabled?'Titan is listening.':'Titan microphone muted.');
+    const stream=streamRef.current;
+    const track=stream?.getAudioTracks?.()[0];
+    if(!stream||!track)return;
+    if(muted){
+      track.enabled=true;
+      try{realtime.startAudioCapture(stream)}catch{}
+      setMuted(false);
+      setNotice('Titan is listening.');
+    }else{
+      try{realtime.stopAudioCapture?.()}catch{}
+      setMuted(true);
+      setNotice('Titan microphone muted.');
+    }
   }
 
   function toggleOutdoor(){
