@@ -34,7 +34,9 @@ function fixture({allowAutoplay}){
     onStatus:s=>notices.push(s),
     onStart:s=>events.push('start:'+s),
     onStop:()=>events.push('stop'),
-    onFallback:()=>events.push('fallback')
+    onFallback:()=>events.push('fallback'),
+    onSecondNeeded:ctx=>events.push('second:'+!!ctx.softDecline),
+    onRespectStop:()=>events.push('respect-stop')
   });
   return {remix,notices,events};
 }
@@ -68,4 +70,41 @@ function fixture({allowAutoplay}){
   assert.ok(events.includes('start:soundcloud'),'official widget must play if autoplay permitted');
   remix.stop();
 }
+
+{
+  const {remix,events}=fixture({allowAutoplay:true});
+  remix.observeCustomer('Hello there');
+  remix.onAssistantTurnDone(300);
+  remix.observeCustomer("I'm good, not interested in changing service.");
+  remix.onAssistantTurnDone(300);
+  remix.onAssistantTurnDone(300);
+  assert.deepEqual(events.filter(x=>x.startsWith('second:')),['second:true'],'soft refusal must cue one respectful second-icebreaker setup');
+  remix.observeAssistant("I understand, no sales pitch. I am hungry. You know what I'm gonna eat?");
+  assert.equal(remix.isArmed(),true,'soft refusal response should arm food setup');
+  remix.observeCustomer('Not interested in wireless, but what?');
+  await wait(105);
+  assert.ok(events.includes('start:soundcloud'),'casual not-interested response must still play if engaged');
+  remix.stop();
+}
+{
+  const {remix,events}=fixture({allowAutoplay:false});
+  remix.observeCustomer('Hello');
+  remix.observeCustomer('Please leave and stop talking.');
+  remix.onAssistantTurnDone(300);
+  assert.equal(remix.hasCued(),false,'explicit request to leave must not queue audio');
+  assert.equal(remix.isArmed(),false);
+  assert.ok(events.includes('respect-stop'),'the stage machine must respect a direct stop');
+  const denied=await remix.play();
+  assert.equal(denied.ok,false,'model tool call may not override a direct stop');
+  remix.stop();
+}
+{
+  const {remix,events}=fixture({allowAutoplay:true});
+  remix.observeCustomer('Hello');
+  remix.observeCustomer("I'm not home right now.");
+  remix.onAssistantTurnDone(300);
+  assert.ok(events.includes('second:true'),'Ring remote customer soft reply should offer the food beat');
+  remix.stop();
+}
+console.log('FOOD_REMIX_STAGE_SMOKE_OK soft declines, remote Ring, stage once, explicit stop');
 console.log('FOOD_REMIX_SMOKE_OK refusal, customer answer, transcript cue, auto-play, fallback beat');
