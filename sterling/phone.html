@@ -269,6 +269,7 @@ body{padding-bottom:132px;background:
     <button id="stop" class="btn danger controlStop" style="display:none">■<span>Stop</span></button>
   </div>
   <div class="wave" id="wave">Choose Talk or Ring</div>
+  <button type="button" id="remixNow" class="btn secondary" style="width:100%;margin:7px 0;border:1px solid #34a4d7">♫ Cue Food Remix · 20 seconds</button>
   <details class="fieldDrawer">
     <summary>London • Field controls & details</summary>
     <div class="row"><span class="label">iPad tether</span><span class="value status" id="ipad">Waiting…</span></div>
@@ -767,6 +768,7 @@ async function startMode(useRing){try{getRemix().prime()}catch(e){}if(active){if
 function stop(){if(remixController)remixController.stop();active=false;connected=false;connecting=false;openingStarted=false;try{if(socket){socket.onclose=null;socket.onerror=null;socket.close()}}catch(e){}socket=null;stopPlayback();releaseMic();render();setVoice('STOPPED');setCaption('Sterling','Paused. Choose Talk or Ring when you are ready.')}
 $('faceExpand').onclick=function(){if($('faceFullscreen')){$('faceFullscreen').hidden=false;document.body.style.overflow='hidden';if($('fullFaceState'))$('fullFaceState').textContent=alphaState==='speaking'?'SPEAKING':alphaState==='listening'?'LISTENING':'LIVE'}};
 $('faceClose').onclick=function(){if($('faceFullscreen')){$('faceFullscreen').hidden=true;document.body.style.overflow=''}};
+$('remixNow').onclick=function(){try{getRemix().prime();getRemix().play()}catch(e){setCaption('Food Remix',e.message||String(e))}};
 $('start').onclick=function(){startMode(false)};$('ringMode').onclick=function(){startMode(true)};$('stop').onclick=stop;$('mute').onclick=function(){muted=!muted;var tr=micStream&&micStream.getAudioTracks?micStream.getAudioTracks()[0]:null;if(tr&&!aiSpeaking)tr.enabled=!muted;render();setVoice(muted?'MIC MUTED':'LIVE • LISTENING',muted?'warn':'good')};
 $('outdoorMax').onclick=function(){outdoorMax=!outdoorMax;localStorage.setItem('sterling.outdoorMax.v1',outdoorMax?'1':'0');applyOutdoorMax();render()};
 $('voiceSetup').onclick=function(){location.href=APP+'/voice-setup.html?v=17.1'};
