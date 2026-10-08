@@ -723,7 +723,7 @@ async function connect(){
             setCaption('Ring Mode','Armed and silent. Waiting for the homeowner to speak.');
             setVoice('RING ARMED • SILENT','good');
           }else{
-            send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Start TALK MODE now. Your only first words are exactly: Hey! How are you doing? Then STOP and wait for a real audible response. After they answer, choose one strong opener from the rotating TOP 20 bank based on the moment. Do not default to Terabyte. Banter first; ask one question at a time."}});
+            send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Start TALK MODE now. Your only first words are exactly: Hey! How are you doing? Then STOP and wait for a real audible response. After they answer, choose one strong tech opener from the rotating TOP 20 bank. Wait for their response, then ALWAYS do the separate hungry/menu YOU NAME IT second icebreaker and music cue before collecting contacts. No Terabyte default. One question at a time."}});
             send({type:'response-create',options:{modalities:['audio']}})
           }
         }
