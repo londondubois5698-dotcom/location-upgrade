@@ -4,7 +4,7 @@ import vm from 'node:vm';
 
 const code=readFileSync(new URL('../public/remix-player.js',import.meta.url),'utf8');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-function fixture({allowAutoplay,signalOnly=false}){
+function fixture({allowAutoplay,signalOnly=false,trackId=293}){
   const notices=[], events=[];
   let player,unblocked=false;
   function element(tag='div'){
@@ -21,6 +21,7 @@ function fixture({allowAutoplay,signalOnly=false}){
     player={
       bind(name,fn){callbacks[name]=fn},
       seekTo(){},setVolume(){},pause(){events.push('pause')},
+      getCurrentSound(cb){cb(trackId?{id:trackId}:null)},
       play(){
         if(allowAutoplay||signalOnly||unblocked){
           setTimeout(()=>callbacks.PLAY?.(),2);
@@ -37,7 +38,8 @@ function fixture({allowAutoplay,signalOnly=false}){
   }
   Widget.Events={READY:'READY',PLAY:'PLAY',PLAY_PROGRESS:'PLAY_PROGRESS',FINISH:'FINISH',ERROR:'ERROR'};
   const fastTimers=(fn,ms,...args)=>setTimeout(fn,ms>500?35:ms,...args);
-  const sandbox={window:{SC:{Widget}},document:{createElement:element,head:element(),body:element()},setTimeout:fastTimers,clearTimeout,setInterval,clearInterval,console};
+  const body=element();
+  const sandbox={window:{SC:{Widget},location:{href:''}},document:{createElement:element,head:element(),body},setTimeout:fastTimers,clearTimeout,setInterval,clearInterval,console};
   vm.runInNewContext(code,sandbox,{timeout:1200});
   const remix=sandbox.window.createFoodRemixPlayer({
     onStatus:s=>notices.push(s),
@@ -49,7 +51,9 @@ function fixture({allowAutoplay,signalOnly=false}){
     onComplete:r=>events.push('complete:'+r.source),
     onAwaitingTap:()=>events.push('awaiting-tap')
   });
-  return {remix,notices,events,unlock:()=>{unblocked=true;if(player)player.play()}};
+  return {remix,notices,events,unlock:()=>{unblocked=true;if(player)player.play()},
+    appUrl:()=>sandbox.window.location.href,
+    clickApp:()=>{const d=body.children[body.children.length-1];d.querySelector('[data-open-app]').onclick()}};
 }
 
 {
@@ -156,5 +160,23 @@ function fixture({allowAutoplay,signalOnly=false}){
   assert.ok(events.indexOf('complete:soundcloud')>events.indexOf('start:soundcloud'));
   remix.stop();
 }
+{
+  const {remix,appUrl,clickApp}=fixture({allowAutoplay:false,trackId:123456});
+  const pending=remix.play();
+  await wait(20);
+  assert.equal(appUrl(),'','music cue MUST NOT auto-switch out of Titan/Sterling');
+  clickApp();
+  assert.equal(appUrl(),'soundcloud://tracks:123456','a real user tap uses the resolved numeric SoundCloud track ID');
+  remix.stop();await pending;
+}
+{
+  const {remix,appUrl,clickApp}=fixture({allowAutoplay:false,trackId:null});
+  const pending=remix.play();
+  await wait(20);
+  clickApp();
+  assert.equal(appUrl(),'https://soundcloud.com/empire/dj-suede-the-remix-god-you-name-it-unameitchallenge','missing metadata should use real permalink, not a guessed app ID');
+  remix.stop();await pending;
+}
+console.log('SOUNDCLOUD_DEEP_LINK_SMOKE_OK resolved track ID, safe universal URL fallback, no automatic app switch');
 console.log('FOOD_REMIX_STAGE_SMOKE_OK soft declines, remote Ring, stage once, explicit stop');
 console.log('FOOD_REMIX_SMOKE_OK mandatory music gate, delayed manual start, 20-second completion, stop, and no beat');
