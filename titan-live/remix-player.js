@@ -20,6 +20,9 @@ global.createFoodRemixPlayer=function(cb){
   var context=null,beatTimer=null,beatEnd=null,dock=null,widget=null,ready=false;
   var started=false,used=false,playing=false,source='',musicTimer=null,watchdog=null,reply=null,replyDone=false;
   var assistantBuffer='',armed=false,customerFollowup=false,assistantCueTimer=null;
+  var customerTurns=0,softDecline=false,hardStop=false,needsSecond=false,secondReminderSent=false,cueReady=false;
+  var explicitStop=/\b(?:go away|leave me alone|please leave|leave now|leave|stop talking|stop speaking|stop it|don't play|do not play|don't want music|no music|goodbye|bye now|bye|shut up|don't talk to me|do not talk to me|please stop|no thank you|no thanks|not today,? goodbye)\b/i;
+  var softNo=/\b(?:not interested|i'?m good|i am good|all good|don'?t want it|do not want it|don'?t want (?:the )?(?:service|offer|upgrade)|not home|i'?m busy|no sale|don'?t need (?:service|a phone|an upgrade))\b/i;
   var fallbackNotice=false,closing=false;
   function say(msg){if(cb.onStatus)cb.onStatus(msg)}
   function audioContext(){
@@ -137,6 +140,7 @@ global.createFoodRemixPlayer=function(cb){
     };
   }
   function play(){
+    if(hardStop)return Promise.resolve({ok:false,reason:'Homeowner asked to stop'});
     if(used)return Promise.resolve({ok:false,reason:'Icebreaker already queued for this customer'});
     used=true;showWidget();
     return new Promise(function(resolve){
@@ -162,26 +166,62 @@ global.createFoodRemixPlayer=function(cb){
       }).catch(function(){fallback('SoundCloud connection unavailable')});
     });
   }
+  function queueCue(delay){
+    if(used||hardStop)return;
+    clearTimeout(assistantCueTimer);
+    assistantCueTimer=setTimeout(function(){if(!used&&!hardStop)play()},Math.max(120,Number(delay)||250));
+  }
   function observeAssistant(text){
-    if(used||!text)return;
-    assistantBuffer=(assistantBuffer+' '+String(text)).slice(-460).toLowerCase();
-    if(/(?:you know|know what|guess what).{0,35}(?:gonna eat|going to eat|on my menu)|wanna hear the menu|want to hear the menu/.test(assistantBuffer))armed=true;
-    // Audio-transcript events are emitted independently of AI tool calls: act on the spoken cue.
-    if(armed&&/let me tell you|here comes the menu|cue (?:that|the) (?:song|music|remix)/.test(assistantBuffer)){
-      clearTimeout(assistantCueTimer);assistantCueTimer=setTimeout(play,550);
-      assistantBuffer='';
+    if(used||hardStop||!text)return;
+    assistantBuffer=(assistantBuffer+' '+String(text)).slice(-650).toLowerCase();
+    if(/(?:you know|know what|guess what).{0,55}(?:gonna eat|going to eat|i(?:'| a)m eating|we(?:'| a)re eating|on my menu)|wanna hear the menu|want to hear the menu|what(?:'| i)s for dinner|i(?:'| a)m hungry.{0,90}(?:eat|menu|food)/.test(assistantBuffer)){
+      armed=true;needsSecond=false;
+    }
+    if(armed&&/let me tell you|lemme tell you|i'?ll tell you|here comes (?:the |my )?menu|cue (?:that|the) (?:song|music|remix)/.test(assistantBuffer)){
+      cueReady=true;
+      // If output-complete events are unavailable, this last-resort timer still plays.
+      queueCue(1700);
     }
   }
   function observeCustomer(text){
-    if(!armed||used||!text||customerFollowup)return;
+    if(!text)return;
     var val=String(text).toLowerCase().trim();
-    if(/(leave|go away|stop talking|don't play|do not play|no thanks|not interested|goodbye|not today)/.test(val)){
-      armed=false;clearTimeout(assistantCueTimer);return;
+    if(explicitStop.test(val)){
+      hardStop=true;armed=false;needsSecond=false;cueReady=false;
+      clearTimeout(assistantCueTimer);
+      if(playing)stop();
+      if(cb.onRespectStop)cb.onRespectStop();
+      return;
     }
-    customerFollowup=true;
-    // Deterministic backup: if the AI forgets to call its cue tool after the answer, play anyway.
-    clearTimeout(assistantCueTimer);assistantCueTimer=setTimeout(play,1600);
+    if(used||hardStop)return;
+    customerTurns++;
+    if(softNo.test(val))softDecline=true;
+    if(armed){
+      if(customerFollowup)return;
+      customerFollowup=true;
+      // Give Titan/Sterling a chance to say "Let me tell you" first.
+      // Audio transcript completion can fire later than the text event.
+      queueCue(7600);
+      return;
+    }
+    // Greeting reply + first tech joke reply usually means two customer turns.
+    // A casual "I'm good"/"not interested" still allows ONE playful second icebreaker;
+    // an explicit no-thanks/stop never does.
+    if(customerTurns>=2 || softDecline)needsSecond=true;
   }
-  return {prime:prime,play:play,stop:stop,reset:function(){stop();used=false;armed=false;customerFollowup=false;assistantBuffer='';fallbackNotice=false},observeAssistant:observeAssistant,observeCustomer:observeCustomer,hasCued:function(){return used},isArmed:function(){return armed}};
+  function onAssistantTurnDone(delay){
+    if(used||hardStop)return;
+    if(cueReady){
+      queueCue(Math.max(250,Number(delay)||350));
+      return;
+    }
+    if(armed)return; // Asked the menu question; wait for the answer.
+    if(needsSecond&&!secondReminderSent){
+      secondReminderSent=true;
+      needsSecond=false;
+      if(cb.onSecondNeeded)cb.onSecondNeeded({softDecline:softDecline,customerTurns:customerTurns});
+    }
+  }
+  return {prime:prime,play:play,stop:stop,reset:function(){stop();used=false;armed=false;customerFollowup=false;assistantBuffer='';fallbackNotice=false;customerTurns=0;softDecline=false;hardStop=false;needsSecond=false;secondReminderSent=false;cueReady=false},observeAssistant:observeAssistant,observeCustomer:observeCustomer,onAssistantTurnDone:onAssistantTurnDone,hasCued:function(){return used},isArmed:function(){return armed}};
 };
 })(window);
