@@ -664,8 +664,11 @@ function getRemix(){
         send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:'LIVE ICEBREAKER STAGE CONTROL (not customer speech). '+context}});
         send({type:'response-create',options:{modalities:['audio']}});
       },
-      onFallback:function(info){
-        setCaption('Food Remix','SoundCloud needs a real tap; music skipped. Sterling is resuming.');
+      onAwaitingTap:function(){
+        speakerPriority(true);
+        setAlphaState('thinking',4000);
+        setVoice('REMIX READY • WAITING FOR SOUNDCloud PLAY','warn');
+        setCaption('Food Remix','Music stage is waiting for the official SoundCloud player to start.');
       },
       onComplete:function(result){
         // Only the owning live turn resumes speech, and only after 20s.
