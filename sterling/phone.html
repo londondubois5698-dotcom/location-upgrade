@@ -664,10 +664,18 @@ function getRemix(){
         send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:'LIVE ICEBREAKER STAGE CONTROL (not customer speech). '+context}});
         send({type:'response-create',options:{modalities:['audio']}});
       },
-      onFallback:function(){
-        if(remixToolInProgress||!active||!connected)return;
-        send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:'The licensed SoundCloud stream could not start automatically. An ORIGINAL upbeat drum groove is playing locally right now. Perform a brief, high-energy, original food-menu riff in your own Cedar speaking voice with fast musical timing and excitement. Do not imitate any actual singer or quote the song lyrics. Then return naturally to the customer.'}});
-        send({type:'response-create',options:{modalities:['audio']}});
+      onFallback:function(info){
+        setCaption('Food Remix',info&&info.beatAudible?'Original 20-second beat is playing.':'SoundCloud did not start automatically. Original beat attempted.');
+      },
+      onComplete:function(result){
+        // Only the owning live turn resumes speech, and only after 20s.
+        // Tool-invoked cues already resume via the function-call result.
+        if(!active||!connected||remixToolInProgress)return;
+        setTimeout(function(){
+          if(!active||!connected||remixToolInProgress)return;
+          send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:'SYSTEM HANDOFF, NOT HOMEOWNER SPEECH: The 20-second second-icebreaker music window has ENDED. '+(result&&result.source==='soundcloud'?'The official SoundCloud track played.':'SoundCloud could not automatically play on this iPhone; the original backup beat was used.')+' Resume your conversation naturally right now, with a brief funny reaction or warm conversational transition. Do NOT introduce yourself again, do NOT replay music, do NOT ask another music question, and listen for the homeowner before selling.'}});
+          send({type:'response-create',options:{modalities:['audio']}});
+        },500);
       },
       onStart:function(){speakerPriority(true);setAlphaState('excited',18000);setVoice('REMIX PLAYING','good')},
       onStop:function(){speakerPriority(false,true);setAlphaState('listening');setVoice('LIVE • LISTENING','good')}
