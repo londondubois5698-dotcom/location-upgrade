@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "smoke": "node smoke/realtime-smoke.mjs"
+    "smoke": "node smoke/realtime-smoke.mjs && node smoke/remix-smoke.mjs"
   },
   "dependencies": {
     "@ai-sdk/gateway": "4.0.104",
