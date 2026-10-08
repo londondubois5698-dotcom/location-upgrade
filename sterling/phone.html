@@ -665,7 +665,7 @@ function getRemix(){
         send({type:'response-create',options:{modalities:['audio']}});
       },
       onFallback:function(info){
-        setCaption('Food Remix',info&&info.beatAudible?'Original 20-second beat is playing.':'SoundCloud did not start automatically. Original beat attempted.');
+        setCaption('Food Remix','SoundCloud needs a real tap; music skipped. Sterling is resuming.');
       },
       onComplete:function(result){
         // Only the owning live turn resumes speech, and only after 20s.
@@ -673,7 +673,7 @@ function getRemix(){
         if(!active||!connected||remixToolInProgress)return;
         setTimeout(function(){
           if(!active||!connected||remixToolInProgress)return;
-          send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:'SYSTEM HANDOFF, NOT HOMEOWNER SPEECH: The 20-second second-icebreaker music window has ENDED. '+(result&&result.source==='soundcloud'?'The official SoundCloud track played.':'SoundCloud could not automatically play on this iPhone; the original backup beat was used.')+' Resume your conversation naturally right now, with a brief funny reaction or warm conversational transition. Do NOT introduce yourself again, do NOT replay music, do NOT ask another music question, and listen for the homeowner before selling.'}});
+          send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:'SYSTEM HANDOFF, NOT HOMEOWNER SPEECH: The 20-second second-icebreaker music window has ENDED. '+(result&&result.source==='soundcloud'?'The official SoundCloud track played.':'SoundCloud needed a user tap. No music played. Use your normal natural voice to deliver one very short, lively ORIGINAL food joke, then return to conversation.')+' Resume your conversation naturally right now, with a brief funny reaction or warm conversational transition. Do NOT introduce yourself again, do NOT replay music, do NOT ask another music question, and listen for the homeowner before selling.'}});
           send({type:'response-create',options:{modalities:['audio']}});
         },500);
       },
@@ -690,7 +690,7 @@ async function handleTool(m){
       remixToolInProgress=true;
       try{
         var cue=await getRemix().play();
-        toolReply(m.callId,m.name,cue.fallback?{...cue,next:'Original upbeat drum groove is playing. Deliver a very short, lively ORIGINAL food-menu riff in your own Cedar voice. No song lyrics, no singer imitation; then resume customer dialogue.'}:cue);
+        toolReply(m.callId,m.name,cue.fallback?{...cue,next:'SoundCloud required a user tap, so no song played. Deliver a short energetic ORIGINAL food joke in your usual Cedar voice, then resume customer dialogue. Do not claim music played.'}:cue);
       }finally{remixToolInProgress=false}
       return
     }
