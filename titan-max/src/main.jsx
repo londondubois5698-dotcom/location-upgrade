@@ -67,7 +67,7 @@ CPR + MICRO-PERSUASION
 
 STARTUP
 - The shared Realtime Law controls the customer-facing opening.
-- Normal mode: say only "Hey! How are you doing?", then stop and wait for a real response. After they answer, use one rotating situational tech opener from the V18 bank. Terabyte is optional, not the default.
+- Normal mode: say only "Hey! How are you doing?", then stop and wait for a real response. After they answer, use one rotating situational tech opener from the V18 bank. When they reply to that first tech opener, the next separate icebreaker MUST be the funny YOU NAME IT food/menu question and timed SoundCloud cue. Terabyte is optional, not the default.
 - Ring Mode: start completely silent. Do not greet first. Wait until a real homeowner voice is heard, then use one Ring hook from the shared law, identify yourself naturally as Titan/London's AI partner when appropriate, and stop to listen again.
 - Ring Mode humor is obvious playful fiction; never claim actual access to, scanning of, or control over the homeowner's camera, Wi-Fi, router, or network.
 
@@ -283,6 +283,8 @@ function App(){
   const pendingMicPromiseRef=useRef(null);
   const playbackPrimeRef=useRef(false);
   const remixRef=useRef(null);
+  const remixToolPendingRef=useRef(false);
+  const processedAssistantRemixRef=useRef(new Set());
 
   const model=useMemo(()=>gateway.experimental_realtime('openai/gpt-realtime-2.1'),[]);
   const instructions=useMemo(()=>{
@@ -317,24 +319,12 @@ function App(){
     onToolCall:async({toolCall})=>{
       const a=toolCall.args||{};
       if(toolCall.toolName==='playFoodRemix'){
+        remixToolPendingRef.current=true;
         try{
-          if(!window.createFoodRemixPlayer)return {ok:false,error:'SoundCloud player not loaded'};
-          if(!remixRef.current){
-            remixRef.current=window.createFoodRemixPlayer({
-              onStatus:message=>setNotice(message),
-              onStart:()=>{
-                try{realtime.stopAudioCapture?.()}catch{}
-                setFaceMode('excited');
-              },
-              onStop:()=>{
-                if(stayLiveRef.current&&!muted&&streamRef.current)
-                  try{realtime.startAudioCapture(streamRef.current)}catch{}
-                setFaceMode(ring?'ring':'friendly');
-              }
-            });
-          }
-          return await remixRef.current.play();
+          const cue=await getRemix().play();
+          return cue.fallback?{...cue,next:'An original rhythmic beat is playing. Perform an enthusiastic, brief ORIGINAL food-list comedy riff in your existing Cedar voice with energetic timing; do not copy the song or impersonate a singer.'}:cue;
         }catch(e){return {ok:false,error:e?.message||'SoundCloud cue unavailable'}}
+        finally{remixToolPendingRef.current=false}
       }
       if(toolCall.toolName==='saveContact'){
         try{
@@ -384,6 +374,10 @@ function App(){
     onEvent:e=>{
       const t=String(e?.type||'');
       if(t.includes('speech-start')||t.includes('input-audio'))setFaceMode(ring?'ring':'friendly');
+      if(t.includes('transcript')&&!t.includes('input')&&(t.includes('delta')||t.includes('done')||t.includes('completed'))){
+        const heard=typeof e?.delta==='string'?e.delta:typeof e?.text==='string'?e.text:typeof e?.transcript==='string'?e.transcript:'';
+        if(heard)try{getRemix().observeAssistant(heard)}catch{}
+      }
       if(t.includes('response')&&t.includes('start'))setFaceMode('thinking');
       if((t.includes('response')&&(t.includes('done')||t.includes('completed'))) || t.includes('audio-done')){
         setFaceMode(ring?'ring':'friendly');
@@ -444,6 +438,31 @@ function App(){
     }
   });
 
+  function getRemix(){
+    if(!remixRef.current){
+      if(!window.createFoodRemixPlayer)throw new Error('Remix module unavailable');
+      remixRef.current=window.createFoodRemixPlayer({
+        onStatus:message=>setNotice(message),
+        onStart:source=>{
+          if(source==='soundcloud')try{realtime.stopPlayback?.()}catch{}
+          try{realtime.stopAudioCapture?.()}catch{}
+          setFaceMode('excited');
+        },
+        onStop:()=>{
+          if(stayLiveRef.current&&!muted&&streamRef.current)try{realtime.startAudioCapture(streamRef.current)}catch{}
+          setFaceMode(ring?'ring':'friendly');
+        },
+        onFallback:()=>{
+          if(remixToolPendingRef.current||!stayLiveRef.current)return;
+          try{
+            realtime.sendTextMessage('The SoundCloud recording could not autoplay; an ORIGINAL rhythm is playing locally right now. In your usual confident, human-sounding Cedar voice, perform a quick high-energy ORIGINAL food-list comedy riff that fits this beat. Do not impersonate Shirley Caesar or DJ Suede and do not repeat song lyrics. Then return to friendly conversation.');
+          }catch(e){}
+        }
+      });
+    }
+    return remixRef.current;
+  }
+
   async function apiFetch(path,opts={}){
     if(!ownerKey)return {ok:false,error:'Titan passcode required'};
     try{
@@ -492,10 +511,15 @@ function App(){
   // refine the data, but visible NOW/NEW fields no longer wait on the model.
   useEffect(()=>{
     for(const m of realtime.messages||[]){
+      if(m.role==='assistant'&&!processedAssistantRemixRef.current.has(m.id)){
+        const assistantText=(m.parts||[]).filter(p=>p.type==='text').map(p=>p.text||'').join(' ').trim();
+        if(assistantText){processedAssistantRemixRef.current.add(m.id);try{getRemix().observeAssistant(assistantText)}catch{}}
+      }
       if(m.role!=='user'||processedMessagesRef.current.has(m.id))continue;
       const text=(m.parts||[]).filter(p=>p.type==='text').map(p=>p.text||'').join(' ').trim();
       if(!text)continue;
       processedMessagesRef.current.add(m.id);
+      try{getRemix().observeCustomer(text)}catch{}
       const patch=extractLiveFacts(text);
       const keys=Object.keys(patch);
       if(keys.length){
@@ -535,6 +559,7 @@ function App(){
   }
 
   function primeTitanHardware(){
+    try{getRemix().prime()}catch{}
     // IMPORTANT FOR IPHONE: start permission/audio work directly inside the button tap.
     // Do not wait for network preflight first or Safari can lose the user gesture.
     try{
@@ -726,7 +751,7 @@ function App(){
       streamRef.current=stream;setMuted(false);startAnalyzer(stream);
       setNotice('Audio ready. Connecting Titan…');
 
-      const firstTurn=ring?'':'Start TALK MODE now. Your only first words are exactly: "Hey! How are you doing?" Then STOP and wait for a real response. After they answer, choose one situational tech opener from the V18 rotating bank. Do not default to Terabyte. Banter first and ask only one question at a time.';
+      const firstTurn=ring?'':'Start TALK MODE now. Your only first words are exactly: "Hey! How are you doing?" Then STOP and wait for a real response. After they answer, choose one situational tech opener from the V18 rotating bank. After their answer, make the food/menu remix your REQUIRED SECOND icebreaker before any contact or qualification. Do not default to Terabyte. Banter first and ask only one question at a time.';
 
       await openRealtimeWithRetry(stream,firstTurn,attempt,{silent:ring});
       stayLiveRef.current=true;
@@ -950,6 +975,11 @@ function App(){
       <div><strong>A better fit. A lower bill.</strong><small>Same number. Better value. London verifies the final offer.</small></div>
     </section>
 
+    <div style={{display:'flex',justifyContent:'center',margin:'7px 0 12px'}}>
+      <button type="button" style={{border:'1px solid #3dbbda',background:'#10354a',color:'#edfdff',borderRadius:12,padding:'9px 15px',fontWeight:850}} onClick={()=>{
+        try{getRemix().prime();getRemix().play()}catch(e){setNotice('Remix cue not ready: '+(e.message||String(e)))}
+      }}>♫ Cue Food Remix · 20s</button>
+    </div>
     <section className="titanDock">
       {realtime.status==='connected'
         ?<>

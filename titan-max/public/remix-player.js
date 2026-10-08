@@ -1,85 +1,187 @@
-/* Food Remix player: plays from SoundCloud's official embedded widget; no copied audio. */
+/* Second icebreaker: official SoundCloud widget, with an original beat on blocked playback. */
 (function(global){
 'use strict';
-const TRACK='https://soundcloud.com/empire/dj-suede-the-remix-god-you-name-it-unameitchallenge';
-let apiPromise=null;
-function api(){
+var TRACK='https://soundcloud.com/empire/dj-suede-the-remix-god-you-name-it-unameitchallenge';
+var scriptPromise=null;
+function loadSoundCloud(){
   if(global.SC&&global.SC.Widget)return Promise.resolve(global.SC);
-  if(apiPromise)return apiPromise;
-  apiPromise=new Promise(function(resolve,reject){
-    const s=document.createElement('script');s.src='https://w.soundcloud.com/player/api.js';s.async=true;
-    const timeout=setTimeout(function(){reject(new Error('SoundCloud player did not load'));},6500);
-    s.onload=function(){clearTimeout(timeout);global.SC&&global.SC.Widget?resolve(global.SC):reject(new Error('SoundCloud player unavailable'));};
-    s.onerror=function(){clearTimeout(timeout);reject(new Error('SoundCloud player blocked'));};
+  if(scriptPromise)return scriptPromise;
+  scriptPromise=new Promise(function(resolve,reject){
+    var s=document.createElement('script'),timer=setTimeout(function(){reject(new Error('SoundCloud script timeout'))},7000);
+    s.src='https://w.soundcloud.com/player/api.js';s.async=true;
+    s.onload=function(){clearTimeout(timer);global.SC&&global.SC.Widget?resolve(global.SC):reject(new Error('SoundCloud widget API missing'))};
+    s.onerror=function(){clearTimeout(timer);reject(new Error('SoundCloud script unavailable'))};
     document.head.appendChild(s);
-  });
-  return apiPromise;
+  }).catch(function(e){scriptPromise=null;throw e});
+  return scriptPromise;
 }
-global.createFoodRemixPlayer=function(callbacks){
-  callbacks=callbacks||{};
-  let dock=null,widget=null,used=false,active=false,timeout=null,manual=null,resolvePending=null;
-  const notify=function(s){if(callbacks.onStatus)callbacks.onStatus(s)};
-  function close(){
-    clearTimeout(timeout);timeout=null;
-    if(widget)try{widget.pause()}catch(e){}
-    if(active&&callbacks.onStop)callbacks.onStop();
-    active=false;widget=null;
+global.createFoodRemixPlayer=function(cb){
+  cb=cb||{};
+  var context=null,beatTimer=null,beatEnd=null,dock=null,widget=null,ready=false;
+  var started=false,used=false,playing=false,source='',musicTimer=null,watchdog=null,reply=null,replyDone=false;
+  var assistantBuffer='',armed=false,customerFollowup=false,assistantCueTimer=null;
+  var fallbackNotice=false,closing=false;
+  function say(msg){if(cb.onStatus)cb.onStatus(msg)}
+  function audioContext(){
+    if(context)return context;
+    var AC=global.AudioContext||global.webkitAudioContext;
+    if(!AC)return null;
+    context=new AC();
+    return context;
+  }
+  function prime(){
+    try{
+      var ac=audioContext();
+      if(ac){
+        ac.resume().catch(function(){});
+        var o=ac.createOscillator(),g=ac.createGain();
+        g.gain.value=0;o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+.012);
+      }
+    }catch(e){}
+    loadSoundCloud().catch(function(){});
+  }
+  function thump(t,f,d,amp,noise){
+    if(!context||context.state!=='running')return;
+    try{
+      var o=context.createOscillator(),g=context.createGain();
+      o.type=noise?'square':'sine';
+      o.frequency.setValueAtTime(f,t);
+      if(!noise)o.frequency.exponentialRampToValueAtTime(Math.max(36,f*.38),t+d);
+      g.gain.setValueAtTime(Math.max(.0001,amp),t);
+      g.gain.exponentialRampToValueAtTime(.0001,t+d);
+      o.connect(g);g.connect(context.destination);o.start(t);o.stop(t+d+.01);
+    }catch(e){}
+  }
+  function stopBeat(){
+    clearInterval(beatTimer);beatTimer=null;
+    clearTimeout(beatEnd);beatEnd=null;
+  }
+  function startBeat(){
+    if(beatTimer)return;
+    try{var ac=audioContext();if(ac&&ac.state==='suspended')ac.resume().catch(function(){})}catch(e){}
+    var beat=0;
+    function pulse(){
+      if(!context||context.state!=='running')return;
+      var now=context.currentTime+.012;
+      if(beat%4===0||beat%4===2)thump(now,125,.14,.15,false);
+      if(beat%4===2)thump(now+.01,230,.07,.075,true);
+      thump(now+.002,650,.025,.017,true);
+      beat++;
+    }
+    pulse();beatTimer=setInterval(pulse,250); // 120 BPM, original programmed kick/snare/hat
+    beatEnd=setTimeout(function(){stopBeat();if(source==='beat'){playing=false;if(cb.onStop)cb.onStop();say('Original beat ended. Listening again.')}},8500);
+  }
+  function settle(result){
+    if(reply&&!replyDone){replyDone=true;var r=reply;reply=null;r(result)}
+  }
+  function cleanup(){
+    clearTimeout(musicTimer);clearTimeout(watchdog);clearTimeout(assistantCueTimer);
+    musicTimer=watchdog=assistantCueTimer=null;
+    stopBeat();
+    try{if(widget)widget.pause()}catch(e){}
     if(dock){dock.remove();dock=null}
-    const r=resolvePending;resolvePending=null;if(r)r({ok:true,played:true,seconds:20});
-    notify('Remix finished. Listening again.');
+    if(playing&&cb.onStop)cb.onStop();
+    playing=false;source='';widget=null;ready=false;started=false;
+  }
+  function stop(){
+    if(closing)return;closing=true;
+    cleanup();settle({ok:false,stopped:true});
+    closing=false;
+  }
+  function status(msg){if(dock){var n=dock.querySelector('[data-status]');if(n)n.textContent=msg}say(msg)}
+  function finish(){
+    if(!playing||source!=='soundcloud')return;
+    clearTimeout(musicTimer);
+    try{if(widget)widget.pause()}catch(e){}
+    playing=false;source='';
+    if(cb.onStop)cb.onStop();
+    settle({ok:true,played:true,seconds:20,source:'soundcloud'});
+    status('Remix finished after 20 seconds.');
+  }
+  function fallback(reason){
+    if(playing&&source==='soundcloud')return;
+    clearTimeout(watchdog);watchdog=null;
+    if(!playing){source='beat';playing=true;if(cb.onStart)cb.onStart('beat')}
+    if(widget)try{widget.pause()}catch(e){}
+    startBeat();
+    status('Original beat fallback playing. '+(reason||'SoundCloud requires a tap.'));
+    if(!fallbackNotice){
+      fallbackNotice=true;
+      if(cb.onFallback)cb.onFallback();
+    }
+    settle({ok:false,fallback:true,reason:reason||'SoundCloud autoplay restricted'});
+  }
+  function soundcloudStart(){
+    if(!used||source==='soundcloud')return;
+    clearTimeout(watchdog);watchdog=null;
+    if(playing&&source==='beat'){stopBeat();if(cb.onStop)cb.onStop()}
+    source='soundcloud';playing=true;
+    if(cb.onStart)cb.onStart('soundcloud');
+    status('SoundCloud remix playing: first 20 seconds.');
+    musicTimer=setTimeout(finish,20000);
+    if(dock){
+      var b=dock.querySelector('[data-play]');
+      if(b)b.textContent='Playing · 20 seconds';
+    }
+  }
+  function showWidget(){
+    dock=document.createElement('section');
+    dock.setAttribute('aria-label','Second icebreaker remix');
+    dock.style.cssText='position:fixed;left:9px;right:9px;bottom:9px;z-index:9999;max-width:550px;margin:auto;background:#071b2c;color:#f9feff;padding:11px;border:1px solid #36b4e6;border-radius:14px;box-shadow:0 12px 42px #000c;font:13px -apple-system,BlinkMacSystemFont,system-ui';
+    dock.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><strong>FOOD REMIX · ICEBREAKER TWO</strong><button type="button" data-stop style="padding:6px 10px;border:1px solid #6b9db9;color:white;background:#163850;border-radius:8px">Stop</button></div><div data-frame style="margin:9px 0 3px"></div><div data-status style="font-size:12px;padding:3px 0">Cueing SoundCloud…</div><button type="button" data-play style="margin-top:7px;width:100%;padding:10px;background:#078ece;color:white;border:none;border-radius:9px;font-weight:800">Tap to start official remix if autoplay is blocked</button><div style="margin-top:5px;color:#a8c4d6;font-size:10px">Official SoundCloud player · streamed, not downloaded</div>';
+    document.body.appendChild(dock);
+    dock.querySelector('[data-stop]').onclick=stop;
+    dock.querySelector('[data-play]').onclick=function(){
+      if(widget){try{widget.seekTo(0);widget.play();}catch(e){fallback('SoundCloud playback was blocked')}}
+      else fallback('SoundCloud player unavailable');
+    };
   }
   function play(){
-    if(used)return Promise.resolve({ok:false,reason:'Already queued this conversation'});
-    used=true;
-    return new Promise(async function(resolve){
-      try{
-        const SC=await api();
-        dock=document.createElement('div');
-        dock.style.cssText='position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;max-width:520px;margin:auto;padding:10px;border-radius:14px;border:1px solid #2b87a5;background:#081825;box-shadow:0 12px 38px #000b;color:#fff;font:13px system-ui';
-        dock.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px"><strong>YOU NAME IT • 20-second remix</strong><button type="button" data-close style="font:inherit;border:1px solid #64899e;border-radius:7px;background:#173a4c;color:white;padding:5px 9px">Stop</button></div><div data-frame></div><button type="button" data-play style="display:none;width:100%;padding:9px;margin-top:7px;background:#159ad3;color:#fff;border:0;border-radius:8px;font-weight:800">Tap to play remix</button><div style="margin-top:5px;font-size:10px;color:#b3c8d4">Streaming via SoundCloud · DJ Suede The Remix God</div>';
-        document.body.appendChild(dock);
-        manual=dock.querySelector('[data-play]');
-        const iframe=document.createElement('iframe');
-        iframe.width='100%';iframe.height='80';iframe.title='SoundCloud You Name It remix';
-        iframe.allow='autoplay';iframe.frameBorder='0';iframe.scrolling='no';
-        iframe.src='https://w.soundcloud.com/player/?url='+encodeURIComponent(TRACK)+'&auto_play=false&visual=false&show_artwork=false&sharing=false&download=false';
-        dock.querySelector('[data-frame]').appendChild(iframe);
-        widget=SC.Widget(iframe);
-        let settled=false;
-        const blocked=setTimeout(function(){
-          if(!active&&!settled){settled=true;manual.style.display='block';notify('SoundCloud needs a tap to start on this device.');resolve({ok:false,needsTap:true});}
-        },4200);
-        function started(){
-          if(active)return;
-          active=true;clearTimeout(blocked);manual.style.display='none';
-          if(callbacks.onStart)callbacks.onStart();
-          notify('Remix playing: first 20 seconds.');
-          timeout=setTimeout(close,20000);
-        }
-        widget.bind(SC.Widget.Events.READY,function(){widget.seekTo(0);widget.setVolume(95);widget.play()});
-        widget.bind(SC.Widget.Events.PLAY,started);
-        widget.bind(SC.Widget.Events.PLAY_PROGRESS,function(ev){
-          if(active&&ev&&ev.currentPosition>=20000)close();
+    if(used)return Promise.resolve({ok:false,reason:'Icebreaker already queued for this customer'});
+    used=true;showWidget();
+    return new Promise(function(resolve){
+      reply=resolve;replyDone=false;started=true;
+      watchdog=setTimeout(function(){fallback('SoundCloud did not start automatically')},3800);
+      loadSoundCloud().then(function(sc){
+        if(!started||!dock)return;
+        var frame=document.createElement('iframe');
+        frame.width='100%';frame.height='80';frame.frameBorder='0';
+        frame.setAttribute('allow','autoplay');frame.title='DJ Suede You Name It on SoundCloud';
+        frame.src='https://w.soundcloud.com/player/?url='+encodeURIComponent(TRACK)+'&auto_play=false&visual=false&show_artwork=false&sharing=false&download=false';
+        dock.querySelector('[data-frame]').appendChild(frame);
+        widget=sc.Widget(frame);
+        widget.bind(sc.Widget.Events.READY,function(){
+          ready=true;
+          if(source==='beat')return; // No unexpected late playback after fallback.
+          try{widget.seekTo(0);widget.setVolume(95);widget.play()}catch(e){fallback('SoundCloud playback rejected')}
         });
-        widget.bind(SC.Widget.Events.ERROR,function(){
-          if(!active){clearTimeout(blocked);if(!settled){settled=true;resolve({ok:false,error:'SoundCloud stream unavailable'})}manual.style.display='block';}
-        });
-        widget.bind(SC.Widget.Events.FINISH,close);
-        dock.querySelector('[data-close]').onclick=function(){
-          clearTimeout(blocked);
-          if(!settled){settled=true;resolve({ok:false,cancelled:true})}
-          close();
-        };
-        manual.onclick=function(){widget.seekTo(0);widget.play()};
-        // Only resolve the AI tool after the cue, so it does not speak over the music.
-        resolvePending=function(result){if(!settled){settled=true;resolve(result)}};
-      }catch(e){
-        notify('Remix player unavailable; continue speaking normally.');
-        if(dock){dock.remove();dock=null}
-        resolve({ok:false,error:String(e.message||e)});
-      }
+        widget.bind(sc.Widget.Events.PLAY,soundcloudStart);
+        widget.bind(sc.Widget.Events.PLAY_PROGRESS,function(x){if(source==='soundcloud'&&x&&x.currentPosition>=20000)finish()});
+        widget.bind(sc.Widget.Events.FINISH,finish);
+        widget.bind(sc.Widget.Events.ERROR,function(){fallback('SoundCloud stream unavailable')});
+      }).catch(function(){fallback('SoundCloud connection unavailable')});
     });
   }
-  return {play:play,reset:function(){used=false;close()},stop:close};
+  function observeAssistant(text){
+    if(used||!text)return;
+    assistantBuffer=(assistantBuffer+' '+String(text)).slice(-460).toLowerCase();
+    if(/(?:you know|know what|guess what).{0,35}(?:gonna eat|going to eat|on my menu)|wanna hear the menu|want to hear the menu/.test(assistantBuffer))armed=true;
+    // Audio-transcript events are emitted independently of AI tool calls: act on the spoken cue.
+    if(armed&&/let me tell you|here comes the menu|cue (?:that|the) (?:song|music|remix)/.test(assistantBuffer)){
+      clearTimeout(assistantCueTimer);assistantCueTimer=setTimeout(play,550);
+      assistantBuffer='';
+    }
+  }
+  function observeCustomer(text){
+    if(!armed||used||!text||customerFollowup)return;
+    var val=String(text).toLowerCase().trim();
+    if(/(leave|go away|stop talking|don't play|do not play|no thanks|not interested|goodbye|not today)/.test(val)){
+      armed=false;clearTimeout(assistantCueTimer);return;
+    }
+    customerFollowup=true;
+    // Deterministic backup: if the AI forgets to call its cue tool after the answer, play anyway.
+    clearTimeout(assistantCueTimer);assistantCueTimer=setTimeout(play,1600);
+  }
+  return {prime:prime,play:play,stop:stop,reset:function(){stop();used=false;armed=false;customerFollowup=false;assistantBuffer='';fallbackNotice=false},observeAssistant:observeAssistant,observeCustomer:observeCustomer,hasCued:function(){return used},isArmed:function(){return armed}};
 };
 })(window);
