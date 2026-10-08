@@ -20,6 +20,10 @@ function cors(req,res){
   res.setHeader('Vary','Origin');res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');res.setHeader('Access-Control-Allow-Headers','Content-Type');res.setHeader('Cache-Control','no-store,max-age=0');
 }
 const tools={
+  playFoodRemix:tool({
+    description:'Cue the official SoundCloud first-20-second You Name It remix as the second icebreaker after a willing person responds to the first opener. Never cue after a clear no, stop, or goodbye. Once per conversation.',
+    inputSchema:z.object({})
+  }),
   saveContact:tool({
     description:'Save one clearly heard field for the temporary on-screen review card.',
     inputSchema:z.object({field:z.enum(['first','last','phone','email']),value:z.string().min(1).max(254)})
