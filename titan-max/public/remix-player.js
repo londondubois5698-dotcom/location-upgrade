@@ -17,7 +17,7 @@ function loadSoundCloud(){
 }
 global.createFoodRemixPlayer=function(cb){
   cb=cb||{};
-  var context=null,beatTimer=null,beatEnd=null,dock=null,widget=null,ready=false;
+  var context=null,dock=null,widget=null,ready=false;
   var started=false,used=false,playing=false,source='',musicTimer=null,watchdog=null,reply=null,replyDone=false;
   var finalResult=null,playPromise=null,streamProgressStart=null,progressConfirmed=false,stopRequested=false;
   var clickerTimers=[];
@@ -45,32 +45,6 @@ global.createFoodRemixPlayer=function(cb){
     }catch(e){}
     loadSoundCloud().catch(function(){});
   }
-  function thump(t,f,d,amp,noise){
-    if(!context||context.state!=='running')return;
-    try{
-      var o=context.createOscillator(),g=context.createGain();
-      o.type=noise?'square':'sine';
-      o.frequency.setValueAtTime(f,t);
-      if(!noise)o.frequency.exponentialRampToValueAtTime(Math.max(36,f*.38),t+d);
-      g.gain.setValueAtTime(Math.max(.0001,amp),t);
-      g.gain.exponentialRampToValueAtTime(.0001,t+d);
-      o.connect(g);g.connect(context.destination);o.start(t);o.stop(t+d+.01);
-    }catch(e){}
-  }
-  function startBeat(){
-    if(beatTimer)return;
-    try{var ac=audioContext();if(ac&&ac.state==='suspended')ac.resume().catch(function(){})}catch(e){}
-    var beat=0;
-    function pulse(){
-      if(!context||context.state!=='running')return;
-      var now=context.currentTime+.012;
-      if(beat%4===0||beat%4===2)thump(now,125,.14,.15,false);
-      if(beat%4===2)thump(now+.01,230,.07,.075,true);
-      thump(now+.002,650,.025,.017,true);
-      beat++;
-    }
-    pulse();beatTimer=setInterval(pulse,250);
-  }
   function cancelClicker(){
     clickerTimers.forEach(function(t){clearTimeout(t)});
     clickerTimers=[];
@@ -81,14 +55,10 @@ global.createFoodRemixPlayer=function(cb){
     cancelClicker();
     [0,450,1200].forEach(function(wait){
       clickerTimers.push(setTimeout(function(){
-        if(!started||stopRequested||progressConfirmed||source==='beat'||!widget)return;
+        if(!started||stopRequested||progressConfirmed||source==='voice'||!widget)return;
         try{widget.play()}catch(e){}
       },wait));
     });
-  }
-  function stopBeat(){
-    clearInterval(beatTimer);beatTimer=null;
-    clearTimeout(beatEnd);beatEnd=null;
   }
   function settle(result){
     finalResult=result;
@@ -98,7 +68,6 @@ global.createFoodRemixPlayer=function(cb){
     cancelClicker();
     clearTimeout(musicTimer);clearTimeout(watchdog);clearTimeout(assistantCueTimer);
     musicTimer=watchdog=assistantCueTimer=null;
-    stopBeat();
     try{if(widget)widget.pause()}catch(e){}
     if(dock){dock.remove();dock=null}
     if(playing&&cb.onStop)cb.onStop();
@@ -116,37 +85,33 @@ global.createFoodRemixPlayer=function(cb){
     if(!started||stopRequested)return;
     // Return control to the live voice after the precise 20-second music segment.
     cancelClicker();clearTimeout(musicTimer);clearTimeout(watchdog);musicTimer=watchdog=null;
-    if(source==='beat')stopBeat();
     try{if(widget)widget.pause()}catch(e){}
     if(playing&&cb.onStop)cb.onStop();
     playing=false;started=false;
     if(dock){dock.remove();dock=null}
     settle(result);
     if(cb.onComplete)cb.onComplete(result);
-    say(result.source==='soundcloud'?'Remix complete. Back in conversation.':'Original beat complete. Back in conversation.');
+    say(result.source==='soundcloud'?'Remix complete. Back in conversation.':'SoundCloud required a tap. Back in conversation.');
   }
   function fallback(reason){
-    if(!started||source==='soundcloud'&&progressConfirmed)return;
+    if(!started||progressConfirmed||source==='voice')return;
     cancelClicker();clearTimeout(watchdog);watchdog=null;
-    if(source==='beat')return;
     if(widget)try{widget.pause()}catch(e){}
-    source='beat';playing=true;progressConfirmed=false;
-    if(cb.onStart)cb.onStart('beat');
-    startBeat();
-    var beatAudible=!!context&&context.state==='running';
-    status(beatAudible?'Original beat playing for 20 seconds.':'SoundCloud autoplay blocked. Beat prepared; tap to enable audio if needed.');
-    if(!fallbackNotice){fallbackNotice=true;if(cb.onFallback)cb.onFallback({reason:reason,beatAudible:beatAudible})}
-    // IMPORTANT: Do not resolve tool early. Let the fallback play for 20 seconds first.
-    musicTimer=setTimeout(function(){
-      complete({ok:false,fallback:true,source:'beat',seconds:20,reason:reason,beatAudible:beatAudible});
-    },20000);
+    source='voice';playing=false;progressConfirmed=false;
+    // iOS cannot accept synthetic taps inside the SoundCloud iframe.
+    // Never start an endless beat or leave the player covering the screen.
+    if(!fallbackNotice){
+      fallbackNotice=true;
+      if(cb.onFallback)cb.onFallback({reason:reason,beatAudible:false,voiceOnly:true});
+    }
+    complete({ok:false,fallback:true,source:'voice',seconds:0,reason:reason});
   }
   function soundcloudStart(){
     if(!started||progressConfirmed)return;
     progressConfirmed=true;
     cancelClicker();
     clearTimeout(watchdog);watchdog=null;
-    if(source==='beat'){stopBeat();clearTimeout(musicTimer);musicTimer=null;}
+    if(source==='voice')return;
     source='soundcloud';playing=true;
     if(cb.onStart)cb.onStart('soundcloud');
     status('SoundCloud playback progress confirmed · first 20 seconds.');
@@ -173,7 +138,7 @@ global.createFoodRemixPlayer=function(cb){
     used=true;stopRequested=false;streamProgressStart=null;progressConfirmed=false;finalResult=null;showWidget();
     playPromise=new Promise(function(resolve){
       reply=resolve;replyDone=false;started=true;
-      watchdog=setTimeout(function(){fallback('SoundCloud playback position never advanced on this device')},4000);
+      watchdog=setTimeout(function(){fallback('SoundCloud autoplay blocked on this device')},2200);
       loadSoundCloud().then(function(sc){
         if(!started||!dock)return;
         var frame=document.createElement('iframe');
@@ -184,7 +149,7 @@ global.createFoodRemixPlayer=function(cb){
         widget=sc.Widget(frame);
         widget.bind(sc.Widget.Events.READY,function(){
           ready=true;
-          if(source==='beat'||!started)return; // Never auto-play behind the fallback.
+          if(source==='voice'||!started)return; // Never auto-play behind the fallback.
           try{widget.seekTo(0);widget.setVolume(95);autoClickPlayer()}catch(e){fallback('SoundCloud playback rejected')}
         });
         widget.bind(sc.Widget.Events.PLAY,function(){
@@ -192,7 +157,7 @@ global.createFoodRemixPlayer=function(cb){
           if(!progressConfirmed)status('Waiting for SoundCloud playback confirmation…');
         });
         widget.bind(sc.Widget.Events.PLAY_PROGRESS,function(x){
-          if(!started||!x||!Number.isFinite(Number(x.currentPosition)))return;
+          if(!started||source==='voice'||!x||!Number.isFinite(Number(x.currentPosition)))return;
           var pos=Number(x.currentPosition);
           if(streamProgressStart===null){streamProgressStart=pos; if(pos>2200){fallback('Playback did not start at the beginning');} return;}
           if(!progressConfirmed&&pos-streamProgressStart>=400) soundcloudStart();

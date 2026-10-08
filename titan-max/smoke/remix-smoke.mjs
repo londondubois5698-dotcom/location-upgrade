@@ -67,8 +67,8 @@ function fixture({allowAutoplay,signalOnly=false}){
   remix.observeCustomer('No');
   await wait(110);
   assert.equal(remix.hasCued(),true,'answer to the food question MUST cue automatically');
-  assert.ok(events.includes('fallback'),'blocked SoundCloud must start original beat fallback');
-  assert.ok(events.includes('start:beat'),'fallback beat must start without an extra tap');
+  assert.ok(events.includes('fallback'),'blocked SoundCloud must enter fast voice fallback');
+  assert.ok(events.includes('complete:voice'),'blocked SoundCloud must close and return control to voice');
   remix.stop();
 }
 {
@@ -121,9 +121,10 @@ function fixture({allowAutoplay,signalOnly=false}){
   const played=remix.play();
   await wait(110);
   const result=await played;
-  assert.equal(result.source,'beat','PLAY event without timeline progress must NOT count as playback');
-  assert.ok(events.includes('start:beat'),'no confirmed track must activate original 20-second beat');
-  assert.ok(events.includes('complete:beat'),'fallback MUST complete and return control after full beat window');
+  assert.equal(result.source,'voice','PLAY event without audible confirmation must NOT count as music playback');
+  assert.ok(!events.includes('start:beat'),'blocked track must NEVER start the annoying synth beat');
+  assert.ok(events.includes('complete:voice'),'fallback MUST complete instantly and return to voice');
+  assert.ok(!events.includes('start:beat'),'synth beat is removed completely');
   assert.ok(!events.includes('start:soundcloud'),'never report false SoundCloud playback');
   assert.ok(!notices.some(s=>s.includes('SoundCloud playback progress confirmed')),'do not show misleading playing indicator');
   remix.stop();
@@ -140,4 +141,4 @@ function fixture({allowAutoplay,signalOnly=false}){
   remix.stop();
 }
 console.log('FOOD_REMIX_STAGE_SMOKE_OK soft declines, remote Ring, stage once, explicit stop');
-console.log('FOOD_REMIX_SMOKE_OK refusal, customer answer, transcript cue, auto-play, fallback beat');
+console.log('FOOD_REMIX_SMOKE_OK refusal, customer answer, transcript cue, auto-play, voice fallback without beat');

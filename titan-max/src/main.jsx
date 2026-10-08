@@ -322,7 +322,7 @@ function App(){
         remixToolPendingRef.current=true;
         try{
           const cue=await getRemix().play();
-          return cue.fallback?{...cue,next:'An original rhythmic beat is playing. Perform an enthusiastic, brief ORIGINAL food-list comedy riff in your existing Cedar voice with energetic timing; do not copy the song or impersonate a singer.'}:cue;
+          return cue.fallback?{...cue,next:'The SoundCloud player required a user tap, so no song or beat played. Immediately deliver a very short, energetic ORIGINAL food-menu joke in your normal Cedar voice, then resume the conversation naturally. Never pretend music played.'}:cue;
         }catch(e){return {ok:false,error:e?.message||'SoundCloud cue unavailable'}}
         finally{remixToolPendingRef.current=false}
       }
@@ -464,8 +464,8 @@ function App(){
           }
           setFaceMode(ring?'ring':'friendly');
         },
-        onFallback:info=>{
-          setNotice(info?.beatAudible?'Official track could not autoplay; original beat running.':'SoundCloud did not start; fallback beat requires audio permission.');
+        onFallback:()=>{
+          setNotice('SoundCloud requires a tap. Skipping music and returning to live conversation.');
         },
         onComplete:result=>{
           // When invoked by the AI tool, that tool's result already triggers the
@@ -474,7 +474,7 @@ function App(){
           setTimeout(()=>{
             if(!stayLiveRef.current||remixToolPendingRef.current)return;
             try{
-              realtime.sendTextMessage('SYSTEM HANDOFF, NOT HOMEOWNER SPEECH: The 20-second food remix icebreaker has ENDED. '+(result?.source==='soundcloud'?'The SoundCloud widget advanced and completed the snippet.':'The SoundCloud stream was blocked and the original beat fallback completed.')+' Speak again naturally now, with one warm, witty callback, then resume listening or the earlier discussion. Do NOT replay the greeting, do NOT replay music, and do NOT pretend the customer answered while the microphone was paused.');
+              realtime.sendTextMessage('SYSTEM HANDOFF, NOT HOMEOWNER SPEECH: The 20-second food remix icebreaker has ENDED. '+(result?.source==='soundcloud'?'The SoundCloud widget advanced and completed the snippet.':'The SoundCloud player needed a physical tap. No music was played. Please use your usual natural voice to make one short original, enthusiastic food-menu joke, and move on.')+' Speak again naturally now, with one warm, witty callback, then resume listening or the earlier discussion. Do NOT replay the greeting, do NOT replay music, and do NOT pretend the customer answered while the microphone was paused.');
             }catch(e){setNotice('Music completed. Titan will resume when his voice connection is ready.')}
           },500);
         }
