@@ -21,8 +21,8 @@ global.createFoodRemixPlayer=function(cb){
   var started=false,used=false,playing=false,source='',musicTimer=null,watchdog=null,reply=null,replyDone=false;
   var assistantBuffer='',armed=false,customerFollowup=false,assistantCueTimer=null;
   var customerTurns=0,softDecline=false,hardStop=false,needsSecond=false,secondReminderSent=false,cueReady=false;
-  var explicitStop=/\b(?:go away|leave me alone|please leave|leave now|stop talking|stop speaking|stop it|don't play|do not play|don't want music|no music|goodbye|bye now|shut up|don't talk to me|do not talk to me|please stop|no thank you|no thanks|not today,? goodbye)\b/i;
-  var softNo=/\b(?:not interested|i'?m good|i am good|all good|don'?t want (?:the )?(?:service|offer|upgrade)|not home|i'?m busy|no sale|don'?t need (?:service|a phone|an upgrade))\b/i;
+  var explicitStop=/\b(?:go away|leave me alone|please leave|leave now|leave|stop talking|stop speaking|stop it|don't play|do not play|don't want music|no music|goodbye|bye now|bye|shut up|don't talk to me|do not talk to me|please stop|no thank you|no thanks|not today,? goodbye)\b/i;
+  var softNo=/\b(?:not interested|i'?m good|i am good|all good|don'?t want it|do not want it|don'?t want (?:the )?(?:service|offer|upgrade)|not home|i'?m busy|no sale|don'?t need (?:service|a phone|an upgrade))\b/i;
   var fallbackNotice=false,closing=false;
   function say(msg){if(cb.onStatus)cb.onStatus(msg)}
   function audioContext(){
@@ -140,6 +140,7 @@ global.createFoodRemixPlayer=function(cb){
     };
   }
   function play(){
+    if(hardStop)return Promise.resolve({ok:false,reason:'Homeowner asked to stop'});
     if(used)return Promise.resolve({ok:false,reason:'Icebreaker already queued for this customer'});
     used=true;showWidget();
     return new Promise(function(resolve){
@@ -200,7 +201,7 @@ global.createFoodRemixPlayer=function(cb){
       customerFollowup=true;
       // Give Titan/Sterling a chance to say "Let me tell you" first.
       // Audio transcript completion can fire later than the text event.
-      queueCue(4800);
+      queueCue(7600);
       return;
     }
     // Greeting reply + first tech joke reply usually means two customer turns.
