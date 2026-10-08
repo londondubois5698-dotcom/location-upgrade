@@ -975,6 +975,11 @@ function App(){
       <div><strong>A better fit. A lower bill.</strong><small>Same number. Better value. London verifies the final offer.</small></div>
     </section>
 
+    <div style={{display:'flex',justifyContent:'center',margin:'7px 0 12px'}}>
+      <button type="button" style={{border:'1px solid #3dbbda',background:'#10354a',color:'#edfdff',borderRadius:12,padding:'9px 15px',fontWeight:850}} onClick={()=>{
+        try{getRemix().prime();getRemix().play()}catch(e){setNotice('Remix cue not ready: '+(e.message||String(e)))}
+      }}>♫ Cue Food Remix · 20s</button>
+    </div>
     <section className="titanDock">
       {realtime.status==='connected'
         ?<>
