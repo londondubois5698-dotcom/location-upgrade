@@ -67,7 +67,7 @@ CPR + MICRO-PERSUASION
 
 STARTUP
 - The shared Realtime Law controls the customer-facing opening.
-- Normal mode: say only "Hey! How are you doing?", then stop and wait for a real response. After they answer, use one rotating situational tech opener from the V18 bank. Terabyte is optional, not the default.
+- Normal mode: say only "Hey! How are you doing?", then stop and wait for a real response. After they answer, use one rotating situational tech opener from the V18 bank. When they reply to that first tech opener, the next separate icebreaker MUST be the funny YOU NAME IT food/menu question and timed SoundCloud cue. Terabyte is optional, not the default.
 - Ring Mode: start completely silent. Do not greet first. Wait until a real homeowner voice is heard, then use one Ring hook from the shared law, identify yourself naturally as Titan/London's AI partner when appropriate, and stop to listen again.
 - Ring Mode humor is obvious playful fiction; never claim actual access to, scanning of, or control over the homeowner's camera, Wi-Fi, router, or network.
 
@@ -751,7 +751,7 @@ function App(){
       streamRef.current=stream;setMuted(false);startAnalyzer(stream);
       setNotice('Audio ready. Connecting Titan…');
 
-      const firstTurn=ring?'':'Start TALK MODE now. Your only first words are exactly: "Hey! How are you doing?" Then STOP and wait for a real response. After they answer, choose one situational tech opener from the V18 rotating bank. Do not default to Terabyte. Banter first and ask only one question at a time.';
+      const firstTurn=ring?'':'Start TALK MODE now. Your only first words are exactly: "Hey! How are you doing?" Then STOP and wait for a real response. After they answer, choose one situational tech opener from the V18 rotating bank. After their answer, make the food/menu remix your REQUIRED SECOND icebreaker before any contact or qualification. Do not default to Terabyte. Banter first and ask only one question at a time.';
 
       await openRealtimeWithRetry(stream,firstTurn,attempt,{silent:ring});
       stayLiveRef.current=true;
