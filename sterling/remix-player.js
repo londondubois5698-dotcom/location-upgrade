@@ -19,7 +19,7 @@ global.createFoodRemixPlayer=function(cb){
   cb=cb||{};
   var context=null,dock=null,widget=null,ready=false;
   var started=false,used=false,playing=false,source='',musicTimer=null,watchdog=null,reply=null,replyDone=false;
-  var finalResult=null,playPromise=null,streamProgressStart=null,progressConfirmed=false,stopRequested=false;
+  var finalResult=null,playPromise=null,streamProgressStart=null,progressConfirmed=false,stopRequested=false,waitingForTap=false,waitNoticeShown=false;
   var clickerTimers=[];
   var assistantBuffer='',armed=false,customerFollowup=false,assistantCueTimer=null;
   var customerTurns=0,softDecline=false,hardStop=false,needsSecond=false,secondReminderSent=false,cueReady=false;
@@ -70,7 +70,8 @@ global.createFoodRemixPlayer=function(cb){
     musicTimer=watchdog=assistantCueTimer=null;
     try{if(widget)widget.pause()}catch(e){}
     if(dock){dock.remove();dock=null}
-    if(playing&&cb.onStop)cb.onStop();
+    if((playing||waitingForTap)&&cb.onStop)cb.onStop();
+    waitingForTap=false;waitNoticeShown=false;
     playing=false;source='';widget=null;ready=false;started=false;
     streamProgressStart=null;progressConfirmed=false;
   }
@@ -86,32 +87,36 @@ global.createFoodRemixPlayer=function(cb){
     // Return control to the live voice after the precise 20-second music segment.
     cancelClicker();clearTimeout(musicTimer);clearTimeout(watchdog);musicTimer=watchdog=null;
     try{if(widget)widget.pause()}catch(e){}
-    if(playing&&cb.onStop)cb.onStop();
+    if((playing||waitingForTap)&&cb.onStop)cb.onStop();
+    waitingForTap=false;
     playing=false;started=false;
     if(dock){dock.remove();dock=null}
     settle(result);
     if(cb.onComplete)cb.onComplete(result);
-    say(result.source==='soundcloud'?'Remix complete. Back in conversation.':'SoundCloud required a tap. Back in conversation.');
+    say(result.source==='soundcloud'?'Remix complete. Back in conversation.':'Music stopped.');
   }
   function fallback(reason){
-    if(!started||progressConfirmed||source==='voice')return;
+    if(!started||progressConfirmed||stopRequested)return;
+    // Never silently skip the song: retain the official SoundCloud player.
+    // Cross-origin iOS player may need a trusted user tap on its own controls.
     cancelClicker();clearTimeout(watchdog);watchdog=null;
-    if(widget)try{widget.pause()}catch(e){}
-    source='voice';playing=false;progressConfirmed=false;
-    // iOS cannot accept synthetic taps inside the SoundCloud iframe.
-    // Never start an endless beat or leave the player covering the screen.
-    if(!fallbackNotice){
-      fallbackNotice=true;
-      if(cb.onFallback)cb.onFallback({reason:reason,beatAudible:false,voiceOnly:true});
+    waitingForTap=true;
+    if(dock){
+      var b=dock.querySelector('[data-play]');
+      if(b)b.textContent='PLAY REMIX · TAP HERE';
     }
-    complete({ok:false,fallback:true,source:'voice',seconds:0,reason:reason});
+    status('SONG READY — if needed, tap the orange SoundCloud Play control.');
+    if(!waitNoticeShown){
+      waitNoticeShown=true;
+      if(cb.onAwaitingTap)cb.onAwaitingTap({reason:reason});
+    }
   }
   function soundcloudStart(){
     if(!started||progressConfirmed)return;
     progressConfirmed=true;
     cancelClicker();
     clearTimeout(watchdog);watchdog=null;
-    if(source==='voice')return;
+    waitingForTap=false;
     source='soundcloud';playing=true;
     if(cb.onStart)cb.onStart('soundcloud');
     status('SoundCloud playback progress confirmed · first 20 seconds.');
@@ -124,21 +129,21 @@ global.createFoodRemixPlayer=function(cb){
     dock=document.createElement('section');
     dock.setAttribute('aria-label','Second icebreaker remix');
     dock.style.cssText='position:fixed;left:9px;right:9px;bottom:9px;z-index:9999;max-width:550px;margin:auto;background:#071b2c;color:#f9feff;padding:11px;border:1px solid #36b4e6;border-radius:14px;box-shadow:0 12px 42px #000c;font:13px -apple-system,BlinkMacSystemFont,system-ui';
-    dock.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><strong>FOOD REMIX · ICEBREAKER TWO</strong><button type="button" data-stop style="padding:6px 10px;border:1px solid #6b9db9;color:white;background:#163850;border-radius:8px">Stop</button></div><div data-frame style="margin:9px 0 3px"></div><div data-status style="font-size:12px;padding:3px 0">Cueing SoundCloud…</div><button type="button" data-play style="margin-top:7px;width:100%;padding:10px;background:#078ece;color:white;border:none;border-radius:9px;font-weight:800">Tap to start official remix if autoplay is blocked</button><div style="margin-top:5px;color:#a8c4d6;font-size:10px">Official SoundCloud player · streamed, not downloaded</div>';
+    dock.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><strong>REQUIRED ICEBREAKER · FOOD REMIX</strong><button type="button" data-stop style="padding:6px 10px;border:1px solid #6b9db9;color:white;background:#163850;border-radius:8px">Stop</button></div><div data-frame style="margin:9px 0 3px"></div><div data-status style="font-size:12px;padding:3px 0">Trying SoundCloud automatically…</div><button type="button" data-play style="margin-top:7px;width:100%;padding:13px;background:#078ece;color:white;border:none;border-radius:9px;font-weight:800">PLAY REMIX · 20 SECONDS</button><div style="margin-top:7px;color:#f2d4a0;font-size:12px">If iPhone blocks autoplay, tap the orange “Play on SoundCloud” above. The conversation waits until music plays or you select Stop.</div>';
     document.body.appendChild(dock);
     dock.querySelector('[data-stop]').onclick=stop;
     dock.querySelector('[data-play]').onclick=function(){
-      if(widget){try{cancelClicker();widget.seekTo(0);widget.play();}catch(e){fallback('SoundCloud playback was blocked')}}
+      if(widget){try{cancelClicker();streamProgressStart=null;widget.seekTo(0);widget.play()}catch(e){fallback('SoundCloud playback was blocked')}}
       else fallback('SoundCloud player unavailable');
     };
   }
   function play(){
     if(hardStop)return Promise.resolve({ok:false,reason:'Homeowner asked to stop'});
     if(used)return playPromise||Promise.resolve(finalResult||{ok:false,reason:'Icebreaker already queued for this customer'});
-    used=true;stopRequested=false;streamProgressStart=null;progressConfirmed=false;finalResult=null;showWidget();
+    used=true;stopRequested=false;streamProgressStart=null;progressConfirmed=false;waitingForTap=false;waitNoticeShown=false;finalResult=null;showWidget();
     playPromise=new Promise(function(resolve){
       reply=resolve;replyDone=false;started=true;
-      watchdog=setTimeout(function(){fallback('SoundCloud autoplay blocked on this device')},2200);
+      watchdog=setTimeout(function(){fallback('iPhone autoplay requires a trusted tap')},4200);
       loadSoundCloud().then(function(sc){
         if(!started||!dock)return;
         var frame=document.createElement('iframe');
@@ -149,7 +154,7 @@ global.createFoodRemixPlayer=function(cb){
         widget=sc.Widget(frame);
         widget.bind(sc.Widget.Events.READY,function(){
           ready=true;
-          if(source==='voice'||!started)return; // Never auto-play behind the fallback.
+          if(!started||stopRequested)return; // Keep the player armed for manual playback.
           try{widget.seekTo(0);widget.setVolume(95);autoClickPlayer()}catch(e){fallback('SoundCloud playback rejected')}
         });
         widget.bind(sc.Widget.Events.PLAY,function(){
@@ -157,9 +162,9 @@ global.createFoodRemixPlayer=function(cb){
           if(!progressConfirmed)status('Waiting for SoundCloud playback confirmation…');
         });
         widget.bind(sc.Widget.Events.PLAY_PROGRESS,function(x){
-          if(!started||source==='voice'||!x||!Number.isFinite(Number(x.currentPosition)))return;
+          if(!started||!x||!Number.isFinite(Number(x.currentPosition)))return;
           var pos=Number(x.currentPosition);
-          if(streamProgressStart===null){streamProgressStart=pos; if(pos>2200){fallback('Playback did not start at the beginning');} return;}
+          if(streamProgressStart===null){streamProgressStart=pos;return;}
           if(!progressConfirmed&&pos-streamProgressStart>=400) soundcloudStart();
           if(progressConfirmed&&pos>=20000)complete({ok:true,played:true,source:'soundcloud',seconds:20});
         });
@@ -225,6 +230,6 @@ global.createFoodRemixPlayer=function(cb){
       if(cb.onSecondNeeded)cb.onSecondNeeded({softDecline:softDecline,customerTurns:customerTurns});
     }
   }
-  return {prime:prime,play:play,stop:stop,reset:function(){stop();used=false;armed=false;customerFollowup=false;assistantBuffer='';fallbackNotice=false;customerTurns=0;softDecline=false;hardStop=false;needsSecond=false;secondReminderSent=false;cueReady=false},observeAssistant:observeAssistant,observeCustomer:observeCustomer,onAssistantTurnDone:onAssistantTurnDone,hasCued:function(){return used},isArmed:function(){return armed}};
+  return {prime:prime,play:play,stop:stop,reset:function(){stop();used=false;armed=false;customerFollowup=false;assistantBuffer='';fallbackNotice=false;customerTurns=0;softDecline=false;hardStop=false;needsSecond=false;secondReminderSent=false;cueReady=false},observeAssistant:observeAssistant,observeCustomer:observeCustomer,onAssistantTurnDone:onAssistantTurnDone,hasCued:function(){return used},isArmed:function(){return armed},isWaitingForTap:function(){return waitingForTap}};
 };
 })(window);
