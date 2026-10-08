@@ -453,19 +453,30 @@ function App(){
           try{realtime.sendTextMessage(prompt)}catch(e){setNotice('Icebreaker prompt could not be delivered.')}
         },
         onStart:source=>{
-          if(source==='soundcloud')try{realtime.stopPlayback?.()}catch{}
-          try{realtime.stopAudioCapture?.()}catch{}
+          // Keep the realtime session alive: disabling an existing track is safer
+          // than disconnecting/restarting the SDK microphone capture in Safari.
+          try{const track=streamRef.current?.getAudioTracks?.()[0];if(track)track.enabled=false}catch{}
           setFaceMode('excited');
         },
         onStop:()=>{
-          if(stayLiveRef.current&&!muted&&streamRef.current)try{realtime.startAudioCapture(streamRef.current)}catch{}
+          if(stayLiveRef.current&&!muted){
+            try{const track=streamRef.current?.getAudioTracks?.()[0];if(track)track.enabled=true}catch{}
+          }
           setFaceMode(ring?'ring':'friendly');
         },
-        onFallback:()=>{
-          if(remixToolPendingRef.current||!stayLiveRef.current)return;
-          try{
-            realtime.sendTextMessage('The SoundCloud recording could not autoplay; an ORIGINAL rhythm is playing locally right now. In your usual confident, human-sounding Cedar voice, perform a quick high-energy ORIGINAL food-list comedy riff that fits this beat. Do not impersonate Shirley Caesar or DJ Suede and do not repeat song lyrics. Then return to friendly conversation.');
-          }catch(e){}
+        onFallback:info=>{
+          setNotice(info?.beatAudible?'Official track could not autoplay; original beat running.':'SoundCloud did not start; fallback beat requires audio permission.');
+        },
+        onComplete:result=>{
+          // When invoked by the AI tool, that tool's result already triggers the
+          // next response. Otherwise explicitly hand the conversation back.
+          if(!stayLiveRef.current||remixToolPendingRef.current)return;
+          setTimeout(()=>{
+            if(!stayLiveRef.current||remixToolPendingRef.current)return;
+            try{
+              realtime.sendTextMessage('SYSTEM HANDOFF, NOT HOMEOWNER SPEECH: The 20-second food remix icebreaker has ENDED. '+(result?.source==='soundcloud'?'The SoundCloud widget advanced and completed the snippet.':'The SoundCloud stream was blocked and the original beat fallback completed.')+' Speak again naturally now, with one warm, witty callback, then resume listening or the earlier discussion. Do NOT replay the greeting, do NOT replay music, and do NOT pretend the customer answered while the microphone was paused.');
+            }catch(e){setNotice('Music completed. Titan will resume when his voice connection is ready.')}
+          },500);
         }
       });
     }
