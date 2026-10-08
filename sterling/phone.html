@@ -745,7 +745,7 @@ async function connect(){
       else if(mt==='response-done'||mt==='response-completed'||norm==='response-done'||norm==='response-completed'){
         // Wait for queued PCM to reach the speaker before cueing the SoundCloud recording.
         var pendingMs=playCtx?Math.max(0,(playTime-playCtx.currentTime)*1000):0;
-        try{getRemix().onAssistantTurnDone(Math.max(300,Math.min(4500,Math.round(pendingMs+250))))}catch(e){}
+        setTimeout(function(){try{getRemix().onAssistantTurnDone(Math.max(350,Math.min(4500,Math.round(pendingMs+250))))}catch(e){}},380)
       }
       else if(norm.indexOf('input')>=0&&norm.indexOf('transcription')>=0&&(norm.indexOf('completed')>=0||norm.indexOf('done')>=0)){
         var heard=m.transcript||m.text||m.delta||'';
