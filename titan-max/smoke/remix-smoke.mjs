@@ -6,7 +6,7 @@ const code=readFileSync(new URL('../public/remix-player.js',import.meta.url),'ut
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function fixture({allowAutoplay,signalOnly=false}){
   const notices=[], events=[];
-  let player;
+  let player,unblocked=false;
   function element(tag='div'){
     const fields={};
     return {
@@ -22,9 +22,9 @@ function fixture({allowAutoplay,signalOnly=false}){
       bind(name,fn){callbacks[name]=fn},
       seekTo(){},setVolume(){},pause(){events.push('pause')},
       play(){
-        if(allowAutoplay||signalOnly){
+        if(allowAutoplay||signalOnly||unblocked){
           setTimeout(()=>callbacks.PLAY?.(),2);
-          if(allowAutoplay){
+          if(allowAutoplay||unblocked){
             setTimeout(()=>callbacks.PLAY_PROGRESS?.({currentPosition:0}),5);
             setTimeout(()=>callbacks.PLAY_PROGRESS?.({currentPosition:500}),13);
             setTimeout(()=>callbacks.PLAY_PROGRESS?.({currentPosition:1250}),22);
@@ -46,9 +46,10 @@ function fixture({allowAutoplay,signalOnly=false}){
     onFallback:()=>events.push('fallback'),
     onSecondNeeded:ctx=>events.push('second:'+!!ctx.softDecline),
     onRespectStop:()=>events.push('respect-stop'),
-    onComplete:r=>events.push('complete:'+r.source)
+    onComplete:r=>events.push('complete:'+r.source),
+    onAwaitingTap:()=>events.push('awaiting-tap')
   });
-  return {remix,notices,events};
+  return {remix,notices,events,unlock:()=>{unblocked=true;if(player)player.play()}};
 }
 
 {
@@ -67,8 +68,9 @@ function fixture({allowAutoplay,signalOnly=false}){
   remix.observeCustomer('No');
   await wait(110);
   assert.equal(remix.hasCued(),true,'answer to the food question MUST cue automatically');
-  assert.ok(events.includes('fallback'),'blocked SoundCloud must enter fast voice fallback');
-  assert.ok(events.includes('complete:voice'),'blocked SoundCloud must close and return control to voice');
+  assert.ok(events.includes('awaiting-tap'),'blocked SoundCloud must stay in a visible mandatory music gate');
+  assert.equal(remix.isWaitingForTap(),true,'blocked track must NOT skip the song');
+  assert.ok(!events.some(x=>x.startsWith('complete:')),'do not resume the assistant before music plays');
   remix.stop();
 }
 {
@@ -117,17 +119,31 @@ function fixture({allowAutoplay,signalOnly=false}){
   remix.stop();
 }
 {
-  const {remix,notices,events}=fixture({allowAutoplay:false,signalOnly:true});
-  const played=remix.play();
+  const {remix,notices,events,unlock}=fixture({allowAutoplay:false,signalOnly:true});
+  const resultPromise=remix.play();
   await wait(110);
-  const result=await played;
-  assert.equal(result.source,'voice','PLAY event without audible confirmation must NOT count as music playback');
-  assert.ok(!events.includes('start:beat'),'blocked track must NEVER start the annoying synth beat');
-  assert.ok(events.includes('complete:voice'),'fallback MUST complete instantly and return to voice');
-  assert.ok(!events.includes('start:beat'),'synth beat is removed completely');
-  assert.ok(!events.includes('start:soundcloud'),'never report false SoundCloud playback');
-  assert.ok(!notices.some(s=>s.includes('SoundCloud playback progress confirmed')),'do not show misleading playing indicator');
+  assert.equal(remix.isWaitingForTap(),true,'PLAY without progressing track must NOT skip the mandatory music');
+  assert.ok(events.includes('awaiting-tap'),'must make user-visible playback-required stage');
+  assert.ok(!events.includes('complete:voice'),'AI must not resume before SoundCloud music');
+  assert.ok(!events.includes('start:beat'),'old annoying beat must never return');
+  assert.ok(!notices.some(x=>x.includes('SoundCloud playback progress confirmed')),'never falsely claim music started');
+  unlock();
+  await wait(120);
+  assert.ok(events.includes('start:soundcloud'),'a trusted/manual start must be accepted even after initial autoplay failure');
+  const result=await resultPromise;
+  assert.equal(result.source,'soundcloud','playback after user interaction must complete the actual music');
+  assert.ok(events.includes('complete:soundcloud'),'must resume conversation after 20 seconds of music');
   remix.stop();
+}
+{
+  const {remix,events}=fixture({allowAutoplay:false});
+  const resultPromise=remix.play();
+  await wait(110);
+  assert.equal(remix.isWaitingForTap(),true);
+  remix.stop();
+  const result=await resultPromise;
+  assert.equal(result.stopped,true,'explicit Stop must safely end the required music stage');
+  assert.ok(!events.includes('start:beat'),'stopping must not start a beat');
 }
 {
   const {remix,events}=fixture({allowAutoplay:true});
@@ -141,4 +157,4 @@ function fixture({allowAutoplay,signalOnly=false}){
   remix.stop();
 }
 console.log('FOOD_REMIX_STAGE_SMOKE_OK soft declines, remote Ring, stage once, explicit stop');
-console.log('FOOD_REMIX_SMOKE_OK refusal, customer answer, transcript cue, auto-play, voice fallback without beat');
+console.log('FOOD_REMIX_SMOKE_OK mandatory music gate, delayed manual start, 20-second completion, stop, and no beat');
