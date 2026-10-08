@@ -376,6 +376,15 @@ var captureHighpass=null,captureLowpass=null,micAnalyser=null;
 var active=false,connected=false,connecting=false,muted=false,reconnects=0,socket=null,connectWatchdog=null,reconnectTimer=null,connectAttempt=0;
 var remixController=null,remixToolInProgress=false;
 var ringMode=false,outdoorMax=localStorage.getItem('sterling.outdoorMax.v1')!=='0',openingStarted=false,aiSpeaking=false,micResumeTimer=null;
+var talkCustomerTurns=0,talkSecondReminderSent=false;
+var TALK_SPOKEN_ONLY_LAW=[
+  'STERLING TALK MODE ONLY — OVERRIDES SHARED FOOD REMIX RULES FOR THIS SESSION:',
+  'No SoundCloud, no music, no song, no audio samples, no food-remix setup, no playFoodRemix call and no pause for a player. Keep Sterling Ring unchanged.',
+  'First say only "Hey! How are you doing?" and listen. After their answer, use one of your usual quick situational tech icebreakers and wait for a response.',
+  'Then give one SECOND, DIFFERENT icebreaker entirely in your own natural Cedar speaking voice. Pick a fresh, quick, genuinely funny tech or everyday-life joke that relates to what the person said; for example: "I asked Siri for social skills. She said I need an update. So here I am testing the beta version in person." Use natural timing, then listen or transition smoothly to the conversation.',
+  'Never refer to the SoundCloud remix, ask to play music, sing the track, or wait for a cue. The second icebreaker is a spoken joke, not a playback stage.',
+  'If the person explicitly asks to stop, leave, or end the conversation, comply without another joke.'
+].join('\n');
 var micStream=null,captureCtx=null,captureSource=null,captureProcessor=null,playCtx=null,playTime=0,playingSources=[],outdoorGain=null,outdoorLimiter=null;
 
 function $(id){return document.getElementById(id)}
@@ -454,6 +463,7 @@ function render(){
   var bits=[];if(contact.first)bits.push(contact.first);if(contact.last)bits.push(contact.last);if(contact.phone)bits.push(contact.phone);if(contact.email)bits.push(contact.email);
   if($('contact'))$('contact').textContent=bits.length?'Confirmed: '+bits.join(' • '):'No confirmed customer details yet.';
   if($('start')){$('start').innerHTML='🎙<span>Talk<small>'+(active&&!ringMode?'LIVE':'Start Live')+'</small></span>';$('start').className='btn outdoor controlTalk'+(active&&!ringMode?' modeBtnLive':'')}
+  if($('remixNow'))$('remixNow').style.display=ringMode?'block':'none';
   if($('ringMode')){$('ringMode').innerHTML='☎<span>Ring<small>'+(active&&ringMode?'LIVE':'Listen First')+'</small></span>';$('ringMode').className='btn secondary modeBtnRing'+(active&&ringMode?' modeBtnLive':'')}
   if($('outdoorMax')){$('outdoorMax').innerHTML='▲<span>Outdoor Max<small>'+(outdoorMax?'ON':'OFF')+'</small></span>';$('outdoorMax').className='btn secondary controlOutdoor'+(outdoorMax?' modeBtnLive':'')}
   if($('mute')){$('mute').style.display='flex';$('mute').disabled=!active;$('mute').innerHTML=(muted?'🔇':'🔊')+'<span>'+(muted?'Unmute':'Mute')+'</span>'}
@@ -690,6 +700,7 @@ async function handleTool(m){
   var a={};try{a=JSON.parse(m.arguments||'{}')}catch(e){}
   try{
     if(m.name==='playFoodRemix'){
+      if(!ringMode){toolReply(m.callId,m.name,{ok:false,skipped:true,reason:'Sterling Talk has a spoken-only second icebreaker. Do not play or request music; deliver one quick original spoken joke and continue.'});return}
       remixToolInProgress=true;
       try{
         var cue=await getRemix().play();
@@ -719,13 +730,13 @@ async function connect(){
     ws.onopen=function(){
       connecting=false;
       send({type:'session-update',config:{
-        instructions:setup.instructions,
+        instructions:ringMode?setup.instructions:(setup.instructions+'\n\n'+TALK_SPOKEN_ONLY_LAW),
         voice:'cedar',
         outputModalities:['audio'],
         inputAudioFormat:{type:'audio/pcm',rate:24000},
         outputAudioFormat:{type:'audio/pcm',rate:24000},
         turnDetection:{type:'server-vad',threshold:0.72,prefixPaddingMs:220,silenceDurationMs:300},
-        tools:setup.tools||[]
+        tools:ringMode?(setup.tools||[]):(setup.tools||[]).filter(function(t){return t&&t.name!=='playFoodRemix'&&t.function?.name!=='playFoodRemix'})
       }})
     };
 
@@ -744,7 +755,7 @@ async function connect(){
             setCaption('Ring Mode','Armed and silent. Waiting for the homeowner to speak.');
             setVoice('RING ARMED • SILENT','good');
           }else{
-            send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Start TALK MODE now. Your only first words are exactly: Hey! How are you doing? Then STOP and wait for a real audible response. After they answer, choose one strong tech opener from the rotating TOP 20 bank. Wait for their response, then ALWAYS do the separate hungry/menu YOU NAME IT second icebreaker and music cue before collecting contacts. No Terabyte default. One question at a time."}});
+            send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Start STERLING TALK MODE (SPOKEN-ONLY) now. Your only first words are exactly: Hey! How are you doing? Stop and listen. Respond naturally, deliver one rotating tech icebreaker, then after the next customer reply deliver one DIFFERENT funny, short, spoken-only second icebreaker in your own natural voice. No music, no food remix, no SoundCloud, no pause or tool cue. Continue the conversation normally after the second joke. One question at a time."}});
             send({type:'response-create',options:{modalities:['audio']}})
           }
         }
@@ -756,14 +767,24 @@ async function connect(){
       else if(mt==='response-done'||mt==='response-completed'||norm==='response-done'||norm==='response-completed'){
         // Wait for queued PCM to reach the speaker before cueing the SoundCloud recording.
         var pendingMs=playCtx?Math.max(0,(playTime-playCtx.currentTime)*1000):0;
-        setTimeout(function(){try{getRemix().onAssistantTurnDone(Math.max(350,Math.min(4500,Math.round(pendingMs+250))))}catch(e){}},380)
+        if(ringMode)setTimeout(function(){if(ringMode)try{getRemix().onAssistantTurnDone(Math.max(350,Math.min(4500,Math.round(pendingMs+250))))}catch(e){}},380)
       }
       else if(norm.indexOf('input')>=0&&norm.indexOf('transcription')>=0&&(norm.indexOf('completed')>=0||norm.indexOf('done')>=0)){
         var heard=m.transcript||m.text||m.delta||'';
-        if(heard){setCaption('Customer',heard);try{getRemix().observeCustomer(heard)}catch(e){}}
+        if(heard){
+          setCaption('Customer',heard);
+          if(ringMode){try{getRemix().observeCustomer(heard)}catch(e){}}
+          else{
+            talkCustomerTurns++;
+            if(talkCustomerTurns===2&&!talkSecondReminderSent){
+              talkSecondReminderSent=true;
+              send({type:'context-append',content:'STERLING TALK STAGE: You have now heard the customer answer the first tech joke. Your next conversational turn should be a DIFFERENT quick spoken-only icebreaker in your own Cedar voice; react to their actual words, make the short new joke, and continue naturally. NO SoundCloud/music/playback/pausing. Honor any clear request to stop.',delegationId:null});
+            }
+          }
+        }
       }
-      else if(norm.indexOf('transcript')>=0&&norm.indexOf('delta')>=0&&norm.indexOf('input')<0){var d=m.delta||m.transcript||'';if(d){sterlingTranscript+=d;setCaption('Sterling',sterlingTranscript);try{getRemix().observeAssistant(d)}catch(e){}}}
-      else if(norm.indexOf('transcript')>=0&&(norm.indexOf('done')>=0||norm.indexOf('completed')>=0)&&norm.indexOf('input')<0){var done=m.transcript||m.text||sterlingTranscript;if(done){setCaption('Sterling',done);try{getRemix().observeAssistant(done)}catch(e){}}sterlingTranscript=''}
+      else if(norm.indexOf('transcript')>=0&&norm.indexOf('delta')>=0&&norm.indexOf('input')<0){var d=m.delta||m.transcript||'';if(d){sterlingTranscript+=d;setCaption('Sterling',sterlingTranscript);if(ringMode)try{getRemix().observeAssistant(d)}catch(e){}}}
+      else if(norm.indexOf('transcript')>=0&&(norm.indexOf('done')>=0||norm.indexOf('completed')>=0)&&norm.indexOf('input')<0){var done=m.transcript||m.text||sterlingTranscript;if(done){setCaption('Sterling',done);if(ringMode)try{getRemix().observeAssistant(done)}catch(e){}}sterlingTranscript=''}
       else if(mt==='error'){var em=String(m.message||m.error?.message||'Realtime error');if(/Cancellation failed: no active response found/i.test(em)){setVoice('LIVE • LISTENING','good');return}setVoice(em,'bad');setCaption('Connection',em)}
     };
 
@@ -789,11 +810,11 @@ async function connect(){
 }
 
 async function start(){if(active&&connected)return;try{openingStarted=false;bootAlpha(false);setCaption('Sterling',ringMode?'Ring Mode arming silently…':'Talk mode coming online…');await prepareMic();active=true;muted=false;render();await heartbeat();if(!connected&&!connecting)await connect()}catch(e){active=false;connecting=false;connected=false;render();setVoice(e.message||String(e),'bad');releaseMic()}}
-async function startMode(useRing){try{getRemix().prime()}catch(e){}if(active){if(ringMode===useRing&&connected)return;stop();await sleep(180)}ringMode=!!useRing;if(remixController)remixController.reset();openingStarted=false;render();await start()}
+async function startMode(useRing){if(useRing)try{getRemix().prime()}catch(e){}if(active){if(ringMode===useRing&&connected)return;stop();await sleep(180)}ringMode=!!useRing;talkCustomerTurns=0;talkSecondReminderSent=false;if(remixController)remixController.reset();openingStarted=false;render();await start()}
 function stop(){if(remixController)remixController.stop();active=false;connected=false;connecting=false;openingStarted=false;try{if(socket){socket.onclose=null;socket.onerror=null;socket.close()}}catch(e){}socket=null;stopPlayback();releaseMic();render();setVoice('STOPPED');setCaption('Sterling','Paused. Choose Talk or Ring when you are ready.')}
 $('faceExpand').onclick=function(){if($('faceFullscreen')){$('faceFullscreen').hidden=false;document.body.style.overflow='hidden';if($('fullFaceState'))$('fullFaceState').textContent=alphaState==='speaking'?'SPEAKING':alphaState==='listening'?'LISTENING':'LIVE'}};
 $('faceClose').onclick=function(){if($('faceFullscreen')){$('faceFullscreen').hidden=true;document.body.style.overflow=''}};
-$('remixNow').onclick=function(){try{getRemix().prime();getRemix().play()}catch(e){setCaption('Food Remix',e.message||String(e))}};
+$('remixNow').onclick=function(){if(!ringMode)return;try{getRemix().prime();getRemix().play()}catch(e){setCaption('Food Remix',e.message||String(e))}};
 $('start').onclick=function(){startMode(false)};$('ringMode').onclick=function(){startMode(true)};$('stop').onclick=stop;$('mute').onclick=function(){muted=!muted;var tr=micStream&&micStream.getAudioTracks?micStream.getAudioTracks()[0]:null;if(tr&&!aiSpeaking)tr.enabled=!muted;render();setVoice(muted?'MIC MUTED':'LIVE • LISTENING',muted?'warn':'good')};
 $('outdoorMax').onclick=function(){outdoorMax=!outdoorMax;localStorage.setItem('sterling.outdoorMax.v1',outdoorMax?'1':'0');applyOutdoorMax();render()};
 $('voiceSetup').onclick=function(){location.href=APP+'/voice-setup.html?v=17.1'};
