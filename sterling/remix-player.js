@@ -17,7 +17,7 @@ function loadSoundCloud(){
 }
 global.createFoodRemixPlayer=function(cb){
   cb=cb||{};
-  var context=null,dock=null,widget=null,ready=false;
+  var context=null,dock=null,widget=null,ready=false,trackId=null;
   var started=false,used=false,playing=false,source='',musicTimer=null,watchdog=null,reply=null,replyDone=false;
   var finalResult=null,playPromise=null,streamProgressStart=null,progressConfirmed=false,stopRequested=false,waitingForTap=false,waitNoticeShown=false;
   var clickerTimers=[];
@@ -125,13 +125,24 @@ global.createFoodRemixPlayer=function(cb){
     },20000);
     if(dock){var b=dock.querySelector('[data-play]');if(b)b.textContent='SoundCloud playing · 20s';}
   }
+  function openSoundCloudApp(){
+    // Experimental iOS scheme reported by older community integrations.
+    // The official track's numeric ID is fetched through the supported widget API.
+    // Only launch from a real button tap; programmatic app switches lose Titan/Sterling audio.
+    var url=Number.isSafeInteger(trackId)&&trackId>0
+      ?'soundcloud://tracks:'+trackId
+      :TRACK;
+    status(trackId?'Opening this track in SoundCloud (experimental app link)…':'Opening track link (SoundCloud app may handle it)…');
+    try{global.location.href=url}catch(e){try{global.open(TRACK,'_blank','noopener')}catch(ignore){}}
+  }
   function showWidget(){
     dock=document.createElement('section');
     dock.setAttribute('aria-label','Second icebreaker remix');
     dock.style.cssText='position:fixed;left:9px;right:9px;bottom:9px;z-index:9999;max-width:550px;margin:auto;background:#071b2c;color:#f9feff;padding:11px;border:1px solid #36b4e6;border-radius:14px;box-shadow:0 12px 42px #000c;font:13px -apple-system,BlinkMacSystemFont,system-ui';
-    dock.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><strong>REQUIRED ICEBREAKER · FOOD REMIX</strong><button type="button" data-stop style="padding:6px 10px;border:1px solid #6b9db9;color:white;background:#163850;border-radius:8px">Stop</button></div><div data-frame style="margin:9px 0 3px"></div><div data-status style="font-size:12px;padding:3px 0">Trying SoundCloud automatically…</div><button type="button" data-play style="margin-top:7px;width:100%;padding:13px;background:#078ece;color:white;border:none;border-radius:9px;font-weight:800">PLAY REMIX · 20 SECONDS</button><div style="margin-top:7px;color:#f2d4a0;font-size:12px">If iPhone blocks autoplay, tap the orange “Play on SoundCloud” above. The conversation waits until music plays or you select Stop.</div>';
+    dock.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><strong>REQUIRED ICEBREAKER · FOOD REMIX</strong><button type="button" data-stop style="padding:6px 10px;border:1px solid #6b9db9;color:white;background:#163850;border-radius:8px">Stop</button></div><div data-frame style="margin:9px 0 3px"></div><div data-status style="font-size:12px;padding:3px 0">Trying SoundCloud automatically…</div><button type="button" data-play style="margin-top:7px;width:100%;padding:13px;background:#078ece;color:white;border:none;border-radius:9px;font-weight:800">PLAY REMIX · 20 SECONDS</button><button type="button" data-open-app style="margin-top:8px;width:100%;padding:11px;background:#152a43;color:#d8f4ff;border:1px solid #39a9db;border-radius:9px;font-weight:800">OPEN TRACK IN SOUNDCLOUD APP · TEST</button><a data-web-link href="https://soundcloud.com/empire/dj-suede-the-remix-god-you-name-it-unameitchallenge" target="_blank" rel="noopener noreferrer" style="display:block;color:#b8d8ea;font-size:12px;margin-top:8px;text-align:center">Open the normal track link instead</a><div style="margin-top:7px;color:#f2d4a0;font-size:12px">SoundCloud may need a tap. App links open outside Titan/Sterling; playback and automatic return cannot be controlled across apps. Stop ends this stage.</div>';
     document.body.appendChild(dock);
     dock.querySelector('[data-stop]').onclick=stop;
+    dock.querySelector('[data-open-app]').onclick=openSoundCloudApp;
     dock.querySelector('[data-play]').onclick=function(){
       if(widget){try{cancelClicker();streamProgressStart=null;widget.seekTo(0);widget.play()}catch(e){fallback('SoundCloud playback was blocked')}}
       else fallback('SoundCloud player unavailable');
@@ -140,7 +151,7 @@ global.createFoodRemixPlayer=function(cb){
   function play(){
     if(hardStop)return Promise.resolve({ok:false,reason:'Homeowner asked to stop'});
     if(used)return playPromise||Promise.resolve(finalResult||{ok:false,reason:'Icebreaker already queued for this customer'});
-    used=true;stopRequested=false;streamProgressStart=null;progressConfirmed=false;waitingForTap=false;waitNoticeShown=false;finalResult=null;showWidget();
+    used=true;stopRequested=false;streamProgressStart=null;progressConfirmed=false;waitingForTap=false;waitNoticeShown=false;finalResult=null;trackId=null;showWidget();
     playPromise=new Promise(function(resolve){
       reply=resolve;replyDone=false;started=true;
       watchdog=setTimeout(function(){fallback('iPhone autoplay requires a trusted tap')},4200);
@@ -155,6 +166,13 @@ global.createFoodRemixPlayer=function(cb){
         widget.bind(sc.Widget.Events.READY,function(){
           ready=true;
           if(!started||stopRequested)return; // Keep the player armed for manual playback.
+          // Resolve the actual SoundCloud numeric track ID, never guess one.
+          try{
+            if(widget&&typeof widget.getCurrentSound==='function')widget.getCurrentSound(function(track){
+              var id=Number(track&&track.id);
+              if(Number.isSafeInteger(id)&&id>0)trackId=id;
+            });
+          }catch(e){}
           try{widget.seekTo(0);widget.setVolume(95);autoClickPlayer()}catch(e){fallback('SoundCloud playback rejected')}
         });
         widget.bind(sc.Widget.Events.PLAY,function(){
