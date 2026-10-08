@@ -464,8 +464,10 @@ function App(){
           }
           setFaceMode(ring?'ring':'friendly');
         },
-        onFallback:()=>{
-          setNotice('SoundCloud requires a tap. Skipping music and returning to live conversation.');
+        onAwaitingTap:()=>{
+          try{const track=streamRef.current?.getAudioTracks?.()[0];if(track)track.enabled=false}catch{}
+          setFaceMode('thinking');
+          setNotice('Food remix is required. Waiting for the SoundCloud Play button.');
         },
         onComplete:result=>{
           // When invoked by the AI tool, that tool's result already triggers the
