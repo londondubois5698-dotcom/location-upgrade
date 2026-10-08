@@ -380,6 +380,7 @@ function App(){
       }
       if(t.includes('response')&&t.includes('start'))setFaceMode('thinking');
       if((t.includes('response')&&(t.includes('done')||t.includes('completed'))) || t.includes('audio-done')){
+        if(t.includes('response'))try{getRemix().onAssistantTurnDone(550)}catch{}
         setFaceMode(ring?'ring':'friendly');
         if(stayLiveRef.current)setNotice('Titan is listening.');
       }
@@ -443,6 +444,14 @@ function App(){
       if(!window.createFoodRemixPlayer)throw new Error('Remix module unavailable');
       remixRef.current=window.createFoodRemixPlayer({
         onStatus:message=>setNotice(message),
+        onRespectStop:()=>setNotice('Homeowner asked to stop. Food remix cancelled.'),
+        onSecondNeeded:ctx=>{
+          if(!stayLiveRef.current)return;
+          const prompt=ctx.softDecline
+            ? 'LIVE CONVERSATION CONTROLLER (not customer speech): The homeowner just gave a casual service brush-off like "not interested", "I am good", or "I am not home". Respect the sales refusal. If they are still willing to engage, acknowledge it gracefully, and make your only playful closing attempt: "I hear you, no sales pitch. But you got me thinking about dinner. You know what I am gonna eat?" STOP and wait for their response. If they expressly say no thanks, stop, leave, or goodbye, end without music.'
+            : 'LIVE CONVERSATION CONTROLLER (not customer speech): Your first tech/Ring opener has been answered. Do the REQUIRED SECOND icebreaker now instead of collecting contact details: react to their words, say you are hungry, and ask "You know what I am gonna eat?" STOP and wait for an answer. Then say "Let me tell you" and cue the SoundCloud food remix.';
+          try{realtime.sendTextMessage(prompt)}catch(e){setNotice('Icebreaker prompt could not be delivered.')}
+        },
         onStart:source=>{
           if(source==='soundcloud')try{realtime.stopPlayback?.()}catch{}
           try{realtime.stopAudioCapture?.()}catch{}
