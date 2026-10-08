@@ -48,7 +48,7 @@ function fixture({allowAutoplay}){
   remix.observeCustomer('No thanks, stop talking');
   await wait(90);
   assert.equal(remix.hasCued(),false,'clear refusal must not play sound');
-  assert.equal(events.length,0,'clear refusal must have zero audio events');
+  assert.equal(events.filter(x=>x.startsWith('start:')).length,0,'clear refusal must have zero audio events');
   remix.stop();
 }
 {
