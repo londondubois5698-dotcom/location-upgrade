@@ -373,7 +373,7 @@ var alphaState='idle',alphaTimer=null;
 var gate={noise:.006,open:false,voiced:0,quiet:0,pre:[]};
 var captureHighpass=null,captureLowpass=null,micAnalyser=null;
 var active=false,connected=false,connecting=false,muted=false,reconnects=0,socket=null,connectWatchdog=null,reconnectTimer=null,connectAttempt=0;
-var remixController=null;
+var remixController=null,remixToolInProgress=false;
 var ringMode=false,outdoorMax=localStorage.getItem('sterling.outdoorMax.v1')!=='0',openingStarted=false,aiSpeaking=false,micResumeTimer=null;
 var micStream=null,captureCtx=null,captureSource=null,captureProcessor=null,playCtx=null,playTime=0,playingSources=[],outdoorGain=null,outdoorLimiter=null;
 
@@ -654,6 +654,11 @@ function getRemix(){
     if(!window.createFoodRemixPlayer)throw new Error('SoundCloud cue did not load');
     remixController=window.createFoodRemixPlayer({
       onStatus:function(msg){setCaption('Food Remix',msg)},
+      onFallback:function(){
+        if(remixToolInProgress||!active||!connected)return;
+        send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:'The licensed SoundCloud stream could not start automatically. An ORIGINAL upbeat drum groove is playing locally right now. Perform a brief, high-energy, original food-menu riff in your own Cedar speaking voice with fast musical timing and excitement. Do not imitate any actual singer or quote the song lyrics. Then return naturally to the customer.'}});
+        send({type:'response-create',options:{modalities:['audio']}});
+      },
       onStart:function(){speakerPriority(true);setAlphaState('excited',18000);setVoice('REMIX PLAYING','good')},
       onStop:function(){speakerPriority(false,true);setAlphaState('listening');setVoice('LIVE • LISTENING','good')}
     });
@@ -663,7 +668,14 @@ function getRemix(){
 async function handleTool(m){
   var a={};try{a=JSON.parse(m.arguments||'{}')}catch(e){}
   try{
-    if(m.name==='playFoodRemix'){var cue=await getRemix().play();toolReply(m.callId,m.name,cue);return}
+    if(m.name==='playFoodRemix'){
+      remixToolInProgress=true;
+      try{
+        var cue=await getRemix().play();
+        toolReply(m.callId,m.name,cue.fallback?{...cue,next:'Original upbeat drum groove is playing. Deliver a very short, lively ORIGINAL food-menu riff in your own Cedar voice. No song lyrics, no singer imitation; then resume customer dialogue.'}:cue);
+      }finally{remixToolInProgress=false}
+      return
+    }
     if(m.name==='saveContact'){var f=a.field;if(['first','last','phone','email'].indexOf(f)<0)throw new Error('Unknown contact field');contact[f]=normalizeContact(f,a.value);contactReviewed=false;render();renderContactReview();spawnTypingParticles();setAlphaState('typing',850);setCaption('Contact card',(f==='first'?'First name':f==='last'?'Last name':f==='phone'?'Phone':'Email')+' captured');if(contactComplete())showContactReview();toolReply(m.callId,m.name,{ok:true,saved:f,cardReady:contactComplete()});return}
     if(m.name==='saveDiscovery'){if(!a.field||!Object.prototype.hasOwnProperty.call(discovery,a.field))throw new Error('Unknown discovery field');noteDiscovery(a.field,a.value);toolReply(m.callId,m.name,{ok:true,saved:a.field,value:discovery[a.field]});return}
     if(m.name==='setStage'){stage=a.stage||stage;if(stage==='qualification')setCaption('Sterling','Qualification mode — confirming the details that matter.');toolReply(m.callId,m.name,{ok:true,stage:stage});return}
@@ -720,9 +732,12 @@ async function connect(){
       else if(mt==='speech-stopped'){setVoice('THINKING…')}
       else if(mt==='audio-delta'||mt==='audio-chunk'){playAudio(m.delta||'');setVoice('STERLING SPEAKING','good')}
       else if(mt==='function-call-arguments-done'){handleTool(m)}
-      else if(norm.indexOf('input')>=0&&norm.indexOf('transcription')>=0&&(norm.indexOf('completed')>=0||norm.indexOf('done')>=0)){var heard=m.transcript||m.text||m.delta||'';if(heard)setCaption('Customer',heard)}
-      else if(norm.indexOf('transcript')>=0&&norm.indexOf('delta')>=0&&norm.indexOf('input')<0){var d=m.delta||m.transcript||'';if(d){sterlingTranscript+=d;setCaption('Sterling',sterlingTranscript)}}
-      else if(norm.indexOf('transcript')>=0&&(norm.indexOf('done')>=0||norm.indexOf('completed')>=0)&&norm.indexOf('input')<0){var done=m.transcript||m.text||sterlingTranscript;if(done)setCaption('Sterling',done);sterlingTranscript=''}
+      else if(norm.indexOf('input')>=0&&norm.indexOf('transcription')>=0&&(norm.indexOf('completed')>=0||norm.indexOf('done')>=0)){
+        var heard=m.transcript||m.text||m.delta||'';
+        if(heard){setCaption('Customer',heard);try{getRemix().observeCustomer(heard)}catch(e){}}
+      }
+      else if(norm.indexOf('transcript')>=0&&norm.indexOf('delta')>=0&&norm.indexOf('input')<0){var d=m.delta||m.transcript||'';if(d){sterlingTranscript+=d;setCaption('Sterling',sterlingTranscript);try{getRemix().observeAssistant(d)}catch(e){}}}
+      else if(norm.indexOf('transcript')>=0&&(norm.indexOf('done')>=0||norm.indexOf('completed')>=0)&&norm.indexOf('input')<0){var done=m.transcript||m.text||sterlingTranscript;if(done){setCaption('Sterling',done);try{getRemix().observeAssistant(done)}catch(e){}}sterlingTranscript=''}
       else if(mt==='error'){var em=String(m.message||m.error?.message||'Realtime error');if(/Cancellation failed: no active response found/i.test(em)){setVoice('LIVE • LISTENING','good');return}setVoice(em,'bad');setCaption('Connection',em)}
     };
 
@@ -748,7 +763,7 @@ async function connect(){
 }
 
 async function start(){if(active&&connected)return;try{openingStarted=false;bootAlpha(false);setCaption('Sterling',ringMode?'Ring Mode arming silently…':'Talk mode coming online…');await prepareMic();active=true;muted=false;render();await heartbeat();if(!connected&&!connecting)await connect()}catch(e){active=false;connecting=false;connected=false;render();setVoice(e.message||String(e),'bad');releaseMic()}}
-async function startMode(useRing){if(active){if(ringMode===useRing&&connected)return;stop();await sleep(180)}ringMode=!!useRing;if(remixController)remixController.reset();openingStarted=false;render();await start()}
+async function startMode(useRing){try{getRemix().prime()}catch(e){}if(active){if(ringMode===useRing&&connected)return;stop();await sleep(180)}ringMode=!!useRing;if(remixController)remixController.reset();openingStarted=false;render();await start()}
 function stop(){if(remixController)remixController.stop();active=false;connected=false;connecting=false;openingStarted=false;try{if(socket){socket.onclose=null;socket.onerror=null;socket.close()}}catch(e){}socket=null;stopPlayback();releaseMic();render();setVoice('STOPPED');setCaption('Sterling','Paused. Choose Talk or Ring when you are ready.')}
 $('faceExpand').onclick=function(){if($('faceFullscreen')){$('faceFullscreen').hidden=false;document.body.style.overflow='hidden';if($('fullFaceState'))$('fullFaceState').textContent=alphaState==='speaking'?'SPEAKING':alphaState==='listening'?'LISTENING':'LIVE'}};
 $('faceClose').onclick=function(){if($('faceFullscreen')){$('faceFullscreen').hidden=true;document.body.style.overflow=''}};
