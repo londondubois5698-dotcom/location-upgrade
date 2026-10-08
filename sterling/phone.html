@@ -777,6 +777,30 @@ async function handleTool(m){
       }finally{remixToolInProgress=false}
       return
     }
+    if(m.name==='saveFieldBrief'){
+      if(!ringMode){toolReply(m.callId,m.name,{ok:false,reason:'Field route tools only work in Sterling Ring'});return}
+      toolReply(m.callId,m.name,saveFieldBriefData(a));return
+    }
+    if(m.name==='saveRouteStop'){
+      if(!ringMode){toolReply(m.callId,m.name,{ok:false,reason:'Field route tools only work in Sterling Ring'});return}
+      toolReply(m.callId,m.name,saveRouteStopData(a));return
+    }
+    if(m.name==='getFieldNotebook'){
+      toolReply(m.callId,m.name,ringMode?{ok:true,...routeNotebook(a.label)}:{ok:false,reason:'Use Sterling Ring field assistant'});return
+    }
+    if(m.name==='markRouteStop'){
+      if(!ringMode){toolReply(m.callId,m.name,{ok:false,reason:'Use Sterling Ring field assistant'});return}
+      toolReply(m.callId,m.name,markRouteStopData(a));return
+    }
+    if(m.name==='getFieldPosition'){
+      if(!ringMode){toolReply(m.callId,m.name,{ok:false,reason:'Use Sterling Ring field assistant'});return}
+      if(!navigator.geolocation){toolReply(m.callId,m.name,{ok:false,error:'Geolocation unavailable on this device'});return}
+      try{
+        var pos=await new Promise(function(resolve,reject){navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:8500,maximumAge:30000})});
+        toolReply(m.callId,m.name,{ok:true,latitude:pos.coords.latitude,longitude:pos.coords.longitude,accuracyMeters:Math.round(pos.coords.accuracy),capturedAt:pos.timestamp,limitation:'Coordinates only. No ability to view street or infer nearby people.'});
+      }catch(e){toolReply(m.callId,m.name,{ok:false,error:e.message||'Location permission unavailable'})}
+      return
+    }
     if(m.name==='saveContact'){var f=a.field;if(['first','last','phone','email'].indexOf(f)<0)throw new Error('Unknown contact field');contact[f]=normalizeContact(f,a.value);contactReviewed=false;render();renderContactReview();spawnTypingParticles();setAlphaState('typing',850);setCaption('Contact card',(f==='first'?'First name':f==='last'?'Last name':f==='phone'?'Phone':'Email')+' captured');if(contactComplete())showContactReview();toolReply(m.callId,m.name,{ok:true,saved:f,cardReady:contactComplete()});return}
     if(m.name==='saveDiscovery'){if(!a.field||!Object.prototype.hasOwnProperty.call(discovery,a.field))throw new Error('Unknown discovery field');noteDiscovery(a.field,a.value);toolReply(m.callId,m.name,{ok:true,saved:a.field,value:discovery[a.field]});return}
     if(m.name==='setStage'){stage=a.stage||stage;if(stage==='qualification')setCaption('Sterling','Qualification mode — confirming the details that matter.');toolReply(m.callId,m.name,{ok:true,stage:stage});return}
@@ -799,13 +823,13 @@ async function connect(){
     ws.onopen=function(){
       connecting=false;
       send({type:'session-update',config:{
-        instructions:ringMode?setup.instructions:(setup.instructions+'\n\n'+TALK_SPOKEN_ONLY_LAW),
+        instructions:ringMode?(setup.instructions+'\n\n'+RING_FIELD_ASSISTANT_LAW):(setup.instructions+'\n\n'+TALK_SPOKEN_ONLY_LAW),
         voice:'cedar',
         outputModalities:['audio'],
         inputAudioFormat:{type:'audio/pcm',rate:24000},
         outputAudioFormat:{type:'audio/pcm',rate:24000},
         turnDetection:{type:'server-vad',threshold:0.72,prefixPaddingMs:220,silenceDurationMs:300},
-        tools:ringMode?(setup.tools||[]):(setup.tools||[]).filter(function(t){return t&&t.name!=='playFoodRemix'&&t.function?.name!=='playFoodRemix'})
+        tools:ringMode?(setup.tools||[]):(setup.tools||[]).filter(function(t){var n=t&&(t.name||t.function?.name);return t&&['playFoodRemix','saveFieldBrief','saveRouteStop','getFieldNotebook','markRouteStop','getFieldPosition'].indexOf(n)<0})
       }})
     };
 
@@ -817,12 +841,15 @@ async function connect(){
         connected=true;connecting=false;reconnects=0;render();setVoice('LIVE • LISTENING','good');setCaption('Sterling','Connected. I’m listening.');
         if(currentHouse)send({type:'context-append',content:'The paired iPad is currently on Salesforce house '+currentHouse.label+'. Treat that as the only active household.',delegationId:null});
         var memoryNote=continuityContext();if(memoryNote)send({type:'context-append',content:memoryNote,delegationId:null});
+        if(ringMode)send({type:'context-append',content:routeBriefContext(),delegationId:null});
         if(!openingStarted){
           openingStarted=true;
           if(ringMode){
-            send({type:'context-append',content:"RING MODE IS ARMED. Stay completely silent now. Do not greet first. Wait until a real homeowner voice is heard. On their first voice, immediately use one Ring Mode hook from the operating law, identify yourself naturally as Sterling/London's AI assistant when appropriate, then stop and listen again. Keep the roast playful and brief.",delegationId:null});
-            setCaption('Ring Mode','Armed and silent. Waiting for the homeowner to speak.');
-            setVoice('RING ARMED • SILENT','good');
+            // Ring is London's responsive walking field partner, not a silent doorbell.
+            send({type:'context-append',content:'RING PERSONAL FIELD ASSISTANT ACTIVE. You can answer London, take private route notes, retrieve prep, and join multi-person conversations. There is no mandatory food remix. Do not say you are reading secret prep notes.',delegationId:null});
+            send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Sterling, you're on as my walking route assistant now. Come online with a quick natural acknowledgement like 'I'm with you. What's our next stop?' Then listen. Do not launch a joke or music."}});
+            send({type:'response-create',options:{modalities:['audio']}});
+            setCaption('Ring Field Assistant','Ready for route briefings, notes and live conversations.');
           }else{
             send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:"Start STERLING TALK MODE (SPOKEN-ONLY) now. Your only first words are exactly: Hey! How are you doing? Stop and listen. Respond naturally, deliver one rotating tech icebreaker, then after the next customer reply deliver one DIFFERENT funny, short, spoken-only second icebreaker in your own natural voice. No music, no food remix, no SoundCloud, no pause or tool cue. Continue the conversation normally after the second joke. One question at a time."}});
             send({type:'response-create',options:{modalities:['audio']}})
@@ -836,13 +863,13 @@ async function connect(){
       else if(mt==='response-done'||mt==='response-completed'||norm==='response-done'||norm==='response-completed'){
         // Wait for queued PCM to reach the speaker before cueing the SoundCloud recording.
         var pendingMs=playCtx?Math.max(0,(playTime-playCtx.currentTime)*1000):0;
-        if(ringMode)setTimeout(function(){if(ringMode)try{getRemix().onAssistantTurnDone(Math.max(350,Math.min(4500,Math.round(pendingMs+250))))}catch(e){}},380)
+        // Ring assistant now handles natural live conversation; music only if London explicitly requests the tool.
       }
       else if(norm.indexOf('input')>=0&&norm.indexOf('transcription')>=0&&(norm.indexOf('completed')>=0||norm.indexOf('done')>=0)){
         var heard=m.transcript||m.text||m.delta||'';
         if(heard){
           setCaption('Customer',heard);
-          if(ringMode){try{getRemix().observeCustomer(heard)}catch(e){}}
+          if(ringMode){/* Ring field assistant: no automatic sound cue from transcripts. */}
           else{
             talkCustomerTurns++;
             if(talkCustomerTurns===2&&!talkSecondReminderSent){
@@ -852,8 +879,8 @@ async function connect(){
           }
         }
       }
-      else if(norm.indexOf('transcript')>=0&&norm.indexOf('delta')>=0&&norm.indexOf('input')<0){var d=m.delta||m.transcript||'';if(d){sterlingTranscript+=d;setCaption('Sterling',sterlingTranscript);if(ringMode)try{getRemix().observeAssistant(d)}catch(e){}}}
-      else if(norm.indexOf('transcript')>=0&&(norm.indexOf('done')>=0||norm.indexOf('completed')>=0)&&norm.indexOf('input')<0){var done=m.transcript||m.text||sterlingTranscript;if(done){setCaption('Sterling',done);if(ringMode)try{getRemix().observeAssistant(done)}catch(e){}}sterlingTranscript=''}
+      else if(norm.indexOf('transcript')>=0&&norm.indexOf('delta')>=0&&norm.indexOf('input')<0){var d=m.delta||m.transcript||'';if(d){sterlingTranscript+=d;setCaption('Sterling',sterlingTranscript);/* Ring field assistant does not auto-trigger remix from transcripts */}}
+      else if(norm.indexOf('transcript')>=0&&(norm.indexOf('done')>=0||norm.indexOf('completed')>=0)&&norm.indexOf('input')<0){var done=m.transcript||m.text||sterlingTranscript;if(done){setCaption('Sterling',done);/* Ring field assistant does not auto-trigger remix from transcripts */}sterlingTranscript=''}
       else if(mt==='error'){var em=String(m.message||m.error?.message||'Realtime error');if(/Cancellation failed: no active response found/i.test(em)){setVoice('LIVE • LISTENING','good');return}setVoice(em,'bad');setCaption('Connection',em)}
     };
 
@@ -879,8 +906,15 @@ async function connect(){
 }
 
 async function start(){if(active&&connected)return;try{openingStarted=false;bootAlpha(false);setCaption('Sterling',ringMode?'Ring Mode arming silently…':'Talk mode coming online…');await prepareMic();active=true;muted=false;render();await heartbeat();if(!connected&&!connecting)await connect()}catch(e){active=false;connecting=false;connected=false;render();setVoice(e.message||String(e),'bad');releaseMic()}}
-async function startMode(useRing){if(useRing)try{getRemix().prime()}catch(e){}if(active){if(ringMode===useRing&&connected)return;stop();await sleep(180)}ringMode=!!useRing;talkCustomerTurns=0;talkSecondReminderSent=false;if(remixController)remixController.reset();openingStarted=false;render();await start()}
+async function startMode(useRing){if(active){if(ringMode===useRing&&connected)return;stop();await sleep(180)}ringMode=!!useRing;talkCustomerTurns=0;talkSecondReminderSent=false;if(remixController)remixController.reset();openingStarted=false;render();await start()}
 function stop(){if(remixController)remixController.stop();active=false;connected=false;connecting=false;openingStarted=false;try{if(socket){socket.onclose=null;socket.onerror=null;socket.close()}}catch(e){}socket=null;stopPlayback();releaseMic();render();setVoice('STOPPED');setCaption('Sterling','Paused. Choose Talk or Ring when you are ready.')}
+$('saveRouteBrief').onclick=function(){
+  if(!ringMode)return;var note=clean($('routeBriefInput').value);if(!note)return;
+  saveFieldBriefData({title:'Next visit',briefing:note,phase:'prep'});
+  $('routeBriefInput').value='';
+  if(active&&connected)send({type:'context-append',content:'PRIVATE FIELD BRIEF UPDATE FROM LONDON (not public speech): '+note,delegationId:null});
+};
+$('clearRouteNotes').onclick=function(){if(!ringMode)return;if(!confirm('Clear all locally saved Ring route notes and briefings on this device?'))return;routeBook={briefing:'',title:'',phase:'prep',stops:[],updatedAt:0};saveRouteBook();setCaption('Field notes','Local Ring notes cleared.');};
 $('faceExpand').onclick=function(){if($('faceFullscreen')){$('faceFullscreen').hidden=false;document.body.style.overflow='hidden';if($('fullFaceState'))$('fullFaceState').textContent=alphaState==='speaking'?'SPEAKING':alphaState==='listening'?'LISTENING':'LIVE'}};
 $('faceClose').onclick=function(){if($('faceFullscreen')){$('faceFullscreen').hidden=true;document.body.style.overflow=''}};
 $('remixNow').onclick=function(){if(!ringMode)return;try{getRemix().prime();getRemix().play()}catch(e){setCaption('Food Remix',e.message||String(e))}};
@@ -891,7 +925,7 @@ $('repair').onclick=function(){stop();localStorage.removeItem('sterling.tetherId
 
 tetherId=localStorage.getItem('sterling.tetherId.v1')||'';
 soloMode=false;
-render();if(tetherId){setTimeout(function(){bootAlpha(false)},220);heartbeat();pollStatus()}
+loadRouteBook();render();if(tetherId){setTimeout(function(){bootAlpha(false)},220);heartbeat();pollStatus()}
 })();
 </script>
 </body></html>
