@@ -128,7 +128,7 @@ global.createFoodRemixPlayer=function(cb){
     if(!started||progressConfirmed)return;
     progressConfirmed=true;
     clearTimeout(watchdog);watchdog=null;
-    if(source==='beat')stopBeat();
+    if(source==='beat'){stopBeat();clearTimeout(musicTimer);musicTimer=null;}
     source='soundcloud';playing=true;
     if(cb.onStart)cb.onStart('soundcloud');
     status('SoundCloud playback progress confirmed · first 20 seconds.');
@@ -176,7 +176,7 @@ global.createFoodRemixPlayer=function(cb){
         widget.bind(sc.Widget.Events.PLAY_PROGRESS,function(x){
           if(!started||!x||!Number.isFinite(Number(x.currentPosition)))return;
           var pos=Number(x.currentPosition);
-          if(streamProgressStart===null){streamProgressStart=pos;return;}
+          if(streamProgressStart===null){streamProgressStart=pos; if(pos>2200){fallback('Playback did not start at the beginning');} return;}
           if(!progressConfirmed&&pos-streamProgressStart>=400) soundcloudStart();
           if(progressConfirmed&&pos>=20000)complete({ok:true,played:true,source:'soundcloud',seconds:20});
         });
