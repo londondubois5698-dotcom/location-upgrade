@@ -269,6 +269,14 @@ body{padding-bottom:132px;background:
     <button id="stop" class="btn danger controlStop" style="display:none">■<span>Stop</span></button>
   </div>
   <div class="wave" id="wave">Choose Talk or Ring</div>
+  <section id="ringAssistantPanel" style="display:none;padding:12px;margin-top:10px;border:1px solid #329ac5;border-radius:14px;background:#061a2ba6">
+    <div style="font-size:14px;font-weight:900;letter-spacing:.06em;color:#81e3f8">RING · PERSONAL FIELD ASSISTANT</div>
+    <p class="mini" style="margin:5px 0">Brief Sterling before a visit, ask him to remember stops, and call him into group conversations. Notes stay in this browser.</p>
+    <div id="routeBriefView" class="mini" style="padding:7px 0">No upcoming briefing.</div>
+    <textarea id="routeBriefInput" class="field" rows="2" maxlength="1400" placeholder="Example: Next stop: three people, ask about their internet bills, keep the greeting playful." style="width:100%;margin-top:5px;min-height:64px"></textarea>
+    <button type="button" id="saveRouteBrief" class="btn secondary" style="width:100%;margin-top:6px;min-height:40px">Save Private Briefing</button>
+    <details style="margin-top:10px"><summary class="mini">Saved route stops and notes</summary><div id="routeStopsView" class="mini" style="padding:8px 0">No saved stops.</div><button type="button" id="clearRouteNotes" class="btn secondary" style="font-size:12px;width:100%;margin:4px 0">Clear Field Notes on This Device</button></details>
+  </section>
   <button type="button" id="remixNow" class="btn secondary" style="width:100%;margin:7px 0;border:1px solid #34a4d7">♫ Cue Food Remix · 20 seconds</button>
   <details class="fieldDrawer">
     <summary>London • Field controls & details</summary>
@@ -377,6 +385,19 @@ var active=false,connected=false,connecting=false,muted=false,reconnects=0,socke
 var remixController=null,remixToolInProgress=false;
 var ringMode=false,outdoorMax=localStorage.getItem('sterling.outdoorMax.v1')!=='0',openingStarted=false,aiSpeaking=false,micResumeTimer=null;
 var talkCustomerTurns=0,talkSecondReminderSent=false;
+var FIELD_BOOK_KEY='sterling.ring.route-notebook.v1';
+var routeBook={briefing:'',title:'',phase:'prep',stops:[],updatedAt:0};
+var RING_FIELD_ASSISTANT_LAW=[
+  'STERLING RING MODE ONLY — PERSONAL WALKING FIELD ASSISTANT. This overrides the old silent-first doorbell and mandatory music scripts in Ring mode. Sterling Talk mode is unchanged.',
+  'You are Londons real-time field teammate while he walks or drives between stops, prepares for visits, and chats with people. Answer Londons direct requests promptly in your normal natural Cedar voice. Never wait silently for a doorbell homeowner. On connection greet London briefly as his field partner, then listen.',
+  'You can help brainstorm sales ideas, plan the next visit, take and retrieve field notes, remember who is coming up, summarize followups, and participate in a multi-person conversation. Do not presume every voice is a Ring camera or a homeowner.',
+  'When London says "remember this", "take notes", "heads up", "we are about to see three people", "next stop", or similar: call saveFieldBrief or saveRouteStop immediately and confirm concisely. Prefer saveFieldBrief for general pre-visit or audience briefings; saveRouteStop for a named stop, location, lead or followup. Recall notes with getFieldNotebook when asked about earlier stops or what is next.',
+  'If London says "we are here" or asks you to join in, shift from private preparation to live conversation naturally. You may use relevant facts he already shared without announcing you received a secret briefing or reading your notes aloud. Do NOT pretend to independently know strangers, inspect their phones, use a camera, or spy on anyone. If directly asked where a detail came from, answer truthfully that you and London work together and have been preparing.',
+  'You have no live view of the street or camera. If asked to literally look around, say you can listen and use any details London provides. Use getFieldPosition only on explicit location requests, asking permission through the phone. Never invent addresses, driving ETAs, proximity, people counts, or what you can see.',
+  'Keep briefings private until London indicates the audience is present. Do not casually reveal sensitive notes, private objections, or negotiating tactics in front of customers; confirm with London before sharing anything sensitive. Accept corrections, disagree when needed, and never promise a service you cannot actually perform.',
+  'The SoundCloud music panel and playFoodRemix tool are OPTIONAL and used only when London directly asks for that song. Never automatically start a food joke or music as an opener, while taking notes, or when talking about the route. No unexpected wait-for-music state.',
+  'When someone expressly wants you to stop talking or leave, respect that request. Work with London, not against the people around you.'
+].join('\n');
 var TALK_SPOKEN_ONLY_LAW=[
   'STERLING TALK MODE ONLY — OVERRIDES SHARED FOOD REMIX RULES FOR THIS SESSION:',
   'No SoundCloud, no music, no song, no audio samples, no food-remix setup, no playFoodRemix call and no pause for a player. Keep Sterling Ring unchanged.',
@@ -388,6 +409,53 @@ var TALK_SPOKEN_ONLY_LAW=[
 var micStream=null,captureCtx=null,captureSource=null,captureProcessor=null,playCtx=null,playTime=0,playingSources=[],outdoorGain=null,outdoorLimiter=null;
 
 function $(id){return document.getElementById(id)}
+function loadRouteBook(){
+  try{var x=JSON.parse(localStorage.getItem(FIELD_BOOK_KEY)||'null');if(x&&typeof x==='object'){
+    routeBook={briefing:clean(x.briefing).slice(0,1400),title:clean(x.title).slice(0,100),phase:['prep','with_people','followup'].includes(x.phase)?x.phase:'prep',stops:Array.isArray(x.stops)?x.stops.slice(-60).filter(z=>z&&z.label).map(z=>({label:clean(z.label).slice(0,110),note:clean(z.note).slice(0,900),status:['upcoming','visited','followup','completed'].includes(z.status)?z.status:'upcoming',updatedAt:Number(z.updatedAt)||0})):[],updatedAt:Number(x.updatedAt)||0};
+  }}catch(e){}
+}
+function saveRouteBook(){routeBook.updatedAt=Date.now();try{localStorage.setItem(FIELD_BOOK_KEY,JSON.stringify(routeBook))}catch(e){setCaption('Field Notes','Device storage unavailable; these notes may not persist.')}renderRouteBook()}
+function renderRouteBook(){
+  if($('ringAssistantPanel'))$('ringAssistantPanel').style.display=ringMode?'block':'none';
+  if($('routeBriefView'))$('routeBriefView').textContent=routeBook.briefing?((routeBook.title||'Upcoming group')+' — '+routeBook.briefing):'No upcoming briefing.';
+  if($('routeStopsView'))$('routeStopsView').textContent=routeBook.stops.length?routeBook.stops.slice(-12).reverse().map(x=>x.label+' ['+x.status+'] — '+x.note).join('\n'):'No saved stops.';
+  if($('routeStopsView'))$('routeStopsView').style.whiteSpace='pre-wrap';
+}
+function routeNotebook(label){
+  var term=clean(label).toLowerCase();
+  var stops=routeBook.stops.filter(x=>!term||x.label.toLowerCase().includes(term)).slice(-30);
+  return {briefing:routeBook.briefing,title:routeBook.title,phase:routeBook.phase,stops:stops,totalStops:routeBook.stops.length,storage:'on this phone browser only'};
+}
+function routeBriefContext(){
+  var b=routeNotebook('');
+  if(!b.briefing&&!b.stops.length)return 'ROUTE BOOK: No field notes stored on this device yet. Ask London for the next briefing.';
+  return 'PRIVATE FIELD ROUTE CONTEXT from Londons local notebook, not public customer dialogue. Use relevant facts naturally but never announce source or assume people know about these notes: '+JSON.stringify(b).slice(0,5300);
+}
+function saveFieldBriefData(info){
+  routeBook.briefing=clean(info.briefing).slice(0,1400);
+  routeBook.title=clean(info.title||routeBook.title||'Next visit').slice(0,100);
+  routeBook.phase=['prep','with_people','followup'].includes(info.phase)?info.phase:'prep';
+  saveRouteBook();
+  setCaption('Field briefing','Briefing saved. Sterling is ready for '+routeBook.title+'.');
+  return {ok:true,title:routeBook.title,phase:routeBook.phase,briefing:routeBook.briefing,stored:'this phone'};
+}
+function saveRouteStopData(info){
+  var label=clean(info.label).slice(0,110),note=clean(info.note).slice(0,900);
+  if(!label||!note)return {ok:false,error:'Stop label and note are required'};
+  var pos=routeBook.stops.findIndex(x=>x.label.toLowerCase()===label.toLowerCase());
+  var current=pos>=0?routeBook.stops[pos]:null;
+  var entry={label:label,note:current&&current.note&&!note.includes(current.note)?(current.note+' | '+note).slice(-900):note,status:info.status||current?.status||'upcoming',updatedAt:Date.now()};
+  if(pos>=0)routeBook.stops.splice(pos,1);
+  routeBook.stops.push(entry);routeBook.stops=routeBook.stops.slice(-60);
+  saveRouteBook();setCaption('Route notes','Saved '+label+' — '+entry.status);
+  return {ok:true,stop:entry,stored:'this phone'};
+}
+function markRouteStopData(info){
+  var match=routeBook.stops.find(x=>x.label.toLowerCase()===clean(info.label).toLowerCase());
+  if(!match)return {ok:false,error:'Stop not found in saved field notes. Ask London to identify or add it.'};
+  match.status=info.status;match.updatedAt=Date.now();saveRouteBook();
+  return {ok:true,stop:match};
+}
 function clean(v){return String(v==null?'':v).trim()}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 function formatPhone(v){var d=String(v||'').replace(/\D/g,'');return d.length===10?'('+d.slice(0,3)+') '+d.slice(3,6)+'-'+d.slice(6):String(v||'')}
@@ -470,6 +538,7 @@ function render(){
   if($('stop')){$('stop').style.display='flex';$('stop').disabled=!active;$('stop').innerHTML='■<span>Stop</span>'}
   if($('wave'))$('wave').className='wave'+(connected?' live':'');
   if($('alphaStage'))$('alphaStage').classList.toggle('ringview',ringMode);
+  renderRouteBook();
   renderDiscovery();
 }
 async function apiGet(part){
