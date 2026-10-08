@@ -263,7 +263,7 @@ body{padding-bottom:132px;background:
 <section class="card liveOnly modeDock" id="mainCard">
   <div class="modeGrid">
     <button id="start" class="btn outdoor controlTalk">🎙<span>Talk<small>Start Live</small></span></button>
-    <button id="ringMode" class="btn secondary modeBtnRing">☎<span>Ring<small>Listen First</small></span></button>
+    <button id="ringMode" class="btn secondary modeBtnRing">☎<span>Ring<small>Field Assistant</small></span></button>
     <button id="outdoorMax" class="btn secondary controlOutdoor">▲<span>Outdoor Max<small>ON</small></span></button>
     <button id="mute" class="btn secondary controlMute" style="display:none">🔊<span>Mute</span></button>
     <button id="stop" class="btn danger controlStop" style="display:none">■<span>Stop</span></button>
@@ -271,11 +271,13 @@ body{padding-bottom:132px;background:
   <div class="wave" id="wave">Choose Talk or Ring</div>
   <section id="ringAssistantPanel" style="display:none;padding:12px;margin-top:10px;border:1px solid #329ac5;border-radius:14px;background:#061a2ba6">
     <div style="font-size:14px;font-weight:900;letter-spacing:.06em;color:#81e3f8">RING · PERSONAL FIELD ASSISTANT</div>
-    <p class="mini" style="margin:5px 0">Brief Sterling before a visit, ask him to remember stops, and call him into group conversations. Notes stay in this browser.</p>
+    <p class="mini" style="margin:5px 0">Walking companion, route notes and group prep. Say “Sterling, take a note…” or “we're meeting three people next.”</p>
+    <details><summary class="mini">Private route notebook — tap to show or edit</summary>
     <div id="routeBriefView" class="mini" style="padding:7px 0">No upcoming briefing.</div>
     <textarea id="routeBriefInput" class="field" rows="2" maxlength="1400" placeholder="Example: Next stop: three people, ask about their internet bills, keep the greeting playful." style="width:100%;margin-top:5px;min-height:64px"></textarea>
     <button type="button" id="saveRouteBrief" class="btn secondary" style="width:100%;margin-top:6px;min-height:40px">Save Private Briefing</button>
     <details style="margin-top:10px"><summary class="mini">Saved route stops and notes</summary><div id="routeStopsView" class="mini" style="padding:8px 0">No saved stops.</div><button type="button" id="clearRouteNotes" class="btn secondary" style="font-size:12px;width:100%;margin:4px 0">Clear Field Notes on This Device</button></details>
+    </details>
   </section>
   <button type="button" id="remixNow" class="btn secondary" style="width:100%;margin:7px 0;border:1px solid #34a4d7">♫ Cue Food Remix · 20 seconds</button>
   <details class="fieldDrawer">
@@ -532,7 +534,7 @@ function render(){
   if($('contact'))$('contact').textContent=bits.length?'Confirmed: '+bits.join(' • '):'No confirmed customer details yet.';
   if($('start')){$('start').innerHTML='🎙<span>Talk<small>'+(active&&!ringMode?'LIVE':'Start Live')+'</small></span>';$('start').className='btn outdoor controlTalk'+(active&&!ringMode?' modeBtnLive':'')}
   if($('remixNow'))$('remixNow').style.display=ringMode?'block':'none';
-  if($('ringMode')){$('ringMode').innerHTML='☎<span>Ring<small>'+(active&&ringMode?'LIVE':'Listen First')+'</small></span>';$('ringMode').className='btn secondary modeBtnRing'+(active&&ringMode?' modeBtnLive':'')}
+  if($('ringMode')){$('ringMode').innerHTML='☎<span>Ring<small>'+(active&&ringMode?'WITH YOU':'Field Assistant')+'</small></span>';$('ringMode').className='btn secondary modeBtnRing'+(active&&ringMode?' modeBtnLive':'')}
   if($('outdoorMax')){$('outdoorMax').innerHTML='▲<span>Outdoor Max<small>'+(outdoorMax?'ON':'OFF')+'</small></span>';$('outdoorMax').className='btn secondary controlOutdoor'+(outdoorMax?' modeBtnLive':'')}
   if($('mute')){$('mute').style.display='flex';$('mute').disabled=!active;$('mute').innerHTML=(muted?'🔇':'🔊')+'<span>'+(muted?'Unmute':'Mute')+'</span>'}
   if($('stop')){$('stop').style.display='flex';$('stop').disabled=!active;$('stop').innerHTML='■<span>Stop</span>'}
@@ -905,7 +907,7 @@ async function connect(){
   }
 }
 
-async function start(){if(active&&connected)return;try{openingStarted=false;bootAlpha(false);setCaption('Sterling',ringMode?'Ring Mode arming silently…':'Talk mode coming online…');await prepareMic();active=true;muted=false;render();await heartbeat();if(!connected&&!connecting)await connect()}catch(e){active=false;connecting=false;connected=false;render();setVoice(e.message||String(e),'bad');releaseMic()}}
+async function start(){if(active&&connected)return;try{openingStarted=false;bootAlpha(false);setCaption('Sterling',ringMode?'Ring field assistant joining your route…':'Talk mode coming online…');await prepareMic();active=true;muted=false;render();await heartbeat();if(!connected&&!connecting)await connect()}catch(e){active=false;connecting=false;connected=false;render();setVoice(e.message||String(e),'bad');releaseMic()}}
 async function startMode(useRing){if(active){if(ringMode===useRing&&connected)return;stop();await sleep(180)}ringMode=!!useRing;talkCustomerTurns=0;talkSecondReminderSent=false;if(remixController)remixController.reset();openingStarted=false;render();await start()}
 function stop(){if(remixController)remixController.stop();active=false;connected=false;connecting=false;openingStarted=false;try{if(socket){socket.onclose=null;socket.onerror=null;socket.close()}}catch(e){}socket=null;stopPlayback();releaseMic();render();setVoice('STOPPED');setCaption('Sterling','Paused. Choose Talk or Ring when you are ready.')}
 $('saveRouteBrief').onclick=function(){
