@@ -23,6 +23,10 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 
 const tools = {
+  playFoodRemix: tool({
+    description: 'Trigger the second food icebreaker: stream exactly the first 20 seconds of the user-selected SoundCloud You Name It remix from the official embedded player. Only once per new customer conversation after the first opener and explicit engagement; not after clear refusal.',
+    inputSchema: z.object({})
+  }),
   saveContact: tool({
     description: 'Save one clearly heard contact-card field. The full card is reviewed once after all four fields are present.',
     inputSchema: z.object({

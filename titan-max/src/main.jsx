@@ -282,6 +282,7 @@ function App(){
   const pendingStartModeRef=useRef(null);
   const pendingMicPromiseRef=useRef(null);
   const playbackPrimeRef=useRef(false);
+  const remixRef=useRef(null);
 
   const model=useMemo(()=>gateway.experimental_realtime('openai/gpt-realtime-2.1'),[]);
   const instructions=useMemo(()=>{
@@ -315,6 +316,26 @@ function App(){
     maxEvents:250,
     onToolCall:async({toolCall})=>{
       const a=toolCall.args||{};
+      if(toolCall.toolName==='playFoodRemix'){
+        try{
+          if(!window.createFoodRemixPlayer)return {ok:false,error:'SoundCloud player not loaded'};
+          if(!remixRef.current){
+            remixRef.current=window.createFoodRemixPlayer({
+              onStatus:message=>setNotice(message),
+              onStart:()=>{
+                try{realtime.stopAudioCapture?.()}catch{}
+                setFaceMode('excited');
+              },
+              onStop:()=>{
+                if(stayLiveRef.current&&!muted&&streamRef.current)
+                  try{realtime.startAudioCapture(streamRef.current)}catch{}
+                setFaceMode(ring?'ring':'friendly');
+              }
+            });
+          }
+          return await remixRef.current.play();
+        }catch(e){return {ok:false,error:e?.message||'SoundCloud cue unavailable'}}
+      }
       if(toolCall.toolName==='saveContact'){
         try{
           const field=a.field;
@@ -670,6 +691,7 @@ function App(){
       return;
     }
 
+    remixRef.current?.reset();
     startupLockRef.current=true;
     stayLiveRef.current=false;
     const attempt=++startupAttemptRef.current;
@@ -777,6 +799,7 @@ function App(){
   }
 
   function stopTitan(){
+    remixRef.current?.stop();
     saveContinuitySnapshot();
     ++startupAttemptRef.current;
     stayLiveRef.current=false;
