@@ -1,0 +1,10 @@
+{
+  "name":"london-deals-sterling-overdrive",
+  "version":"2.1.0",
+  "private":true,
+  "type":"module",
+  "scripts":{"build":"vite build"},
+  "dependencies":{"@ai-sdk/gateway":"latest","@ai-sdk/react":"latest","ai":"latest","react":"latest","react-dom":"latest"},
+  "devDependencies":{"@vitejs/plugin-react":"latest","vite":"latest"},
+  "engines":{"node":">=22"}
+}
