@@ -655,6 +655,15 @@ function getRemix(){
     if(!window.createFoodRemixPlayer)throw new Error('SoundCloud cue did not load');
     remixController=window.createFoodRemixPlayer({
       onStatus:function(msg){setCaption('Food Remix',msg)},
+      onRespectStop:function(){setCaption('Sterling','Homeowner asked to stop. No remix will play.');},
+      onSecondNeeded:function(ctx){
+        if(!active||!connected)return;
+        var context=ctx.softDecline
+          ? 'The homeowner gave a casual service brush-off, such as not interested, I am good, busy, or not home. Acknowledge it once without pushing sales. If they are still engaging, say naturally: "I hear you, no sales pitch. But something made me hungry. You know what I am gonna eat?" Then STOP and let them answer. If they ask you to stop or leave, end immediately.'
+          : 'The first tech/Ring opener has been heard and answered. Your next beat MUST be the playful second FOOD REMIX icebreaker. Make one natural connection to what they said, then say you are hungry, ask "You know what I am gonna eat?" and WAIT for their answer. Do not collect name, phone, or carrier first.';
+        send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:'LIVE ICEBREAKER STAGE CONTROL (not customer speech). '+context}});
+        send({type:'response-create',options:{modalities:['audio']}});
+      },
       onFallback:function(){
         if(remixToolInProgress||!active||!connected)return;
         send({type:'conversation-item-create',item:{type:'text-message',role:'user',text:'The licensed SoundCloud stream could not start automatically. An ORIGINAL upbeat drum groove is playing locally right now. Perform a brief, high-energy, original food-menu riff in your own Cedar speaking voice with fast musical timing and excitement. Do not imitate any actual singer or quote the song lyrics. Then return naturally to the customer.'}});
@@ -733,6 +742,11 @@ async function connect(){
       else if(mt==='speech-stopped'){setVoice('THINKING…')}
       else if(mt==='audio-delta'||mt==='audio-chunk'){playAudio(m.delta||'');setVoice('STERLING SPEAKING','good')}
       else if(mt==='function-call-arguments-done'){handleTool(m)}
+      else if(mt==='response-done'||mt==='response-completed'||norm==='response-done'||norm==='response-completed'){
+        // Wait for queued PCM to reach the speaker before cueing the SoundCloud recording.
+        var pendingMs=playCtx?Math.max(0,(playTime-playCtx.currentTime)*1000):0;
+        setTimeout(function(){try{getRemix().onAssistantTurnDone(Math.max(350,Math.min(4500,Math.round(pendingMs+250))))}catch(e){}},380)
+      }
       else if(norm.indexOf('input')>=0&&norm.indexOf('transcription')>=0&&(norm.indexOf('completed')>=0||norm.indexOf('done')>=0)){
         var heard=m.transcript||m.text||m.delta||'';
         if(heard){setCaption('Customer',heard);try{getRemix().observeCustomer(heard)}catch(e){}}
