@@ -4,7 +4,7 @@ import vm from 'node:vm';
 
 const code=readFileSync(new URL('../public/remix-player.js',import.meta.url),'utf8');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-function fixture({allowAutoplay}){
+function fixture({allowAutoplay,signalOnly=false}){
   const notices=[], events=[];
   let player;
   function element(tag='div'){
@@ -21,7 +21,16 @@ function fixture({allowAutoplay}){
     player={
       bind(name,fn){callbacks[name]=fn},
       seekTo(){},setVolume(){},pause(){events.push('pause')},
-      play(){if(allowAutoplay)setTimeout(()=>callbacks.PLAY?.(),2)}
+      play(){
+        if(allowAutoplay||signalOnly){
+          setTimeout(()=>callbacks.PLAY?.(),2);
+          if(allowAutoplay){
+            setTimeout(()=>callbacks.PLAY_PROGRESS?.({currentPosition:0}),5);
+            setTimeout(()=>callbacks.PLAY_PROGRESS?.({currentPosition:500}),13);
+            setTimeout(()=>callbacks.PLAY_PROGRESS?.({currentPosition:1250}),22);
+          }
+        }
+      }
     };
     setTimeout(()=>callbacks.READY?.(),2);
     return player;
@@ -36,7 +45,8 @@ function fixture({allowAutoplay}){
     onStop:()=>events.push('stop'),
     onFallback:()=>events.push('fallback'),
     onSecondNeeded:ctx=>events.push('second:'+!!ctx.softDecline),
-    onRespectStop:()=>events.push('respect-stop')
+    onRespectStop:()=>events.push('respect-stop'),
+    onComplete:r=>events.push('complete:'+r.source)
   });
   return {remix,notices,events};
 }
@@ -104,6 +114,29 @@ function fixture({allowAutoplay}){
   remix.observeCustomer("I'm not home right now.");
   remix.onAssistantTurnDone(300);
   assert.ok(events.includes('second:true'),'Ring remote customer soft reply should offer the food beat');
+  remix.stop();
+}
+{
+  const {remix,notices,events}=fixture({allowAutoplay:false,signalOnly:true});
+  const played=remix.play();
+  await wait(110);
+  const result=await played;
+  assert.equal(result.source,'beat','PLAY event without timeline progress must NOT count as playback');
+  assert.ok(events.includes('start:beat'),'no confirmed track must activate original 20-second beat');
+  assert.ok(events.includes('complete:beat'),'fallback MUST complete and return control after full beat window');
+  assert.ok(!events.includes('start:soundcloud'),'never report false SoundCloud playback');
+  assert.ok(!notices.some(s=>s.includes('SoundCloud playback progress confirmed')),'do not show misleading playing indicator');
+  remix.stop();
+}
+{
+  const {remix,events}=fixture({allowAutoplay:true});
+  const played=remix.play();
+  await wait(110);
+  const result=await played;
+  assert.equal(result.source,'soundcloud','position change confirms official SoundCloud playback');
+  assert.ok(events.includes('start:soundcloud'));
+  assert.ok(events.includes('complete:soundcloud'),'verified recording must complete then trigger conversation handoff');
+  assert.ok(events.indexOf('complete:soundcloud')>events.indexOf('start:soundcloud'));
   remix.stop();
 }
 console.log('FOOD_REMIX_STAGE_SMOKE_OK soft declines, remote Ring, stage once, explicit stop');
