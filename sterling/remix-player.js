@@ -56,10 +56,6 @@ global.createFoodRemixPlayer=function(cb){
       o.connect(g);g.connect(context.destination);o.start(t);o.stop(t+d+.01);
     }catch(e){}
   }
-  function stopBeat(){
-    clearInterval(beatTimer);beatTimer=null;
-    clearTimeout(beatEnd);beatEnd=null;
-  }
   function startBeat(){
     if(beatTimer)return;
     try{var ac=audioContext();if(ac&&ac.state==='suspended')ac.resume().catch(function(){})}catch(e){}
