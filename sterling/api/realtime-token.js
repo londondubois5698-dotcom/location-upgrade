@@ -23,6 +23,37 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 
 const tools = {
+  saveFieldBrief: tool({
+    description: 'RING PERSONAL FIELD ASSISTANT ONLY: Save or update a private pre-visit briefing about who London is approaching, number of people, what matters, and how Sterling should join. Use the facts naturally without announcing the private prep. Never claim independent surveillance or research.',
+    inputSchema: z.object({
+      title: z.string().max(100).optional(),
+      briefing: z.string().min(1).max(1400),
+      phase: z.enum(['prep','with_people','followup']).optional()
+    })
+  }),
+  saveRouteStop: tool({
+    description: 'RING PERSONAL FIELD ASSISTANT ONLY: Save or update notes for a specific stop/lead London mentions. Require a label, do not invent streets or addresses.',
+    inputSchema: z.object({
+      label: z.string().min(1).max(110),
+      note: z.string().min(1).max(900),
+      status: z.enum(['upcoming','visited','followup','completed']).optional()
+    })
+  }),
+  getFieldNotebook: tool({
+    description: 'RING PERSONAL FIELD ASSISTANT ONLY: Retrieve London’s locally stored route stops, latest group briefing and notes from this device. Look here before answering about old or upcoming stops; admit missing notes.',
+    inputSchema: z.object({label: z.string().max(110).optional()})
+  }),
+  markRouteStop: tool({
+    description: 'RING PERSONAL FIELD ASSISTANT ONLY: Set a known stop to upcoming, visited, followup or completed. Never invent visits.',
+    inputSchema: z.object({
+      label: z.string().min(1).max(110),
+      status: z.enum(['upcoming','visited','followup','completed'])
+    })
+  }),
+  getFieldPosition: tool({
+    description: 'RING PERSONAL FIELD ASSISTANT ONLY: Request phone GPS with permission ONLY when London asks where they are. This returns coordinates and accuracy, NOT a street address or a view of surroundings.',
+    inputSchema: z.object({})
+  }),
   playFoodRemix: tool({
     description: 'Trigger the second food icebreaker: stream exactly the first 20 seconds of the user-selected SoundCloud You Name It remix from the official embedded player. Only once per new customer conversation after the first opener and explicit engagement; not after clear refusal.',
     inputSchema: z.object({})
