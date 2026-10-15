@@ -1,0 +1,27 @@
+name: Titan Max Realtime Simulation
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'titan-max/**'
+      - '.github/workflows/titan-max-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  realtime-simulation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Titan dependencies
+        run: npm install --prefix titan-max
+      - name: Run realtime transport simulation
+        run: npm run smoke --prefix titan-max
+      - name: Build production frontend
+        run: npm run build --prefix titan-max

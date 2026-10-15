@@ -1,0 +1,18 @@
+{
+  "name": "Titan AI Assistant",
+  "short_name": "Titan",
+  "description": "London's standalone iPhone field AI assistant",
+  "start_url": "/titan/?standalone=1",
+  "scope": "/titan/",
+  "display": "standalone",
+  "background_color": "#050914",
+  "theme_color": "#050914",
+  "icons": [
+    {
+      "src": "/titan/icon.svg?v=2",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
