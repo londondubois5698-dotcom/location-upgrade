@@ -13,3 +13,17 @@ test('customer context reaches live socket without shadowing getter',()=>{let se
 function response(){return {headers:{},code:0,setHeader(k,v){this.headers[k]=v},status(c){this.code=c;return this},json(body){this.body=body;return this}};}
 test('token adapter rejects wrong origin and method before upstream access',async()=>{for(const [req,expected] of [[{method:'GET',headers:{}},405],[{method:'POST',headers:{host:'preview.example',origin:'https://other.example'}},403]]){const res=response();await token(req,res);assert.equal(res.code,expected);assert.equal(res.headers['Cache-Control'],'no-store');}});
 test('unavailable voice backend returns honest service failure',async t=>{t.mock.method(globalThis,'fetch',async()=>{throw new Error('offline')});const res=response();await token({method:'POST',headers:{host:'preview.example',origin:'https://preview.example'}},res);assert.equal(res.code,503);assert.match(res.body.error,/could not be reached/);});
+test('multiple AI tool calls share one follow-up response and rapid Speak taps cannot overlap',async t=>{
+ t.mock.timers.enable({apis:['setTimeout','setInterval']});
+ const previousWindow=globalThis.window,previousNavigator=Object.getOwnPropertyDescriptor(globalThis,'navigator'),previousWS=globalThis.WebSocket;
+ t.after(()=>{globalThis.window=previousWindow;Object.defineProperty(globalThis,'navigator',previousNavigator);globalThis.WebSocket=previousWS});
+ globalThis.window={AudioContext:class{async resume(){}async close(){}}};
+ Object.defineProperty(globalThis,'navigator',{configurable:true,value:{mediaDevices:{async getUserMedia(){throw Object.assign(new Error('No microphone'),{name:'NotFoundError'})}}}});
+ let socket;class Socket{constructor(){this.readyState=1;this.sent=[];socket=this}send(s){this.sent.push(JSON.parse(s))}close(){}}globalThis.WebSocket=Socket;
+ t.mock.method(globalThis,'fetch',async()=>({ok:true,json:async()=>({token:'temporary-test-token',url:'wss://test.invalid',tools:[]})}));
+ const v=new Voice({character:{conversation(){}},status(){},changed(){},tool:()=>({ok:true}),context:()=> '{}'});await v.connect();socket.onopen();const emit=m=>socket.onmessage({data:JSON.stringify(m)});emit({type:'session-updated'});assert.equal(v.state,'connected');assert.match(v.listeningStatus(),/No microphone/);
+ const responseCount=()=>socket.sent.filter(m=>m.type==='response-create').length;
+ assert.equal(responseCount(),1);v.ask('Again');assert.equal(responseCount(),1);
+ emit({type:'function-call-arguments-done',callId:'a',name:'saveContact',arguments:'{"field":"first","value":"Test"}'});emit({type:'function-call-arguments-done',callId:'b',name:'saveContact',arguments:'{"field":"last","value":"Customer"}'});assert.equal(responseCount(),1);emit({type:'response-done'});assert.equal(responseCount(),2);v.disconnect();
+});
+test('ending voice while microphone access is pending cannot restore listening state',async()=>{let finish;const states=[];const v=new Voice({character:{conversation:s=>states.push(s)},status(){},changed(){},tool(){},context:()=> '{}'});v.state='connected';v.enableMicrophone=()=>new Promise(r=>finish=r);const pending=v.toggleMic();v.disconnect();finish();await pending;assert.equal(v.state,'off');assert.equal(states.at(-1),'idle');});
